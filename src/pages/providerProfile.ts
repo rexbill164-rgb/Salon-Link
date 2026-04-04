@@ -5,9 +5,9 @@ export const providerProfilePage = (id: string) => `<!DOCTYPE html>
 <head>
 ${baseHead('Provider Profile', `
 <style>
-  .hero-cover { height:320px; background:linear-gradient(135deg,var(--c-dark) 0%,var(--c-mist) 100%); position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:100px; }
-  .avatar-ring { width:90px; height:90px; border-radius:26px; background:linear-gradient(135deg,var(--c-mist),var(--g-dim)); border:2px solid var(--g-border); display:flex; align-items:center; justify-content:center; font-size:40px; position:relative; }
-  .avatar-ring::after { content:''; position:absolute; inset:-3px; border-radius:28px; background:linear-gradient(135deg,var(--g-main),transparent,var(--g-main)); z-index:-1; }
+  .hero-cover { height:340px; position:relative; overflow:hidden; }
+  .hero-cover img { width:100%; height:100%; object-fit:cover; }
+  .avatar-ring { width:90px; height:90px; border-radius:26px; overflow:hidden; border:3px solid #FFFFFF; box-shadow:0 4px 20px rgba(160,120,48,0.2); position:relative; background:var(--g-dim); }
   .service-item { display:flex; align-items:center; justify-content:space-between; padding:18px 0; border-bottom:1px solid var(--i-faint); cursor:pointer; transition:padding-left 0.3s; }
   .service-item:hover { padding-left:6px; }
   .service-item:last-child { border-bottom:none; }
@@ -19,21 +19,25 @@ ${baseHead('Provider Profile', `
 </style>
 `)}
 </head>
-<body class="bg-grain">
+<body style="background:var(--c-deep);">
 ${navbar('')}
 
 <!-- ── HERO COVER ── -->
 <div class="hero-cover">
-  <div class="orb" style="width:400px;height:400px;background:radial-gradient(circle,rgba(201,168,76,0.08),transparent);top:-100px;right:-100px;"></div>
-  <div style="position:relative;z-index:1;">💇‍♀️</div>
-  <div class="bg-grid-fine" style="position:absolute;inset:0;opacity:0.5;"></div>
+  <img src="https://images.unsplash.com/photo-1560869713-7d0a29430803?w=1280&q=80" alt="Salon Cover" loading="lazy"/>
+  <div style="position:absolute;inset:0;background:linear-gradient(to bottom, transparent 50%, rgba(26,18,9,0.3) 100%);"></div>
+  <a href="/discover" style="position:absolute;top:20px;left:24px;display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.9);backdrop-filter:blur(10px);border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;color:var(--t-primary);text-decoration:none;transition:all 0.3s;" onmouseover="this.style.background='#FFFFFF'" onmouseout="this.style.background='rgba(255,255,255,0.9)'">
+    <i class="fas fa-arrow-left" style="font-size:10px;"></i> Back to Discover
+  </a>
 </div>
 
 <!-- ── PROFILE HEADER ── -->
 <div class="container" style="position:relative;">
   <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:-48px;margin-bottom:36px;flex-wrap:wrap;gap:16px;">
     <div style="display:flex;align-items:flex-end;gap:24px;">
-      <div class="avatar-ring">💇‍♀️</div>
+      <div class="avatar-ring">
+        <img src="https://images.unsplash.com/photo-1560869713-7d0a29430803?w=180&q=80" alt="Glam Studio GH" style="width:100%;height:100%;object-fit:cover;" loading="lazy"/>
+      </div>
       <div style="padding-bottom:6px;">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
           <h1 class="font-display" style="font-size:32px;font-weight:500;">Glam Studio GH</h1>
@@ -95,6 +99,7 @@ ${navbar('')}
       <!-- Services -->
       <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:36px;margin-bottom:28px;" class="reveal">
         <div class="eyebrow" style="margin-bottom:24px;">Services & Pricing</div>
+        <div id="services-grid">
         ${[
           {name:'Natural Twist',    dur:'90 min', price:'GHS 80',  popular:true},
           {name:'Box Braids',       dur:'3–4 hrs',price:'GHS 200', popular:false},
@@ -123,6 +128,7 @@ ${navbar('')}
             </div>
           </div>
         `).join('')}
+        </div>
       </div>
 
       <!-- Portfolio -->
@@ -163,6 +169,7 @@ ${navbar('')}
         </div>
 
         <!-- Individual reviews -->
+        <div id="reviews-list">
         ${[
           {name:'Akosua M.',  date:'2 days ago',  rating:5, comment:'Absolutely stunning silk press! She understood exactly what I wanted. Will definitely be back.'},
           {name:'Efua T.',    date:'1 week ago',  rating:5, comment:'Best box braids in Accra. Very neat, professional, and my style history was ready on arrival. Loved it!'},
@@ -182,6 +189,7 @@ ${navbar('')}
             <p style="font-size:13px;color:var(--t-secondary);line-height:1.8;font-style:italic;">"${r.comment}"</p>
           </div>
         `).join('')}
+        </div>
       </div>
     </div>
 
@@ -252,4 +260,58 @@ ${navbar('')}
 
 ${mobileNav('')}
 ${globalScripts()}
+<script>
+(function() {
+  var id = window.location.pathname.split('/').pop();
+  axios.get('/api/providers/' + id).then(function(res) {
+    var p = res.data.provider;
+    var services = res.data.services || [];
+    var reviews = res.data.reviews || [];
+    if (!p) return;
+    // Update name and bio
+    var nameEl = document.querySelector('.font-display[style*="font-size:38px"]');
+    if (nameEl) nameEl.textContent = p.business_name;
+    var bioEl = document.querySelector('[style*="line-height:1.8"][style*="font-size:15px"]');
+    if (bioEl) bioEl.textContent = p.bio || '';
+    // Update rating
+    var ratingEls = document.querySelectorAll('.font-display.gold-gradient[style*="font-size:48px"]');
+    if (ratingEls[0]) ratingEls[0].textContent = p.rating || '5.0';
+    // Update stats
+    document.querySelectorAll('[id="stat-reviews"]').forEach(function(e) { e.textContent = p.total_reviews; });
+    document.querySelectorAll('[id="stat-bookings"]').forEach(function(e) { e.textContent = p.total_bookings; });
+    // Update services grid
+    var svcGrid = document.getElementById('services-grid');
+    if (svcGrid && services.length) {
+      svcGrid.innerHTML = services.map(function(s) {
+        return '<div style="padding:20px;background:var(--c-surface);border:1px solid var(--i-faint);border-radius:14px;transition:border-color 0.3s;" onmouseover="this.style.borderColor=\'var(--g-border)\'" onmouseout="this.style.borderColor=\'var(--i-faint)\'">' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">' +
+            '<div style="font-size:14px;font-weight:600;">' + s.name + '</div>' +
+            '<div class="font-display gold-gradient" style="font-size:18px;">GHS ' + Math.round(s.price/100) + '</div>' +
+          '</div>' +
+          '<div style="font-size:12px;color:var(--t-muted);margin-bottom:12px;">' + (s.description || '') + '</div>' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+            '<span style="font-size:11px;color:var(--t-faint);">⏱ ' + s.duration_minutes + ' min</span>' +
+            '<a href="/book/' + id + '?service=' + s.id + '" class="btn-primary" style="padding:8px 18px;font-size:11px;">Book</a>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+    // Update reviews
+    var revList = document.getElementById('reviews-list');
+    if (revList && reviews.length) {
+      revList.innerHTML = reviews.map(function(r) {
+        return '<div style="padding:20px;border-bottom:1px solid var(--i-faint);">' +
+          '<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">' +
+            '<div style="width:38px;height:38px;border-radius:12px;background:var(--g-dim);border:1px solid var(--g-border);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--g-main);">' + (r.first_name || 'A').charAt(0) + '</div>' +
+            '<div><div style="font-size:13px;font-weight:700;">' + (r.first_name || '') + ' ' + (r.last_name || '') + '</div>' +
+              '<div style="color:var(--g-main);font-size:12px;">' + '★'.repeat(r.rating) + '</div>' +
+            '</div>' +
+          '</div>' +
+          '<p style="font-size:13px;color:var(--t-secondary);line-height:1.6;">' + (r.comment || '') + '</p>' +
+        '</div>';
+      }).join('');
+    }
+  }).catch(function(e) { console.error('Provider load error', e); });
+})();
+</script>
 </body></html>`

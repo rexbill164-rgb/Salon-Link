@@ -34,10 +34,10 @@ ${baseHead('Provider Dashboard', `
     <!-- Logo -->
     <div style="padding:24px 20px;border-bottom:1px solid var(--i-faint);">
       <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
-        <div style="width:32px;height:32px;border:1px solid var(--g-border);border-radius:9px;background:var(--g-dim);display:flex;align-items:center;justify-content:center;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--g-main)"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+        <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--g-deep),var(--g-main));display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(160,120,48,0.3);">
+          <i class="fas fa-star" style="color:#FFFFFF;font-size:12px;"></i>
         </div>
-        <span style="font-family:'Playfair Display',serif;font-size:17px;letter-spacing:0.08em;">SALONLINK</span>
+        <span style="font-family:'Playfair Display',serif;font-size:17px;letter-spacing:0.08em;color:var(--t-primary);">SALONLINK</span>
       </a>
     </div>
 
@@ -173,13 +173,14 @@ ${baseHead('Provider Dashboard', `
             <div class="eyebrow">Today's Appointments</div>
             <button onclick="showSection('appts',document.getElementById('nav-appts'))" class="btn-ghost" style="padding:8px 18px;font-size:11px;">View All</button>
           </div>
+          <div id="today-appts">
           ${[
             {time:'9:00 AM', name:'Akosua Mensah',  service:'Natural Twist',    status:'confirmed', price:'GHS 80'},
             {time:'11:30 AM',name:'Efua Tetteh',    service:'Box Braids',       status:'confirmed', price:'GHS 200'},
             {time:'2:00 PM', name:'Ama Darko',      service:'Silk Press',       status:'pending',   price:'GHS 120'},
             {time:'4:00 PM', name:'Abena Owusu',    service:'Loc Retwist',      status:'confirmed', price:'GHS 100'},
           ].map(a=>`
-            <div class="appt-row" onclick="showToast('Opening appointment details','info')">
+            <div class="appt-row">
               <div class="mini-avatar">${a.name[0]}</div>
               <div style="flex:1;min-width:0;">
                 <div style="font-size:13px;font-weight:600;margin-bottom:2px;">${a.name}</div>
@@ -192,6 +193,7 @@ ${baseHead('Provider Dashboard', `
               <span class="font-display" style="font-size:16px;color:var(--g-main);min-width:70px;text-align:right;">${a.price}</span>
             </div>
           `).join('')}
+          </div>
         </div>
 
         <!-- Recent reviews -->
@@ -411,8 +413,8 @@ document.addEventListener('DOMContentLoaded', function() {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { color: 'rgba(247,242,234,0.04)' }, ticks: { color: '#7A6E62', font: { size: 11 } } },
-          y: { grid: { color: 'rgba(247,242,234,0.04)' }, ticks: { color: '#7A6E62', font: { size: 11 }, callback: v => 'GHS ' + v } }
+          x: { grid: { color: 'rgba(58,47,30,0.08)' }, ticks: { color: '#8A7A62', font: { size: 11 } } },
+          y: { grid: { color: 'rgba(58,47,30,0.08)' }, ticks: { color: '#8A7A62', font: { size: 11 }, callback: v => 'GHS ' + v } }
         }
       }
     });
@@ -438,5 +440,97 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+// Load real provider dashboard data
+(function() {
+  var token = localStorage.getItem('sl_token');
+  var user = JSON.parse(localStorage.getItem('sl_user') || '{}');
+  if (!token || user.role !== 'provider') { window.location.href = '/login'; return; }
+
+  axios.get('/api/providers/me/dashboard', { headers: { Authorization: 'Bearer ' + token } }).then(function(res) {
+    var d = res.data;
+    var p = d.provider;
+    var stats = d.stats;
+
+    // Update sidebar name
+    var nameEl = document.getElementById('sb-name');
+    if (nameEl) nameEl.textContent = p.business_name;
+
+    // Update KPI cards
+    var kpis = document.querySelectorAll('.kpi-card');
+    if (kpis[0]) { var v = kpis[0].querySelector('.font-display'); if(v) v.textContent = stats.today_bookings; }
+    if (kpis[1]) { var v = kpis[1].querySelector('.font-display'); if(v) v.textContent = 'GHS ' + Math.round(stats.week_revenue/100); }
+    if (kpis[2]) { var v = kpis[2].querySelector('.font-display'); if(v) v.textContent = stats.total_clients; }
+    if (kpis[3]) { var v = kpis[3].querySelector('.font-display'); if(v) v.textContent = stats.rating || '5.0'; }
+
+    // Update today's appointments
+    var apptList = document.getElementById('today-appts');
+    if (apptList) {
+      var appts = d.today_appointments || [];
+      if (!appts.length) {
+        apptList.innerHTML = '<div style="padding:32px;text-align:center;color:var(--t-muted);font-size:13px;">No appointments today ✦</div>';
+      } else {
+        apptList.innerHTML = appts.map(function(a) {
+          var badgeClass = a.status === 'confirmed' ? 'badge-verified' : a.status === 'pending' ? 'badge-pending' : 'badge-success';
+          return '<div class="appt-row">' +
+            '<div class="mini-avatar">' + (a.first_name||'C').charAt(0) + '</div>' +
+            '<div style="flex:1;">' +
+              '<div style="font-size:13px;font-weight:700;">' + (a.first_name||'') + ' ' + (a.last_name||'') + '</div>' +
+              '<div style="font-size:11px;color:var(--t-muted);">' + a.service_name + ' · ' + a.booking_time + '</div>' +
+            '</div>' +
+            '<span class="badge ' + badgeClass + '" style="font-size:10px;">' + a.status + '</span>' +
+            '<div style="display:flex;gap:6px;">' +
+              (a.status === 'pending' ? '<button onclick="updateAppt(' + a.id + ',\'confirmed\')" class="btn-primary" style="padding:6px 14px;font-size:10px;">Confirm</button>' : '') +
+              '<button onclick="updateAppt(' + a.id + ',\'completed\')" class="btn-outline" style="padding:6px 14px;font-size:10px;">Done</button>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      }
+    }
+
+    // Update pending bookings tab
+    var pendingList = document.getElementById('pending-bookings');
+    if (pendingList) {
+      var pending = d.pending_bookings || [];
+      if (!pending.length) {
+        pendingList.innerHTML = '<div style="padding:32px;text-align:center;color:var(--t-muted);">No pending bookings</div>';
+      } else {
+        pendingList.innerHTML = pending.map(function(b) {
+          return '<tr>' +
+            '<td>' + (b.first_name||'') + ' ' + (b.last_name||'') + '</td>' +
+            '<td>' + b.service_name + '</td>' +
+            '<td>' + b.booking_date + ' ' + b.booking_time + '</td>' +
+            '<td>GHS ' + Math.round(b.total_amount/100) + '</td>' +
+            '<td><span class="badge badge-pending">pending</span></td>' +
+            '<td>' +
+              '<button onclick="updateAppt(' + b.id + ',\'confirmed\')" class="btn-primary" style="padding:6px 12px;font-size:10px;margin-right:4px;">Confirm</button>' +
+              '<button onclick="updateAppt(' + b.id + ',\'cancelled\')" style="padding:6px 12px;font-size:10px;background:none;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);border-radius:8px;cursor:pointer;">Decline</button>' +
+            '</td>' +
+          '</tr>';
+        }).join('');
+      }
+    }
+
+    // Accepting bookings toggle
+    var toggle = document.getElementById('accepting-toggle');
+    if (toggle) {
+      toggle.checked = p.is_accepting_bookings === 1;
+      toggle.onchange = function() {
+        axios.put('/api/providers/me', { is_accepting_bookings: this.checked }, { headers: { Authorization: 'Bearer ' + token } })
+          .then(function() { showToast('Status updated ✦', 'success'); })
+          .catch(function() { showToast('Update failed', 'error'); });
+      };
+    }
+  }).catch(function(e) {
+    if (e.response && e.response.status === 401) window.location.href = '/login';
+  });
+})();
+
+function updateAppt(id, status) {
+  var token = localStorage.getItem('sl_token');
+  axios.patch('/api/bookings/' + id + '/status', { status: status }, { headers: { Authorization: 'Bearer ' + token } })
+    .then(function() { showToast('Booking ' + status + ' ✦', 'success'); setTimeout(function() { location.reload(); }, 1000); })
+    .catch(function() { showToast('Update failed', 'error'); });
+}
 </script>
 </body></html>`

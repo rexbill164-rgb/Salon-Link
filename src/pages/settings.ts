@@ -3,7 +3,7 @@ import { baseHead, navbar, mobileNav, globalScripts } from '../utils/layout'
 export const settingsPage = () => `<!DOCTYPE html>
 <html lang="en">
 <head>${baseHead('Settings')}</head>
-<body class="bg-grain">
+<body style="background:var(--c-deep);">
 ${navbar('settings')}
 
 <div style="padding:48px 0 120px;">
@@ -17,29 +17,34 @@ ${navbar('settings')}
     <!-- Profile card -->
     <div style="background:var(--c-surface);border:1px solid var(--g-border);border-radius:var(--r-xl);padding:36px;margin-bottom:24px;" class="afu-1">
       <div style="display:flex;align-items:center;gap:20px;margin-bottom:32px;flex-wrap:wrap;">
-        <div style="width:72px;height:72px;border-radius:22px;background:linear-gradient(135deg,var(--c-mist),var(--g-dim));border:2px solid var(--g-border);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:28px;color:var(--g-main);cursor:pointer;transition:all 0.3s;" onclick="showToast('Photo upload coming soon','info')">K</div>
+        <div id="user-avatar" style="width:72px;height:72px;border-radius:22px;background:linear-gradient(135deg,var(--c-mist),var(--g-dim));border:2px solid var(--g-border);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:28px;color:var(--g-main);cursor:pointer;transition:all 0.3s;" onclick="showToast('Photo upload coming soon','info')">U</div>
         <div>
-          <div class="font-display" style="font-size:22px;margin-bottom:4px;">Demo Customer</div>
-          <div style="font-size:13px;color:var(--t-secondary);">customer@demo.com</div>
+          <div id="user-name" class="font-display" style="font-size:22px;margin-bottom:4px;">Your Name</div>
+          <div id="user-email" style="font-size:13px;color:var(--t-secondary);">Loading...</div>
           <button onclick="showToast('Photo upload coming soon','info')" class="btn-ghost" style="margin-top:10px;font-size:11px;padding:7px 16px;">Change Photo</button>
         </div>
       </div>
       <div class="eyebrow" style="margin-bottom:20px;">Personal Information</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-        ${[
-          {label:'First Name',val:'Demo',   type:'text'},
-          {label:'Last Name', val:'Customer',type:'text'},
-          {label:'Email',     val:'customer@demo.com',type:'email'},
-          {label:'Phone',     val:'+233 20 000 0000',type:'tel'},
-        ].map(f=>`
-          <div class="form-group">
-            <label class="form-label">${f.label}</label>
-            <input type="${f.type}" class="input" value="${f.val}"/>
-          </div>
-        `).join('')}
+        <div class="form-group">
+          <label class="form-label">First Name</label>
+          <input id="inp-first" type="text" class="input" placeholder="First name"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last Name</label>
+          <input id="inp-last" type="text" class="input" placeholder="Last name"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input id="inp-email" type="email" class="input" placeholder="Email" readonly style="opacity:0.6;cursor:not-allowed;"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input id="inp-phone" type="tel" class="input" placeholder="+233 XX XXX XXXX"/>
+        </div>
       </div>
       <div style="display:flex;gap:12px;margin-top:8px;">
-        <button onclick="showToast('Profile updated ✦','success')" class="btn-primary" style="padding:13px 32px;font-size:12px;">Save Changes</button>
+        <button onclick="saveProfile()" class="btn-primary" style="padding:13px 32px;font-size:12px;">Save Changes</button>
         <button onclick="showToast('Changes discarded','info')" class="btn-ghost" style="padding:12px 24px;font-size:12px;">Discard</button>
       </div>
     </div>
@@ -109,6 +114,44 @@ function toggleSwitch(i) {
   document.getElementById('toggle-'+i).style.background = states[i] ? 'var(--g-main)' : 'var(--c-mist)';
   document.getElementById('thumb-'+i).style.left = states[i] ? '23px' : '3px';
   showToast(states[i] ? 'Notifications enabled' : 'Notifications disabled', states[i] ? 'success' : 'info');
+}
+
+// Load user info into settings form
+document.addEventListener('DOMContentLoaded', function() {
+  var user = JSON.parse(localStorage.getItem('sl_user') || '{}');
+  if (!user.id) { window.location.href = '/login'; return; }
+
+  // Populate avatar initial
+  var avatarEl = document.getElementById('user-avatar');
+  if (avatarEl) avatarEl.textContent = (user.first_name || 'U')[0].toUpperCase();
+
+  // Populate name shown in card
+  var nameEl = document.getElementById('user-name');
+  if (nameEl) nameEl.textContent = (user.first_name || '') + ' ' + (user.last_name || '');
+  var emailEl = document.getElementById('user-email');
+  if (emailEl) emailEl.textContent = user.email || '';
+
+  // Populate input fields by id
+  var fn = document.getElementById('inp-first'); if (fn) fn.value = user.first_name || '';
+  var ln = document.getElementById('inp-last');  if (ln) ln.value = user.last_name  || '';
+  var em = document.getElementById('inp-email'); if (em) em.value = user.email      || '';
+  var ph = document.getElementById('inp-phone'); if (ph) ph.value = user.phone      || '';
+});
+
+function saveProfile() {
+  var token = localStorage.getItem('sl_token');
+  if (!token) { window.location.href = '/login'; return; }
+  var data = {
+    first_name: document.getElementById('inp-first').value,
+    last_name:  document.getElementById('inp-last').value,
+    phone:      document.getElementById('inp-phone').value,
+  };
+  axios.put('/api/auth/profile', data, { headers: { Authorization: 'Bearer ' + token } })
+    .then(function(res) {
+      localStorage.setItem('sl_user', JSON.stringify(res.data.user));
+      showToast('Profile updated ✦', 'success');
+    })
+    .catch(function() { showToast('Could not save profile', 'error'); });
 }
 </script>
 </body></html>`

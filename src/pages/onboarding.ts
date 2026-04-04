@@ -10,7 +10,7 @@ export const onboardingPage = () => `<!DOCTYPE html>
   .upload-zone:hover { border-color:var(--g-main); background:var(--g-dim); }
 </style>
 `)}</head>
-<body class="bg-grain">
+<body style="background:var(--c-deep);">
 
 <!-- Top bar -->
 <div style="padding:24px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--i-faint);">
@@ -149,7 +149,7 @@ export const onboardingPage = () => `<!DOCTYPE html>
 
     <div style="display:flex;gap:12px;">
       <button onclick="goObStep(2)" class="btn-ghost" style="padding:14px 32px;">Back</button>
-      <button onclick="goObStep(4)" class="btn-primary" style="padding:14px 48px;font-size:13px;">Finish Setup <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+      <button onclick="submitOnboarding()" class="btn-primary" style="padding:14px 48px;font-size:13px;">Finish Setup <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
     </div>
   </div>
 
@@ -207,6 +207,38 @@ function addService() {
 
 function removeService(btn) {
   btn.closest('.service-entry').remove();
+}
+
+async function submitOnboarding() {
+  var token = localStorage.getItem('sl_token');
+  if (!token) { window.location.href = '/login'; return; }
+  var bizName = document.getElementById('biz-name').value.trim();
+  var bio     = document.getElementById('bio').value.trim();
+  var phone   = document.getElementById('biz-phone').value.trim();
+  var loc     = document.getElementById('location').value.trim();
+  if (!bizName) { showToast('Please enter your business name', 'error'); goObStep(2); return; }
+  try {
+    // Update provider profile
+    await axios.put('/api/providers/me', {
+      business_name: bizName, bio: bio,
+      phone: phone, address: loc
+    }, { headers: { Authorization: 'Bearer ' + token } });
+    // Add services
+    var entries = document.querySelectorAll('.service-entry');
+    var servicePs = Array.from(entries).map(function(e) {
+      var inputs = e.querySelectorAll('input');
+      return axios.post('/api/providers/me/services', {
+        name: inputs[0] && inputs[0].value,
+        price: inputs[1] && parseInt(inputs[1].value) * 100,
+        duration: inputs[2] && inputs[2].value
+      }, { headers: { Authorization: 'Bearer ' + token } }).catch(function(){});
+    });
+    await Promise.all(servicePs);
+    goObStep(4);
+    showToast('Profile saved! Under review ✦', 'success');
+  } catch(e) {
+    showToast('Could not save. Please try again.', 'error');
+  }
 }
 </script>
 </body></html>`

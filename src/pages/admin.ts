@@ -16,8 +16,8 @@ ${baseHead('Admin Panel', `
   .kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--accent, var(--g-main)); }
   .admin-table { width:100%; border-collapse:collapse; }
   .admin-table th { font-size:10px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--t-muted); padding:14px 20px; border-bottom:1px solid var(--i-faint); text-align:left; }
-  .admin-table td { padding:14px 20px; border-bottom:1px solid rgba(247,242,234,0.04); font-size:13px; color:var(--t-secondary); }
-  .admin-table tr:hover td { background:var(--i-ghost); }
+  .admin-table td { padding:14px 20px; border-bottom:1px solid var(--i-faint); font-size:13px; color:var(--t-secondary); }
+  .admin-table tr:hover td { background:var(--c-raise); }
   @media(max-width:768px){ .admin-sidebar{display:none;} }
 </style>
 `)}
@@ -29,10 +29,10 @@ ${baseHead('Admin Panel', `
   <!-- ═══ SIDEBAR ═══ -->
   <aside class="admin-sidebar">
     <div style="padding:22px 18px;border-bottom:1px solid var(--i-faint);display:flex;align-items:center;gap:10px;">
-      <div style="width:32px;height:32px;border:1px solid var(--g-border);border-radius:9px;background:var(--g-dim);display:flex;align-items:center;justify-content:center;">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--g-main)"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+      <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--g-deep),var(--g-main));display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(160,120,48,0.3);">
+        <i class="fas fa-star" style="color:#FFFFFF;font-size:12px;"></i>
       </div>
-      <span style="font-family:'Playfair Display',serif;font-size:16px;letter-spacing:0.08em;">SALONLINK</span>
+      <span style="font-family:'Playfair Display',serif;font-size:16px;letter-spacing:0.08em;color:var(--t-primary);">SALONLINK</span>
     </div>
     <div style="padding:12px 10px;border-bottom:1px solid var(--i-faint);">
       <div style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(192,72,72,0.08);border:1px solid rgba(192,72,72,0.2);border-radius:12px;">
@@ -166,29 +166,9 @@ ${baseHead('Admin Panel', `
         </div>
         <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
           <table class="admin-table">
-            <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Joined</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>
-              ${[
-                {name:'Akosua Mensah',email:'akosua@example.com',role:'customer',joined:'Mar 2026',active:true},
-                {name:'Kofi Asante',  email:'kofi@example.com',  role:'provider',joined:'Jan 2026',active:true},
-                {name:'Demo Customer',email:'customer@demo.com', role:'customer',joined:'Apr 2026',active:true},
-                {name:'Yaa Boateng',  email:'yaa@example.com',   role:'customer',joined:'Feb 2026',active:false},
-                {name:'Demo Provider',email:'provider@demo.com', role:'provider',joined:'Apr 2026',active:true},
-              ].map(u=>`
-                <tr>
-                  <td style="font-weight:600;color:var(--t-primary);">${u.name}</td>
-                  <td>${u.email}</td>
-                  <td><span class="badge ${u.role==='provider'?'badge-gold':'badge-pending'}" style="font-size:9px;">${u.role}</span></td>
-                  <td>${u.joined}</td>
-                  <td><span class="badge ${u.active?'badge-verified':'badge-error'}" style="font-size:9px;">${u.active?'Active':'Suspended'}</span></td>
-                  <td>
-                    <div style="display:flex;gap:6px;">
-                      <button onclick="showToast('User details opened','info')" class="btn-ghost" style="padding:6px 14px;font-size:10px;">View</button>
-                      <button onclick="showToast('${u.active?'User suspended':'User reactivated'}','${u.active?'error':'success'}')" style="padding:6px 14px;border-radius:100px;font-size:10px;cursor:pointer;background:transparent;border:1px solid ${u.active?'rgba(192,72,72,0.3)':'rgba(61,170,110,0.3)'};color:${u.active?'var(--s-red)':'var(--s-green)'};">${u.active?'Suspend':'Restore'}</button>
-                    </div>
-                  </td>
-                </tr>
-              `).join('')}
+            <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Verified</th><th>Joined</th><th>Actions</th></tr></thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">Loading users...</td></tr>
             </tbody>
           </table>
         </div>
@@ -197,26 +177,11 @@ ${baseHead('Admin Panel', `
       <!-- ── KYC QUEUE ── -->
       <div id="admin-kyc" class="admin-section">
         <div class="eyebrow" style="margin-bottom:24px;">KYC Verification Queue</div>
-        <div style="display:flex;flex-direction:column;gap:16px;">
-          ${[
-            {name:'Adjoa Mensah',    biz:'Glam Studio GH',     submitted:'2 hours ago',  status:'pending'},
-            {name:'Kweku Sarpong',   biz:'KutzByKweku',         submitted:'5 hours ago',  status:'pending'},
-            {name:'Efua Tetteh',     biz:'Efua Glam',           submitted:'1 day ago',    status:'review'},
-          ].map(k=>`
-            <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
-              <div style="width:50px;height:50px;border-radius:16px;background:var(--g-dim);border:1px solid var(--g-border);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">🪪</div>
-              <div style="flex:1;min-width:200px;">
-                <div style="font-size:15px;font-weight:700;margin-bottom:3px;">${k.name}</div>
-                <div style="font-size:13px;color:var(--t-secondary);">${k.biz} · Submitted ${k.submitted}</div>
-              </div>
-              <span class="badge badge-pending">${k.status}</span>
-              <div style="display:flex;gap:10px;">
-                <button onclick="showToast('Opening KYC documents for ${k.name}','info')" class="btn-ghost" style="font-size:11px;padding:8px 20px;">Review</button>
-                <button onclick="this.parentElement.parentElement.style.opacity='0.4';showToast('KYC approved for ${k.name} ✓','success')" class="btn-primary" style="font-size:11px;padding:8px 22px;">Approve</button>
-                <button onclick="this.parentElement.parentElement.style.opacity='0.4';showToast('KYC rejected for ${k.name}','error')" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);">Reject</button>
-              </div>
-            </div>
-          `).join('')}
+        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
+          <table class="admin-table">
+            <thead><tr><th>Business</th><th>Owner</th><th>Email</th><th>Category</th><th>Actions</th></tr></thead>
+            <tbody id="kyc-tbody"><tr><td colspan="5" style="text-align:center;padding:32px;color:var(--t-muted);">Loading KYC queue...</td></tr></tbody>
+          </table>
         </div>
       </div>
 
@@ -245,8 +210,24 @@ ${baseHead('Admin Panel', `
       </div>
 
       <!-- ── Remaining sections ── -->
-      <div id="admin-providers" class="admin-section"><div class="eyebrow">Providers</div><p style="color:var(--t-secondary);margin-top:16px;">Provider management panel loading...</p></div>
-      <div id="admin-bookings"  class="admin-section"><div class="eyebrow">Bookings</div><p style="color:var(--t-secondary);margin-top:16px;">Booking management panel loading...</p></div>
+      <div id="admin-providers" class="admin-section">
+        <div class="eyebrow" style="margin-bottom:20px;">Manage Providers</div>
+        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
+          <table class="admin-table">
+            <thead><tr><th>Business</th><th>Email</th><th>Category</th><th>Rating</th><th>KYC</th><th>Actions</th></tr></thead>
+            <tbody id="providers-tbody"><tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="admin-bookings" class="admin-section">
+        <div class="eyebrow" style="margin-bottom:20px;">All Bookings</div>
+        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
+          <table class="admin-table">
+            <thead><tr><th>#ID</th><th>Customer</th><th>Provider</th><th>Service</th><th>Date & Time</th><th>Amount</th><th>Status</th></tr></thead>
+            <tbody id="bookings-tbody"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t-muted);">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
       <div id="admin-payments"  class="admin-section"><div class="eyebrow">Payments</div><p style="color:var(--t-secondary);margin-top:16px;">Payment management panel loading...</p></div>
       <div id="admin-reports"   class="admin-section"><div class="eyebrow">Reports</div><p style="color:var(--t-secondary);margin-top:16px;">Reports & analytics panel loading...</p></div>
 
@@ -284,8 +265,8 @@ document.addEventListener('DOMContentLoaded', function() {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { color: 'rgba(247,242,234,0.04)' }, ticks: { color: '#7A6E62', font: { size: 10 } } },
-          y: { grid: { color: 'rgba(247,242,234,0.04)' }, ticks: { color: '#7A6E62', font: { size: 10 }, callback: v => 'GHS ' + (v/1000) + 'K' } }
+          x: { grid: { color: 'rgba(58,47,30,0.08)' }, ticks: { color: '#8A7A62', font: { size: 10 } } },
+          y: { grid: { color: 'rgba(58,47,30,0.08)' }, ticks: { color: '#8A7A62', font: { size: 10 }, callback: v => 'GHS ' + (v/1000) + 'K' } }
         }
       }
     });
@@ -307,5 +288,115 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+
+// Load real admin data
+(function() {
+  var token = localStorage.getItem('sl_token');
+  var user = JSON.parse(localStorage.getItem('sl_user') || '{}');
+  if (!token || user.role !== 'admin') { window.location.href = '/login'; return; }
+  var h = { Authorization: 'Bearer ' + token };
+
+  // Load stats
+  axios.get('/api/admin/stats', { headers: h }).then(function(res) {
+    var s = res.data.stats;
+    var kpis = document.querySelectorAll('.kpi');
+    var vals = [s.total_users, s.total_providers, s.total_bookings, 'GHS ' + Math.round(s.total_revenue/100), s.pending_kyc, s.today_bookings];
+    kpis.forEach(function(k, i) {
+      var v = k.querySelector('.font-display');
+      if (v && vals[i] !== undefined) v.textContent = vals[i];
+    });
+  }).catch(function(){});
+
+  // Load users table
+  axios.get('/api/admin/users', { headers: h }).then(function(res) {
+    var tbody = document.getElementById('users-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = (res.data.users || []).map(function(u) {
+      return '<tr>' +
+        '<td>' + u.first_name + ' ' + u.last_name + '</td>' +
+        '<td>' + u.email + '</td>' +
+        '<td><span class="badge ' + (u.role==='admin'?'badge-error':u.role==='provider'?'badge-verified':'badge-pending') + '">' + u.role + '</span></td>' +
+        '<td><span class="badge ' + (u.is_verified?'badge-verified':'badge-pending') + '">' + (u.is_verified?'Yes':'No') + '</span></td>' +
+        '<td>' + new Date(u.created_at).toLocaleDateString() + '</td>' +
+        '<td><button onclick="toggleUser(' + u.id + ')" class="btn-ghost" style="padding:5px 12px;font-size:10px;color:' + (u.is_active?'var(--s-red)':'var(--s-green)') + ';">' + (u.is_active?'Deactivate':'Activate') + '</button></td>' +
+      '</tr>';
+    }).join('');
+  }).catch(function(){});
+
+  // Load providers/KYC table
+  axios.get('/api/admin/providers', { headers: h }).then(function(res) {
+    var tbody = document.getElementById('providers-tbody');
+    var kyctbody = document.getElementById('kyc-tbody');
+    var rows = (res.data.providers || []);
+    if (tbody) {
+      tbody.innerHTML = rows.map(function(p) {
+        return '<tr>' +
+          '<td>' + p.business_name + '</td>' +
+          '<td>' + p.email + '</td>' +
+          '<td>' + p.service_category.replace('_',' ') + '</td>' +
+          '<td>' + p.rating + ' ★</td>' +
+          '<td><span class="badge ' + (p.kyc_status==='approved'?'badge-verified':'badge-pending') + '">' + p.kyc_status + '</span></td>' +
+          '<td>' +
+            '<button onclick="approveKyc(' + p.id + ')" class="btn-primary" style="padding:5px 12px;font-size:10px;margin-right:4px;">Approve</button>' +
+            '<button onclick="rejectKyc(' + p.id + ')" style="padding:5px 12px;font-size:10px;background:none;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);border-radius:8px;cursor:pointer;">Reject</button>' +
+          '</td>' +
+        '</tr>';
+      }).join('');
+    }
+    if (kyctbody) {
+      var pending = rows.filter(function(p) { return p.kyc_status === 'pending'; });
+      kyctbody.innerHTML = pending.length ? pending.map(function(p) {
+        return '<tr>' +
+          '<td>' + p.business_name + '</td>' +
+          '<td>' + p.first_name + ' ' + p.last_name + '</td>' +
+          '<td>' + p.email + '</td>' +
+          '<td>' + p.service_category.replace('_',' ') + '</td>' +
+          '<td>' +
+            '<button onclick="approveKyc(' + p.id + ')" class="btn-primary" style="padding:6px 14px;font-size:10px;margin-right:4px;">✓ Approve</button>' +
+            '<button onclick="rejectKyc(' + p.id + ')" style="padding:6px 14px;font-size:10px;background:none;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);border-radius:8px;cursor:pointer;">✗ Reject</button>' +
+          '</td>' +
+        '</tr>';
+      }).join('') : '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--t-muted);">No pending KYC submissions ✦</td></tr>';
+    }
+  }).catch(function(){});
+
+  // Load bookings
+  axios.get('/api/admin/bookings', { headers: h }).then(function(res) {
+    var tbody = document.getElementById('bookings-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = (res.data.bookings || []).slice(0, 50).map(function(b) {
+      return '<tr>' +
+        '<td>#' + b.id + '</td>' +
+        '<td>' + b.customer_first_name + ' ' + b.customer_last_name + '</td>' +
+        '<td>' + b.business_name + '</td>' +
+        '<td>' + b.service_name + '</td>' +
+        '<td>' + b.booking_date + ' ' + b.booking_time + '</td>' +
+        '<td>GHS ' + Math.round(b.total_amount/100) + '</td>' +
+        '<td><span class="badge ' + (b.status==='completed'?'badge-success':b.status==='confirmed'?'badge-verified':b.status==='cancelled'?'badge-error':'badge-pending') + '">' + b.status + '</span></td>' +
+      '</tr>';
+    }).join('');
+  }).catch(function(){});
+})();
+
+function toggleUser(id) {
+  var token = localStorage.getItem('sl_token');
+  axios.patch('/api/admin/users/' + id + '/toggle', {}, { headers: { Authorization: 'Bearer ' + token } })
+    .then(function(r) { showToast(r.data.message + ' ✦', 'success'); setTimeout(function(){location.reload();},1000); })
+    .catch(function() { showToast('Action failed', 'error'); });
+}
+
+function approveKyc(id) {
+  var token = localStorage.getItem('sl_token');
+  axios.patch('/api/admin/providers/' + id + '/kyc', { kyc_status: 'approved', is_verified: true }, { headers: { Authorization: 'Bearer ' + token } })
+    .then(function() { showToast('Provider approved ✦', 'success'); setTimeout(function(){location.reload();},1000); })
+    .catch(function() { showToast('Action failed', 'error'); });
+}
+
+function rejectKyc(id) {
+  var token = localStorage.getItem('sl_token');
+  axios.patch('/api/admin/providers/' + id + '/kyc', { kyc_status: 'rejected', is_verified: false }, { headers: { Authorization: 'Bearer ' + token } })
+    .then(function() { showToast('Provider rejected', 'info'); setTimeout(function(){location.reload();},1000); })
+    .catch(function() { showToast('Action failed', 'error'); });
+}
 </script>
 </body></html>`

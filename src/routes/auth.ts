@@ -148,6 +148,45 @@ auth.get('/me', async (c) => {
   }
 })
 
+// PUT /api/auth/profile — update user profile
+auth.put('/profile', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) return c.json({ success: false, error: 'Unauthorized' }, 401)
+    const payload = await verify(authHeader.split(' ')[1], 'salonlink_jwt_secret_2026') as any
+    const { first_name, last_name, phone } = await c.req.json()
+    await c.env.DB.prepare(
+      'UPDATE users SET first_name = ?, last_name = ?, phone = ? WHERE id = ?'
+    ).bind(first_name, last_name, phone, payload.sub).run()
+    const user = await c.env.DB.prepare(
+      'SELECT id, email, phone, first_name, last_name, role, avatar_url, is_verified FROM users WHERE id = ?'
+    ).bind(payload.sub).first()
+    return c.json({ success: true, user })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// PUT /api/auth/password — change password
+auth.put('/password', async (c) => {
+  try {
+    const authHeader = c.req.header('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) return c.json({ success: false, error: 'Unauthorized' }, 401)
+    const payload = await verify(authHeader.split(' ')[1], 'salonlink_jwt_secret_2026') as any
+    const { current_password, new_password } = await c.req.json()
+    if (!current_password || !new_password) return c.json({ success: false, error: 'Both passwords required' }, 400)
+    if (new_password.length < 8) return c.json({ success: false, error: 'Password must be at least 8 characters' }, 400)
+    const user = await c.env.DB.prepare('SELECT password_hash FROM users WHERE id = ?').bind(payload.sub).first() as any
+    const valid = await verifyPassword(current_password, user.password_hash)
+    if (!valid) return c.json({ success: false, error: 'Current password is incorrect' }, 401)
+    const newHash = await hashPassword(new_password)
+    await c.env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, payload.sub).run()
+    return c.json({ success: true, message: 'Password updated successfully' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
 // POST /api/auth/logout
 auth.post('/logout', async (c) => {
   return c.json({ success: true, message: 'Logged out successfully' })

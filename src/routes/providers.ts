@@ -111,14 +111,46 @@ providers.put('/me', async (c) => {
     }
 
     const body = await c.req.json()
-    const { bio, address, city, price_from, price_to, is_accepting_bookings } = body
+    const { bio, address, city, price_from, price_to, is_accepting_bookings, business_name, phone } = body
 
     await c.env.DB.prepare(`
-      UPDATE providers SET bio = ?, address = ?, city = ?, price_from = ?, price_to = ?,
-      is_accepting_bookings = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?
-    `).bind(bio, address, city, price_from, price_to, is_accepting_bookings ? 1 : 0, user.sub).run()
+      UPDATE providers SET
+        bio = COALESCE(?, bio),
+        business_name = COALESCE(?, business_name),
+        address = COALESCE(?, address),
+        city = COALESCE(?, city),
+        price_from = COALESCE(?, price_from),
+        price_to = COALESCE(?, price_to),
+        is_accepting_bookings = COALESCE(?, is_accepting_bookings),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE user_id = ?
+    `).bind(bio||null, business_name||null, address||null, city||null, price_from||null, price_to||null,
+            is_accepting_bookings !== undefined ? (is_accepting_bookings ? 1 : 0) : null, user.sub).run()
+
+    // Update phone on users table if provided
+    if (phone) {
+      await c.env.DB.prepare('UPDATE users SET phone = ? WHERE id = ?').bind(phone, user.sub).run()
+    }
 
     return c.json({ success: true, message: 'Profile updated' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// POST /api/providers/me/services — add a service
+providers.post('/me/services', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user || user.role !== 'provider') return c.json({ success: false, error: 'Unauthorized' }, 401)
+    const provider = await c.env.DB.prepare('SELECT id FROM providers WHERE user_id = ?').bind(user.sub).first() as any
+    if (!provider) return c.json({ success: false, error: 'Provider not found' }, 404)
+    const { name, price, duration } = await c.req.json()
+    if (!name) return c.json({ success: false, error: 'Service name required' }, 400)
+    const result = await c.env.DB.prepare(
+      'INSERT INTO services (provider_id, name, price, duration_minutes, is_active) VALUES (?, ?, ?, ?, 1)'
+    ).bind(provider.id, name, price || 0, duration || '60 min').run()
+    return c.json({ success: true, id: result.meta.last_row_id })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }

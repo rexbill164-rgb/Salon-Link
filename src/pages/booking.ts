@@ -26,7 +26,7 @@ ${baseHead('Book Appointment', `
 </style>
 `)}
 </head>
-<body class="bg-grain">
+<body style="background:var(--c-deep);">
 ${navbar('')}
 
 <div style="padding:48px 0 120px;">
@@ -169,7 +169,7 @@ ${navbar('')}
               <div class="form-group">
                 <label class="form-label">Phone Number</label>
                 <div style="display:flex;gap:10px;">
-                  <div style="background:var(--c-mid);border:1px solid rgba(247,242,234,0.08);border-radius:var(--r-md);padding:15px 16px;font-size:14px;white-space:nowrap;display:flex;align-items:center;gap:8px;color:var(--t-secondary);">🇬🇭 +233</div>
+                  <div style="background:var(--c-mid);border:1.5px solid var(--i-faint);border-radius:var(--r-md);padding:15px 16px;font-size:14px;white-space:nowrap;display:flex;align-items:center;gap:8px;color:var(--t-secondary);">🇬🇭 +233</div>
                   <input type="tel" id="b-phone" class="input" placeholder="20 000 0000" style="flex:1;"/>
                 </div>
               </div>
@@ -258,7 +258,7 @@ ${navbar('')}
           <div id="momo-input" style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:24px;margin-bottom:28px;">
             <div class="eyebrow" style="margin-bottom:16px;">MTN Mobile Money Number</div>
             <div style="display:flex;gap:10px;">
-              <div style="background:var(--c-mid);border:1px solid rgba(247,242,234,0.08);border-radius:var(--r-md);padding:15px 16px;font-size:14px;white-space:nowrap;display:flex;align-items:center;gap:8px;color:var(--t-secondary);">🇬🇭 +233</div>
+              <div style="background:var(--c-mid);border:1.5px solid var(--i-faint);border-radius:var(--r-md);padding:15px 16px;font-size:14px;white-space:nowrap;display:flex;align-items:center;gap:8px;color:var(--t-secondary);">🇬🇭 +233</div>
               <input type="tel" id="momo-num" class="input" placeholder="24 000 0000" style="flex:1;"/>
             </div>
             <div style="display:flex;gap:8px;margin-top:12px;padding:12px;background:var(--c-raise);border-radius:10px;">
@@ -457,29 +457,79 @@ async function confirmBooking() {
   try {
     var token = getToken();
     var res = await axios.post('/api/bookings', {
-      providerId: ${id},
-      service: selectedService.name,
-      date: selectedDate || '5 April 2026',
-      time: selectedTime,
-      paymentMethod: payWhen === 'now' ? 'mobile_money' : 'on_site',
-      totalAmount: parseInt(selectedService.price.replace(/[^0-9]/g,'')),
+      providerId: parseInt(id),
+      service_id: selectedService ? selectedService.id : null,
+      booking_date: selectedDate || new Date().toISOString().split('T')[0],
+      booking_time: selectedTime,
       notes: document.getElementById('b-notes')?.value || ''
-    }, token ? {headers:{Authorization:'Bearer '+token}} : {});
+    }, { headers: { Authorization: 'Bearer ' + token } });
 
-    showToast('Booking confirmed! ✦ Check your phone for confirmation.', 'success');
+    showToast('Booking confirmed! ✦ Check your dashboard for details.', 'success');
+    if (payWhen === 'now' && res.data.booking_id) {
+      var token2 = localStorage.getItem('sl_token');
+      await axios.post('/api/payments/mock-success', { booking_id: res.data.booking_id }, { headers: { Authorization: 'Bearer ' + token2 } });
+    }
     setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
   } catch(err) {
-    // Simulate success for demo
-    showToast('Booking confirmed! ✦ You will receive a confirmation shortly.', 'success');
-    setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
+    var msg = err.response?.data?.error || 'Booking failed. Please try again.';
+    showToast(msg, 'error');
   }
 }
 
-// Pre-select date: today
+// Load real provider data and services
 (function(){
-  var today = new Date();
+  var id = window.location.pathname.split('/').pop().split('?')[0];
+  var params = new URLSearchParams(window.location.search);
+  var preSelectService = params.get('service');
+
+  axios.get('/api/providers/' + id).then(function(res) {
+    var p = res.data.provider;
+    var services = res.data.services || [];
+    if (!p) return;
+    // Update provider name in header
+    var nameEl = document.querySelector('.font-display[style*="32px"]');
+    if (nameEl) nameEl.textContent = p.business_name;
+    // Update services list
+    var svcContainer = document.getElementById('services-select');
+    if (svcContainer && services.length) {
+      svcContainer.innerHTML = services.map(function(s) {
+        var isPreSelected = preSelectService && String(s.id) === preSelectService;
+        return '<div class="service-item' + (isPreSelected ? ' selected' : '') + '" data-id="' + s.id + '" data-name="' + s.name + '" data-price="' + s.price + '" data-duration="' + s.duration_minutes + '" onclick="selectSvc(this)">' +
+          '<div style="display:flex;justify-content:space-between;">' +
+            '<div style="font-size:14px;font-weight:600;">' + s.name + '</div>' +
+            '<div class="font-display gold-gradient" style="font-size:17px;">GHS ' + Math.round(s.price/100) + '</div>' +
+          '</div>' +
+          '<div style="font-size:12px;color:var(--t-muted);margin-top:4px;">' + (s.description || '') + ' · ' + s.duration_minutes + ' min</div>' +
+        '</div>';
+      }).join('');
+      if (preSelectService) {
+        var preEl = svcContainer.querySelector('[data-id="' + preSelectService + '"]');
+        if (preEl) preEl.click();
+      } else {
+        svcContainer.querySelector('.service-item')?.click();
+      }
+    }
+    // Load availability for today
+    var today = new Date().toISOString().split('T')[0];
+    return axios.get('/api/providers/' + id + '/availability?date=' + today);
+  }).then(function(res) {
+    if (!res) return;
+    var slots = res.data.slots || [];
+    var slotContainer = document.getElementById('time-slots');
+    if (slotContainer) {
+      slotContainer.innerHTML = slots.map(function(s, i) {
+        return '<div class="time-chip' + (!s.available ? ' busy' : '') + (i===0 && s.available ? ' selected' : '') + '"' +
+          (s.available ? ' onclick="selectTime(this,\'' + s.time + '\')"' : '') + '>' + s.time + '</div>';
+      }).join('');
+      // Set initial selectedTime
+      var first = slots.find(function(s) { return s.available; });
+      if (first) { window.selectedTime = first.time; }
+    }
+  }).catch(function(e) { console.error('Booking page load error', e); });
+
+  // Pre-select first cal-day
   var days = document.querySelectorAll('.cal-day:not(.past)');
-  if(days.length > 0){ days[0].click(); }
+  if (days.length > 0) days[0].click();
 })();
 </script>
 </body></html>`
