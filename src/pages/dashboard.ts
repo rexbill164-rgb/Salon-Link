@@ -1,137 +1,171 @@
-import { baseHead, navbar, mobileNav, toastScript } from '../utils/layout'
+import { baseHead, navbar, mobileNav, globalScripts } from '../utils/layout'
 
 export const dashboardPage = () => `<!DOCTYPE html>
 <html lang="en">
-<head>${baseHead('My Bookings')}</head>
-<body>
+<head>
+${baseHead('My Bookings', `
+<style>
+  .booking-card { background:var(--c-surface); border:1px solid var(--i-faint); border-radius:var(--r-xl); padding:24px; transition:all 0.4s var(--ease-luxury); }
+  .booking-card:hover { border-color:var(--g-border); transform:translateY(-3px); }
+  .booking-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; border-radius:2px 0 0 2px; }
+  .booking-card { position:relative; }
+  .bc-confirmed::before { background:var(--s-green); }
+  .bc-pending::before { background:var(--g-main); }
+  .bc-completed::before { background:var(--s-blue); }
+  .bc-cancelled::before { background:var(--s-red); }
+  .tab-btn { padding:10px 24px; border-radius:100px; font-size:12px; font-weight:700; letter-spacing:0.06em; cursor:pointer; transition:all 0.3s; border:1px solid var(--i-faint); background:transparent; color:var(--t-secondary); }
+  .tab-btn.active { background:var(--g-dim); border-color:var(--g-border); color:var(--g-main); }
+</style>
+`)}
+</head>
+<body class="bg-grain">
 ${navbar('dashboard')}
-<div style="min-height:calc(100vh-64px);background:#0F0A1E;padding:32px 16px 80px">
-  <div class="max-w-4xl mx-auto">
-    <div class="flex items-center justify-between mb-8">
+
+<div style="padding:48px 0 120px;">
+  <div class="container">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:52px;flex-wrap:wrap;gap:20px;" class="afu">
       <div>
-        <h1 class="font-display font-bold text-3xl">My <span class="gradient-text">Bookings</span></h1>
-        <p style="color:#9D8EC0" id="greeting">Manage your appointments</p>
+        <div class="eyebrow" style="margin-bottom:16px;">Your Account</div>
+        <h1 class="display-lg font-display">My <em class="gold-gradient">Bookings</em></h1>
       </div>
-      <a href="/discover" class="gradient-btn px-5 py-2.5 rounded-xl text-white font-semibold text-sm flex items-center gap-2">
-        <i class="fas fa-plus"></i> New Booking
+      <a href="/discover" class="btn-primary" style="font-size:12px;padding:13px 30px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Booking
       </a>
     </div>
 
     <!-- Stats row -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:48px;" class="afu-1">
       ${[
-        {label:'Total Bookings',val:'12',icon:'fas fa-calendar-check',color:'#7C3AED'},
-        {label:'Completed',val:'8',icon:'fas fa-check-circle',color:'#10B981'},
-        {label:'Upcoming',val:'2',icon:'fas fa-clock',color:'#3B82F6'},
-        {label:'Total Spent',val:'GHS 680',icon:'fas fa-wallet',color:'#F59E0B'},
+        {val:'12',  label:'Total Bookings',icon:'📅'},
+        {val:'8',   label:'Completed',     icon:'✅'},
+        {val:'2',   label:'Upcoming',      icon:'🔜'},
+        {val:'4.8', label:'Avg Rating Given',icon:'⭐'},
       ].map(s=>`
-        <div class="stat-card p-4 rounded-2xl">
-          <i class="${s.icon} text-xl mb-2 block" style="color:${s.color}"></i>
-          <div class="font-bold text-xl">${s.val}</div>
-          <div class="text-xs" style="color:#9D8EC0">${s.label}</div>
+        <div class="stat-card">
+          <div style="font-size:24px;margin-bottom:10px;">${s.icon}</div>
+          <div class="font-display gold-gradient" style="font-size:28px;margin-bottom:4px;">${s.val}</div>
+          <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-faint);">${s.label}</div>
         </div>
       `).join('')}
     </div>
 
-    <!-- Tabs -->
-    <div class="flex gap-1 mb-6" style="background:#1A1033;border-radius:12px;padding:4px;border:1px solid #2D2250;width:fit-content">
-      ${['All','Upcoming','Completed','Cancelled'].map((tab,i)=>
-        `<button onclick="filterBookings('${tab.toLowerCase()}',this)" class="booking-tab px-5 py-2.5 rounded-lg text-sm font-medium transition ${i===0?'active':''}\" style="${i===0?'background:#7C3AED;color:white':'color:#9D8EC0'}">${tab}</button>`
-      ).join('')}
+    <!-- Filter tabs -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:36px;" class="afu-2">
+      ${['All','Upcoming','Completed','Cancelled'].map((t,i)=>`<button onclick="filterBookings('${t}',this)" class="tab-btn ${i===0?'active':''}">${t}</button>`).join('')}
     </div>
 
-    <!-- Bookings List -->
-    <div id="bookings-list" class="flex flex-col gap-4">
-      ${generateBookingCards()}
+    <!-- Bookings list -->
+    <div id="bookings-list" style="display:flex;flex-direction:column;gap:16px;">
+      ${[
+        {id:1,provider:'Glam Studio GH',  emoji:'💇‍♀️',service:'Natural Twist',   date:'Fri Apr 5, 2026', time:'9:00 AM', price:'GHS 80',  status:'confirmed', rating:null},
+        {id:2,provider:'Glam Studio GH',  emoji:'💇‍♀️',service:'Box Braids',      date:'Mon Apr 8, 2026', time:'2:00 PM', price:'GHS 200', status:'pending',   rating:null},
+        {id:3,provider:'KutzByKofi',       emoji:'✂️',  service:'Taper Fade',       date:'Wed Mar 27, 2026',time:'11:00 AM',price:'GHS 40',  status:'completed', rating:5},
+        {id:4,provider:'Nails by Abena',   emoji:'💅',  service:'Gel Manicure',     date:'Sat Mar 22, 2026',time:'1:00 PM', price:'GHS 60',  status:'completed', rating:5},
+        {id:5,provider:'Relax & Revive',   emoji:'💆',  service:'Swedish Massage',  date:'Mon Mar 10, 2026',time:'3:00 PM', price:'GHS 120', status:'completed', rating:4},
+        {id:6,provider:'Faces by Ama',     emoji:'💄',  service:'Evening Glam',     date:'Sat Feb 15, 2026',time:'6:00 PM', price:'GHS 150', status:'cancelled', rating:null},
+      ].map(b=>`
+        <div class="booking-card bc-${b.status}">
+          <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+            <!-- Provider -->
+            <div style="width:56px;height:56px;border-radius:18px;background:linear-gradient(135deg,var(--c-dark),var(--c-mist));border:1px solid var(--i-faint);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">${b.emoji}</div>
+            <div style="flex:1;min-width:180px;">
+              <div style="font-size:15px;font-weight:700;margin-bottom:3px;">${b.provider}</div>
+              <div style="font-size:13px;color:var(--t-secondary);">${b.service}</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--t-faint)" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span style="font-size:11px;color:var(--t-muted);">${b.date} · ${b.time}</span>
+              </div>
+            </div>
+            <!-- Price & status -->
+            <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+              <div style="text-align:right;">
+                <div class="font-display gold-gradient" style="font-size:22px;">${b.price}</div>
+                ${b.rating ? `<div class="stars" style="font-size:12px;margin-top:3px;">${'★'.repeat(b.rating)}</div>` : ''}
+              </div>
+              <span class="badge ${b.status==='confirmed'?'badge-verified':b.status==='pending'?'badge-pending':b.status==='completed'?'badge-success':'badge-error'}">${b.status}</span>
+              <div style="display:flex;gap:8px;">
+                ${b.status==='upcoming'||b.status==='confirmed'||b.status==='pending'
+                  ? `<button onclick="showToast('Cancellation sent','info')" class="btn-ghost" style="padding:8px 16px;font-size:11px;color:var(--s-red);border-color:rgba(192,72,72,0.2);">Cancel</button>`
+                  : ''}
+                ${b.status==='completed' && !b.rating
+                  ? `<button onclick="showRatingModal(${b.id})" class="btn-outline" style="padding:8px 16px;font-size:11px;">Rate</button>`
+                  : ''}
+                <a href="/provider/${b.id}" class="btn-ghost" style="padding:8px 16px;font-size:11px;">View</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('')}
     </div>
+
   </div>
 </div>
-${mobileNav('dashboard')}
-${toastScript()}
-<script>
-async function loadBookings() {
-  try {
-    const token = getToken();
-    const res = await axios.get('/api/bookings', { headers: token ? {Authorization:'Bearer '+token} : {} });
-    if (res.data && res.data.length > 0) renderBookings(res.data);
-  } catch(e) {}
-}
-function renderBookings(data) {
-  const statusColors = {pending:'#F59E0B',confirmed:'#3B82F6',completed:'#10B981',cancelled:'#EF4444'};
-  const list = document.getElementById('bookings-list');
-  list.innerHTML = data.map(b => \`
-    <div class="booking-card p-5 rounded-2xl" data-status="\${b.status}" style="background:#1A1033;border:1px solid #2D2250">
-      <div class="flex items-start justify-between mb-3">
-        <div>
-          <h3 class="font-semibold">\${b.providerName}</h3>
-          <p class="text-sm" style="color:#9D8EC0">\${b.service}</p>
-        </div>
-        <span class="text-xs px-3 py-1 rounded-full font-medium" style="background:\${statusColors[b.status]}22;color:\${statusColors[b.status]}">\${b.status.charAt(0).toUpperCase()+b.status.slice(1)}</span>
-      </div>
-      <div class="flex gap-4 text-sm mb-4" style="color:#9D8EC0">
-        <span><i class="fas fa-calendar mr-1"></i>\${b.date}</span>
-        <span><i class="fas fa-clock mr-1"></i>\${b.time}</span>
-        <span><i class="fas fa-tag mr-1" style="color:#7C3AED"></i>GHS \${b.total}</span>
-      </div>
-      <div class="flex gap-2">
-        \${b.status==='pending'||b.status==='confirmed'?'<button onclick="cancelBooking(\\''+b.id+'\\',this)" class="px-4 py-2 rounded-xl text-sm font-medium" style="background:#EF444422;color:#EF4444;border:1px solid #EF444433">Cancel</button>':''}
-        \${b.status==='completed'?'<a href="/provider/'+b.providerId+'" class="px-4 py-2 rounded-xl text-sm font-medium gradient-btn text-white">Rebook</a>':''}
-        \${b.status==='completed'?'<button onclick="showReview(\\''+b.id+'\\',\\''+b.providerName+'\\')" class="px-4 py-2 rounded-xl text-sm font-medium" style="background:#7C3AED22;color:#C4B5FD;border:1px solid #7C3AED33">Rate</button>':''}
-      </div>
+
+<!-- Rating Modal -->
+<div id="rating-modal" class="modal-overlay" style="display:none;" onclick="if(this===event.target)closeModal()">
+  <div class="modal">
+    <button onclick="closeModal()" style="position:absolute;top:20px;right:20px;background:none;border:none;color:var(--t-faint);font-size:22px;cursor:pointer;">×</button>
+    <div class="eyebrow" style="margin-bottom:16px;">Rate Your Experience</div>
+    <h3 class="font-display" style="font-size:22px;margin-bottom:24px;">How was your appointment?</h3>
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:24px;" id="star-rating">
+      ${[1,2,3,4,5].map(n=>`<span onclick="setRating(${n})" style="font-size:36px;cursor:pointer;transition:transform 0.2s;color:var(--i-faint);" id="star-${n}" onmouseover="hoverRating(${n})" onmouseout="unhoverRating()">★</span>`).join('')}
     </div>
-  \`).join('');
-}
+    <textarea id="review-text" class="input" rows="3" placeholder="Tell us about your experience..." style="margin-bottom:20px;resize:none;height:80px;"></textarea>
+    <button onclick="submitRating()" class="btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:13px;">Submit Review</button>
+  </div>
+</div>
+
+${mobileNav('dashboard')}
+${globalScripts()}
+<script>
+var currentRating = 0;
+
 function filterBookings(status, btn) {
-  document.querySelectorAll('.booking-tab').forEach(b=>{b.style.background='transparent';b.style.color='#9D8EC0';});
-  btn.style.background='#7C3AED';btn.style.color='white';
-  document.querySelectorAll('.booking-card').forEach(c=>{
-    if(status==='all'||c.dataset.status===status) c.style.display='block';
-    else c.style.display='none';
-  });
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  showToast('Showing: ' + status, 'info');
 }
-async function cancelBooking(id, btn) {
-  if(!confirm('Cancel this booking?')) return;
-  try {
-    await axios.post('/api/bookings/'+id+'/cancel', {}, {headers:{Authorization:'Bearer '+getToken()}});
-    showToast('Booking cancelled','info');
-    loadBookings();
-  } catch(e) { showToast('Cancelled (demo)','info'); btn.closest('.booking-card').querySelector('[data-status]');}
+
+function showRatingModal(id) {
+  var m = document.getElementById('rating-modal');
+  m.style.display = 'flex';
+  setTimeout(() => m.classList.add('open'), 10);
 }
-function showReview(id, name) {
-  const rating = prompt('Rate '+name+' from 1-5 stars:');
-  if(rating) { showToast('Thanks for your review! ⭐','success'); }
+
+function closeModal() {
+  var m = document.getElementById('rating-modal');
+  m.classList.remove('open');
+  setTimeout(() => m.style.display = 'none', 300);
 }
-const user = getUser();
-if(user.name) document.getElementById('greeting').textContent = 'Welcome back, '+user.name.split(' ')[0]+'!';
-loadBookings();
+
+function setRating(n) {
+  currentRating = n;
+  for (var i = 1; i <= 5; i++) {
+    document.getElementById('star-' + i).style.color = i <= n ? 'var(--g-main)' : 'var(--i-faint)';
+  }
+}
+
+function hoverRating(n) {
+  for (var i = 1; i <= 5; i++) {
+    document.getElementById('star-' + i).style.color = i <= n ? 'var(--g-light)' : 'var(--i-faint)';
+    document.getElementById('star-' + i).style.transform = i <= n ? 'scale(1.15)' : 'scale(1)';
+  }
+}
+
+function unhoverRating() {
+  for (var i = 1; i <= 5; i++) {
+    document.getElementById('star-' + i).style.color = i <= currentRating ? 'var(--g-main)' : 'var(--i-faint)';
+    document.getElementById('star-' + i).style.transform = 'scale(1)';
+  }
+}
+
+function submitRating() {
+  if (!currentRating) { showToast('Please select a rating', 'error'); return; }
+  showToast('Review submitted! Thank you ✦', 'success');
+  closeModal();
+}
 </script>
 </body></html>`
-
-function generateBookingCards() {
-  const bookings = [
-    {id:'SL-10001',provider:'Glam Studio GH',service:'Natural Hair Twist',date:'Tomorrow',time:'2:00 PM',total:82,status:'confirmed',providerId:1},
-    {id:'SL-10002',provider:'KutzByKofi',service:'Fade Cut',date:'Apr 10, 2025',time:'10:00 AM',total:42,status:'pending',providerId:2},
-    {id:'SL-10003',provider:'Nails by Abena',service:'Gel Manicure',date:'Mar 28, 2025',time:'11:00 AM',total:62,status:'completed',providerId:3},
-  ]
-  const colors: Record<string,string> = {pending:'#F59E0B',confirmed:'#3B82F6',completed:'#10B981',cancelled:'#EF4444'}
-  return bookings.map(b=>`
-    <div class="booking-card p-5 rounded-2xl" data-status="${b.status}" style="background:#1A1033;border:1px solid #2D2250">
-      <div class="flex items-start justify-between mb-3">
-        <div>
-          <h3 class="font-semibold">${b.provider}</h3>
-          <p class="text-sm" style="color:#9D8EC0">${b.service}</p>
-        </div>
-        <span class="text-xs px-3 py-1 rounded-full font-medium capitalize" style="background:${colors[b.status]}22;color:${colors[b.status]}">${b.status}</span>
-      </div>
-      <div class="flex flex-wrap gap-4 text-sm mb-4" style="color:#9D8EC0">
-        <span><i class="fas fa-calendar mr-1"></i>${b.date}</span>
-        <span><i class="fas fa-clock mr-1"></i>${b.time}</span>
-        <span><i class="fas fa-tag mr-1" style="color:#7C3AED"></i>GHS ${b.total}</span>
-      </div>
-      <div class="flex gap-2 flex-wrap">
-        ${b.status==='pending'||b.status==='confirmed' ? `<button class="px-4 py-2 rounded-xl text-sm font-medium" style="background:#EF444422;color:#EF4444;border:1px solid #EF444433">Cancel</button>` : ''}
-        ${b.status==='completed' ? `<a href="/provider/${b.providerId}" class="gradient-btn px-4 py-2 rounded-xl text-white text-sm font-medium">Rebook</a><button onclick="showToast('Rate & review submitted! ⭐','success')" class="px-4 py-2 rounded-xl text-sm font-medium" style="background:#7C3AED22;color:#C4B5FD;border:1px solid #7C3AED33">Rate</button>` : ''}
-      </div>
-    </div>
-  `).join('')
-}

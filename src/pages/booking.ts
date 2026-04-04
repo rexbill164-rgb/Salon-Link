@@ -1,385 +1,485 @@
-import { baseHead, navbar, toastScript } from '../utils/layout'
+import { baseHead, navbar, mobileNav, globalScripts } from '../utils/layout'
 
-export const bookingPage = () => `<!DOCTYPE html>
+export const bookingPage = (id: string) => `<!DOCTYPE html>
 <html lang="en">
-<head>${baseHead('Book Appointment')}</head>
-<body>
-${navbar()}
-<div style="min-height:calc(100vh - 64px);background:#0F0A1E;padding:32px 16px 80px">
-  <div class="max-w-2xl mx-auto">
-    <div class="mb-8">
-      <a href="/provider/1" class="text-sm flex items-center gap-2 mb-4" style="color:#9D8EC0"><i class="fas fa-arrow-left"></i> Back to Profile</a>
-      <h1 class="font-display font-bold text-3xl mb-1">Book Appointment</h1>
-      <p style="color:#9D8EC0">Glam Studio GH · East Legon, Accra</p>
+<head>
+${baseHead('Book Appointment', `
+<style>
+  .booking-layout { display:grid; grid-template-columns:1fr 360px; gap:40px; align-items:flex-start; }
+  @media(max-width:900px){ .booking-layout { grid-template-columns:1fr; } }
+  .step-header { display:flex; align-items:center; gap:16px; margin-bottom:48px; }
+  .time-chip { padding:11px 18px; border-radius:12px; background:var(--c-raise); border:1px solid var(--i-faint); font-size:13px; font-weight:600; cursor:pointer; transition:all 0.25s; text-align:center; white-space:nowrap; }
+  .time-chip:hover { border-color:var(--g-border); color:var(--g-main); }
+  .time-chip.selected { background:var(--g-dim); border-color:var(--g-main); color:var(--g-main); box-shadow:0 4px 16px rgba(201,168,76,0.15); }
+  .time-chip.busy { opacity:0.35; cursor:not-allowed; text-decoration:line-through; }
+  .service-select-item { display:flex; align-items:center; gap:16px; padding:18px; background:var(--c-raise); border:1px solid var(--i-faint); border-radius:var(--r-md); cursor:pointer; transition:all 0.3s; }
+  .service-select-item:hover { border-color:var(--g-border); }
+  .service-select-item.selected { border-color:var(--g-main); background:rgba(201,168,76,0.08); box-shadow:inset 0 0 0 1px rgba(201,168,76,0.2); }
+  .pay-method { display:flex; align-items:center; gap:16px; padding:20px; background:var(--c-raise); border:1px solid var(--i-faint); border-radius:var(--r-md); cursor:pointer; transition:all 0.3s; }
+  .pay-method:hover { border-color:var(--g-border); }
+  .pay-method.selected { border-color:var(--g-main); background:rgba(201,168,76,0.07); }
+  .cal-day { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.25s; }
+  .cal-day:hover { background:var(--g-dim); color:var(--g-main); }
+  .cal-day.selected { background:var(--g-main); color:var(--c-void); box-shadow:0 4px 14px rgba(201,168,76,0.35); }
+  .cal-day.today { border:1px solid var(--g-border); color:var(--g-main); }
+  .cal-day.past { opacity:0.3; cursor:not-allowed; }
+</style>
+`)}
+</head>
+<body class="bg-grain">
+${navbar('')}
+
+<div style="padding:48px 0 120px;">
+  <div class="container">
+
+    <!-- PAGE HEADER -->
+    <div style="margin-bottom:48px;" class="afu">
+      <a href="/provider/${id}" style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--t-secondary);text-decoration:none;margin-bottom:24px;transition:color 0.2s;" onmouseover="this.style.color='var(--g-main)'" onmouseout="this.style.color='var(--t-secondary)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back to Glam Studio GH
+      </a>
+      <div class="eyebrow" style="margin-bottom:16px;">Appointment Booking</div>
+      <h1 class="display-lg font-display">Book Your <em class="gold-gradient">Experience</em></h1>
     </div>
 
-    <!-- Step Indicators -->
-    <div class="flex items-center gap-2 mb-10">
-      ${[{n:1,l:'Service'},{n:2,l:'Date & Time'},{n:3,l:'Details'},{n:4,l:'Payment'}].map(s=>`
-        <div class="flex items-center ${s.n<4?'flex-1':''}">
-          <div class="flex flex-col items-center">
-            <div id="step-ind-${s.n}" class="step-indicator w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition ${s.n===1?'active':''}\" style="${s.n===1?'background:#7C3AED;color:white':'background:#1A1033;border:2px solid #2D2250;color:#9D8EC0'}">${s.n}</div>
-            <span class="text-xs mt-1 hidden sm:block" style="color:#9D8EC0">${s.l}</span>
+    <!-- STEP PROGRESS -->
+    <div id="step-progress" style="display:flex;align-items:center;gap:0;margin-bottom:60px;" class="afu-1">
+      ${[
+        {n:1,label:'Service'},
+        {n:2,label:'Date & Time'},
+        {n:3,label:'Details'},
+        {n:4,label:'Payment'},
+      ].map((s,i,arr) => `
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+            <div class="step-node ${i===0?'active':'pending'}" id="step-node-${s.n}">${s.n}</div>
+            <span style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-faint);" id="step-label-${s.n}">${s.label}</span>
           </div>
-          ${s.n<4?`<div id="step-line-${s.n}" style="flex:1;height:2px;background:#2D2250;margin:0 4px;margin-bottom:20px"></div>`:''}
+          ${i < arr.length-1 ? `<div class="step-line" id="step-line-${s.n}" style="width:80px;margin-bottom:18px;"></div>` : ''}
         </div>
       `).join('')}
     </div>
 
-    <!-- STEP 1: Service Selection -->
-    <div id="step-1" class="booking-step active">
-      <div style="background:#1A1033;border:1px solid #2D2250;border-radius:24px;padding:28px">
-        <h2 class="font-semibold text-xl mb-6">Choose a Service</h2>
-        <div class="flex flex-col gap-3" id="service-list">
-          ${[
-            {id:'s1',name:'Natural Hair Twist',desc:'Full twist with treatment',price:80,duration:'2-3 hrs'},
-            {id:'s2',name:'Box Braids (Medium)',desc:'Medium box braids, any length',price:150,duration:'4-5 hrs'},
-            {id:'s3',name:'Loc Retwist',desc:'Professional retwist + sheen',price:60,duration:'1-2 hrs'},
-            {id:'s4',name:'Silk Press',desc:'Silk press + trim',price:100,duration:'2 hrs'},
-            {id:'s5',name:'Ghana Weaving',desc:'Traditional Ghana weaving',price:120,duration:'3-4 hrs'},
-            {id:'s6',name:'Hair Coloring',desc:'Full color or highlights',price:200,duration:'3-5 hrs'},
-          ].map(s=>`
-            <label class="service-option flex items-center justify-between p-4 rounded-xl cursor-pointer transition" style="background:#0F0A1E;border:2px solid #2D2250" onclick="selectService('${s.id}','${s.name}',${s.price},'${s.duration}')">
-              <div class="flex items-center gap-3">
-                <input type="radio" name="service" value="${s.id}" style="accent-color:#7C3AED" class="w-5 h-5"/>
-                <div>
-                  <p class="font-medium">${s.name}</p>
-                  <p class="text-sm" style="color:#9D8EC0">${s.desc} · <i class="fas fa-clock"></i> ${s.duration}</p>
+    <div class="booking-layout">
+
+      <!-- LEFT: Steps content -->
+      <div>
+
+        <!-- ─ STEP 1: Service ─ -->
+        <div id="step1" style="animation:fadeUp 0.5s var(--ease-luxury) both;">
+          <div class="eyebrow" style="margin-bottom:24px;">Choose Your Service</div>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:40px;">
+            ${[
+              {name:'Natural Twist',    dur:'90 min', price:'GHS 80',  popular:true},
+              {name:'Box Braids',       dur:'3–4 hrs',price:'GHS 200', popular:false},
+              {name:'Silk Press',       dur:'2 hrs',  price:'GHS 120', popular:false},
+              {name:'Loc Retwist',      dur:'1.5 hrs',price:'GHS 100', popular:false},
+              {name:'Protective Braids',dur:'2.5 hrs',price:'GHS 150', popular:false},
+              {name:'Colour Treatment', dur:'2–3 hrs',price:'GHS 180', popular:false},
+            ].map((s,i)=>`
+              <div class="service-select-item ${i===0?'selected':''}" onclick="selectService(this,'${s.name}','${s.price}','${s.dur}')">
+                <div style="width:44px;height:44px;border-radius:14px;background:var(--g-dim);border:1px solid var(--g-border);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">✦</div>
+                <div style="flex:1;">
+                  <div style="display:flex;align-items:center;gap:9px;margin-bottom:4px;">
+                    <span style="font-size:14px;font-weight:600;">${s.name}</span>
+                    ${s.popular ? '<span class="badge badge-gold" style="font-size:9px;">Most Popular</span>' : ''}
+                  </div>
+                  <div style="font-size:12px;color:var(--t-muted);">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:3px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    ${s.dur}
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <span class="font-display gold-gradient" style="font-size:20px;">${s.price}</span>
+                  <div style="width:20px;height:20px;border-radius:50%;border:1px solid var(--i-faint);display:flex;align-items:center;justify-content:center;transition:all 0.2s;" class="sel-dot ${i===0?'':''}">
+                    ${i===0 ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--g-main)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+                  </div>
                 </div>
               </div>
-              <span class="font-bold" style="color:#7C3AED">GHS ${s.price}</span>
-            </label>
-          `).join('')}
-        </div>
-        <button onclick="goToStep(2)" class="w-full gradient-btn mt-6 py-4 rounded-xl text-white font-bold text-base">
-          Continue <i class="fas fa-arrow-right ml-2"></i>
-        </button>
-      </div>
-    </div>
-
-    <!-- STEP 2: Date & Time -->
-    <div id="step-2" class="booking-step" style="display:none">
-      <div style="background:#1A1033;border:1px solid #2D2250;border-radius:24px;padding:28px">
-        <h2 class="font-semibold text-xl mb-6">Select Date & Time</h2>
-
-        <!-- Month nav -->
-        <div class="flex items-center justify-between mb-4">
-          <button onclick="prevMonth()" class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#0F0A1E;border:1px solid #2D2250"><i class="fas fa-chevron-left text-sm"></i></button>
-          <span id="cal-month" class="font-semibold">April 2025</span>
-          <button onclick="nextMonth()" class="w-9 h-9 rounded-lg flex items-center justify-center" style="background:#0F0A1E;border:1px solid #2D2250"><i class="fas fa-chevron-right text-sm"></i></button>
-        </div>
-        <!-- Calendar -->
-        <div id="calendar" class="grid grid-cols-7 gap-1 mb-6">
-          ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div class="text-center text-xs font-medium py-2" style="color:#9D8EC0">${d}</div>`).join('')}
-        </div>
-
-        <!-- Time slots -->
-        <h3 class="font-semibold mb-3">Available Times <span id="selected-date-label" style="color:#7C3AED;font-size:14px"></span></h3>
-        <div class="grid grid-cols-4 gap-2 mb-6" id="time-slots">
-          ${['8:00 AM','9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM','6:00 PM']
-            .map((t,i) => `<button onclick="selectTime('${t}',this)" class="time-slot py-2 px-1 rounded-lg text-xs font-medium transition ${i===1||i===4?'opacity-40 cursor-not-allowed':'hover:border-purple-500'}\" style="${i===1||i===4?'background:#0F0A1E;border:1px solid #2D2250;color:#9D8EC0':'background:#0F0A1E;border:1px solid #2D2250;color:#9D8EC0'}" ${i===1||i===4?'disabled':''}>
-              ${t}${i===1||i===4?' 🔒':''}
-            </button>`)
-            .join('')}
-        </div>
-
-        <div class="flex gap-3">
-          <button onclick="goToStep(1)" class="flex-1 py-4 rounded-xl font-bold text-base" style="background:#0F0A1E;border:1px solid #2D2250">Back</button>
-          <button onclick="goToStep(3)" class="flex-1 gradient-btn py-4 rounded-xl text-white font-bold text-base">Continue <i class="fas fa-arrow-right ml-2"></i></button>
-        </div>
-      </div>
-    </div>
-
-    <!-- STEP 3: Customer Details -->
-    <div id="step-3" class="booking-step" style="display:none">
-      <div style="background:#1A1033;border:1px solid #2D2250;border-radius:24px;padding:28px">
-        <h2 class="font-semibold text-xl mb-6">Your Details</h2>
-        <div class="mb-4">
-          <label class="block text-sm font-medium mb-2">Full Name</label>
-          <input type="text" id="cust-name" placeholder="Your full name" class="w-full px-4 py-3 rounded-xl text-sm" style="background:#0F0A1E;border:1px solid #2D2250"/>
-        </div>
-        <div class="mb-4">
-          <label class="block text-sm font-medium mb-2">Phone Number</label>
-          <input type="tel" id="cust-phone" placeholder="+233 20 000 0000" class="w-full px-4 py-3 rounded-xl text-sm" style="background:#0F0A1E;border:1px solid #2D2250"/>
-        </div>
-        <div class="mb-4">
-          <label class="block text-sm font-medium mb-2">Special Requests (optional)</label>
-          <textarea id="cust-notes" rows="3" placeholder="Any special requests or notes for the stylist..." class="w-full px-4 py-3 rounded-xl text-sm" style="background:#0F0A1E;border:1px solid #2D2250;resize:none"></textarea>
-        </div>
-        <!-- Booking Summary -->
-        <div class="p-4 rounded-xl mb-6" style="background:#0F0A1E;border:1px solid #2D2250">
-          <h4 class="text-sm font-semibold mb-3" style="color:#9D8EC0">Booking Summary</h4>
-          <div class="flex justify-between text-sm mb-2"><span style="color:#9D8EC0">Service</span><span id="sum-service" class="font-medium">-</span></div>
-          <div class="flex justify-between text-sm mb-2"><span style="color:#9D8EC0">Date</span><span id="sum-date" class="font-medium">-</span></div>
-          <div class="flex justify-between text-sm mb-2"><span style="color:#9D8EC0">Time</span><span id="sum-time" class="font-medium">-</span></div>
-          <div class="flex justify-between text-sm mb-2"><span style="color:#9D8EC0">Duration</span><span id="sum-duration" class="font-medium">-</span></div>
-          <div style="border-top:1px solid #2D2250;margin:8px 0"></div>
-          <div class="flex justify-between font-bold"><span>Total</span><span id="sum-price" style="color:#7C3AED">GHS 0</span></div>
-        </div>
-        <div class="flex gap-3">
-          <button onclick="goToStep(2)" class="flex-1 py-4 rounded-xl font-bold" style="background:#0F0A1E;border:1px solid #2D2250">Back</button>
-          <button onclick="goToStep(4)" class="flex-1 gradient-btn py-4 rounded-xl text-white font-bold">Continue <i class="fas fa-arrow-right ml-2"></i></button>
-        </div>
-      </div>
-    </div>
-
-    <!-- STEP 4: Payment -->
-    <div id="step-4" class="booking-step" style="display:none">
-      <div style="background:#1A1033;border:1px solid #2D2250;border-radius:24px;padding:28px">
-        <h2 class="font-semibold text-xl mb-6">Payment Method</h2>
-
-        <!-- Payment options -->
-        <div class="flex flex-col gap-3 mb-6">
-          <label class="pay-opt flex items-center gap-4 p-4 rounded-xl cursor-pointer" style="background:#0F0A1E;border:2px solid #7C3AED" onclick="selectPayment('pay_now',this)">
-            <input type="radio" name="payment" checked style="accent-color:#7C3AED"/>
-            <div class="flex-1">
-              <p class="font-medium">Pay Now Online</p>
-              <p class="text-xs" style="color:#9D8EC0">Mobile Money or Card • Secure payment</p>
-            </div>
-            <div class="flex gap-2">
-              <span class="text-xs px-2 py-1 rounded" style="background:#2D2250">MTN</span>
-              <span class="text-xs px-2 py-1 rounded" style="background:#2D2250">Visa</span>
-            </div>
-          </label>
-          <label class="pay-opt flex items-center gap-4 p-4 rounded-xl cursor-pointer" style="background:#0F0A1E;border:2px solid #2D2250" onclick="selectPayment('pay_later',this)">
-            <input type="radio" name="payment" style="accent-color:#7C3AED"/>
-            <div class="flex-1">
-              <p class="font-medium">Pay at Location</p>
-              <p class="text-xs" style="color:#9D8EC0">Pay cash or MoMo when you arrive</p>
-            </div>
-            <i class="fas fa-store" style="color:#9D8EC0"></i>
-          </label>
-        </div>
-
-        <!-- Pay Now form -->
-        <div id="pay-now-form">
-          <div class="flex gap-2 mb-4" style="background:#0F0A1E;border-radius:12px;padding:4px;border:1px solid #2D2250">
-            <button onclick="switchPayTab('momo',this)" class="flex-1 py-2.5 rounded-lg text-sm font-medium" style="background:#7C3AED;color:white">📱 Mobile Money</button>
-            <button onclick="switchPayTab('card',this)" class="flex-1 py-2.5 rounded-lg text-sm font-medium" style="color:#9D8EC0">💳 Card</button>
+            `).join('')}
           </div>
-          <!-- Mobile Money form -->
-          <div id="momo-form">
-            <div class="mb-4">
-              <label class="block text-sm font-medium mb-2">Network</label>
-              <select class="w-full px-4 py-3 rounded-xl text-sm" style="background:#0F0A1E;border:1px solid #2D2250;color:#E2D9F3">
-                <option>MTN Mobile Money</option>
-                <option>Vodafone Cash</option>
-                <option>AirtelTigo Money</option>
-              </select>
-            </div>
-            <div class="mb-4">
-              <label class="block text-sm font-medium mb-2">MoMo Number</label>
-              <input type="tel" placeholder="020 000 0000" class="w-full px-4 py-3 rounded-xl text-sm" style="background:#0F0A1E;border:1px solid #2D2250"/>
-            </div>
-          </div>
-          <!-- Card form -->
-          <div id="card-form" style="display:none">
-            <div class="mb-4">
-              <label class="block text-sm font-medium mb-2">Card Number</label>
-              <input type="text" placeholder="1234 5678 9012 3456" maxlength="19" class="w-full px-4 py-3 rounded-xl text-sm" style="background:#0F0A1E;border:1px solid #2D2250"/>
-            </div>
-            <div class="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label class="block text-sm font-medium mb-2">Expiry</label>
-                <input type="text" placeholder="MM/YY" maxlength="5" class="w-full px-4 py-3 rounded-xl text-sm" style="background:#0F0A1E;border:1px solid #2D2250"/>
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-2">CVV</label>
-                <input type="text" placeholder="123" maxlength="3" class="w-full px-4 py-3 rounded-xl text-sm" style="background:#0F0A1E;border:1px solid #2D2250"/>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Final total -->
-        <div class="p-4 rounded-xl mb-6" style="background:#0F0A1E;border:1px solid #2D2250">
-          <div class="flex justify-between text-sm mb-1"><span style="color:#9D8EC0">Subtotal</span><span id="fin-price">GHS 0</span></div>
-          <div class="flex justify-between text-sm mb-1"><span style="color:#9D8EC0">Service Fee</span><span>GHS 2</span></div>
-          <div style="border-top:1px solid #2D2250;margin:8px 0"></div>
-          <div class="flex justify-between font-bold text-lg"><span>Total</span><span id="fin-total" style="color:#7C3AED">GHS 2</span></div>
-        </div>
-
-        <div class="flex gap-3">
-          <button onclick="goToStep(3)" class="flex-1 py-4 rounded-xl font-bold" style="background:#0F0A1E;border:1px solid #2D2250">Back</button>
-          <button onclick="confirmBooking()" id="confirm-btn" class="flex-1 gradient-btn py-4 rounded-xl text-white font-bold">
-            <span id="confirm-text"><i class="fas fa-lock mr-2"></i>Confirm & Pay</span>
-            <span id="confirm-loader" style="display:none"><i class="fas fa-spinner fa-spin mr-2"></i>Processing...</span>
+          <button onclick="goStep(2)" class="btn-primary" style="padding:15px 48px;font-size:13px;">
+            Continue to Date & Time
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
         </div>
 
-        <p class="text-center text-xs mt-4" style="color:#9D8EC0">
-          <i class="fas fa-lock mr-1" style="color:#7C3AED"></i>Secured by Paystack • 256-bit SSL encryption
-        </p>
-      </div>
-    </div>
+        <!-- ─ STEP 2: Date & Time ─ -->
+        <div id="step2" style="display:none;animation:fadeUp 0.5s var(--ease-luxury) both;">
+          <div class="eyebrow" style="margin-bottom:24px;">Select Date & Time</div>
 
-    <!-- SUCCESS STATE -->
-    <div id="booking-success" style="display:none">
-      <div style="background:#1A1033;border:1px solid #10B98133;border-radius:24px;padding:40px;text-align:center">
-        <div style="width:80px;height:80px;border-radius:50%;background:#10B98122;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:40px">✅</div>
-        <h2 class="font-display font-bold text-3xl mb-3">Booking Confirmed!</h2>
-        <p style="color:#9D8EC0;margin-bottom:24px">Your appointment has been booked successfully. You'll receive a confirmation SMS shortly.</p>
-        <div class="p-4 rounded-xl mb-6" style="background:#0F0A1E;border:1px solid #2D2250;text-align:left">
-          <div class="flex justify-between text-sm mb-2"><span style="color:#9D8EC0">Booking ID</span><span class="font-mono font-bold" style="color:#7C3AED" id="booking-id">#SL-00001</span></div>
-          <div class="flex justify-between text-sm mb-2"><span style="color:#9D8EC0">Provider</span><span>Glam Studio GH</span></div>
-          <div class="flex justify-between text-sm mb-2"><span style="color:#9D8EC0">Service</span><span id="conf-service">-</span></div>
-          <div class="flex justify-between text-sm mb-2"><span style="color:#9D8EC0">Date & Time</span><span id="conf-datetime">-</span></div>
-          <div class="flex justify-between text-sm"><span style="color:#9D8EC0">Amount</span><span id="conf-amount" style="color:#7C3AED;font-weight:bold">-</span></div>
+          <!-- Mini calendar -->
+          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:28px;margin-bottom:24px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+              <button onclick="prevMonth()" class="btn-icon" style="width:36px;height:36px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              <span class="font-display" style="font-size:18px;" id="cal-month-label">April 2026</span>
+              <button onclick="nextMonth()" class="btn-icon" style="width:36px;height:36px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;margin-bottom:8px;">
+              ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--t-faint);padding:6px 0;">${d}</div>`).join('')}
+            </div>
+            <div id="cal-days" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
+          </div>
+
+          <!-- Time slots -->
+          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:28px;margin-bottom:32px;">
+            <div class="eyebrow" style="margin-bottom:20px;">Available Time Slots</div>
+            <div id="time-slots" style="display:flex;flex-wrap:wrap;gap:10px;">
+              ${['9:00 AM','9:30 AM','10:00 AM','11:00 AM','11:30 AM','1:00 PM','1:30 PM','2:00 PM','3:00 PM','3:30 PM','4:00 PM','5:00 PM'].map((t,i)=>{
+                const busy = i===3||i===7;
+                const sel  = i===0;
+                const click = busy ? '' : `selectTime(this,'${t}')`;
+                return `<div class="time-chip ${busy?'busy':''} ${sel?'selected':''}" onclick="${click}">${t}</div>`;
+              }).join('')}
+            </div>
+            <div style="display:flex;gap:16px;margin-top:18px;">
+              <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t-muted);"><div style="width:10px;height:10px;border-radius:3px;background:var(--g-dim);border:1px solid var(--g-border);"></div>Available</div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t-muted);"><div style="width:10px;height:10px;border-radius:3px;background:var(--c-raise);opacity:0.4;"></div>Unavailable</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;">
+            <button onclick="goStep(1)" class="btn-ghost" style="padding:14px 32px;">Back</button>
+            <button onclick="goStep(3)" class="btn-primary" style="padding:14px 48px;font-size:13px;">
+              Continue to Details
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
         </div>
-        <div class="flex gap-3">
-          <a href="/dashboard" class="flex-1 gradient-btn py-3.5 rounded-xl text-white font-bold text-center">View Bookings</a>
-          <a href="/discover" class="flex-1 py-3.5 rounded-xl font-bold text-center" style="background:#0F0A1E;border:1px solid #2D2250">Discover More</a>
+
+        <!-- ─ STEP 3: Details ─ -->
+        <div id="step3" style="display:none;animation:fadeUp 0.5s var(--ease-luxury) both;">
+          <div class="eyebrow" style="margin-bottom:24px;">Your Details</div>
+          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:36px;margin-bottom:28px;">
+            <div id="guest-fields">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div class="form-group">
+                  <label class="form-label">First Name</label>
+                  <input type="text" id="b-first" class="input" placeholder="Kwame" required/>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Last Name</label>
+                  <input type="text" id="b-last" class="input" placeholder="Mensah"/>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Phone Number</label>
+                <div style="display:flex;gap:10px;">
+                  <div style="background:var(--c-mid);border:1px solid rgba(247,242,234,0.08);border-radius:var(--r-md);padding:15px 16px;font-size:14px;white-space:nowrap;display:flex;align-items:center;gap:8px;color:var(--t-secondary);">🇬🇭 +233</div>
+                  <input type="tel" id="b-phone" class="input" placeholder="20 000 0000" style="flex:1;"/>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" id="b-email" class="input" placeholder="for confirmation email"/>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Special Notes</label>
+              <textarea id="b-notes" class="input" rows="3" placeholder="Any special requests, hair type info, or notes for your stylist..." style="resize:vertical;height:90px;"></textarea>
+            </div>
+
+            <!-- Previous style history teaser -->
+            <div style="background:var(--c-raise);border:1px solid var(--g-border);border-radius:var(--r-md);padding:18px;">
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                <span style="font-size:20px;">✦</span>
+                <div>
+                  <div style="font-size:13px;font-weight:600;">Style History</div>
+                  <div style="font-size:11px;color:var(--t-secondary);">Your provider will see your past styles for reference</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                ${['💇‍♀️','🌿','✨'].map(e=>`<div style="width:44px;height:44px;border-radius:10px;background:var(--c-surface);border:1px solid var(--i-faint);display:flex;align-items:center;justify-content:center;font-size:20px;">${e}</div>`).join('')}
+                <div style="width:44px;height:44px;border-radius:10px;background:var(--c-surface);border:1px solid var(--i-faint);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--t-muted);">+5</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;">
+            <button onclick="goStep(2)" class="btn-ghost" style="padding:14px 32px;">Back</button>
+            <button onclick="goStep(4)" class="btn-primary" style="padding:14px 48px;font-size:13px;">
+              Continue to Payment
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- ─ STEP 4: Payment ─ -->
+        <div id="step4" style="display:none;animation:fadeUp 0.5s var(--ease-luxury) both;">
+          <div class="eyebrow" style="margin-bottom:24px;">Payment</div>
+
+          <!-- Pay now vs pay later -->
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:32px;">
+            <div class="pay-method selected" onclick="selectPayWhen(this,'now')" id="pay-now-wrap">
+              <div style="width:42px;height:42px;border-radius:12px;background:var(--g-dim);border:1px solid var(--g-border);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">💳</div>
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:700;margin-bottom:3px;">Pay Now</div>
+                <div style="font-size:12px;color:var(--t-secondary);">Secure your slot instantly with MoMo or Card</div>
+              </div>
+              <span class="badge badge-gold" style="font-size:9px;">Recommended</span>
+            </div>
+            <div class="pay-method" onclick="selectPayWhen(this,'later')" id="pay-later-wrap">
+              <div style="width:42px;height:42px;border-radius:12px;background:var(--c-raise);border:1px solid var(--i-faint);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🏠</div>
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:700;margin-bottom:3px;">Pay On-Site</div>
+                <div style="font-size:12px;color:var(--t-secondary);">Pay cash or MoMo when you arrive</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment method (when pay now) -->
+          <div id="payment-methods" style="display:flex;flex-direction:column;gap:12px;margin-bottom:32px;">
+            <div class="eyebrow" style="margin-bottom:12px;">Select Payment Method</div>
+            ${[
+              {id:'mtn',  icon:'📱', label:'MTN Mobile Money',   sub:'Most popular in Ghana'},
+              {id:'vodaf',icon:'📲', label:'Vodafone Cash',       sub:'Quick & reliable'},
+              {id:'card', icon:'💳', label:'Visa / Mastercard',   sub:'Secure card payment'},
+              {id:'airtel',icon:'📡',label:'AirtelTigo Money',    sub:'Fast transfer'},
+            ].map((m,i)=>`
+              <div class="pay-method ${i===0?'selected':''}" onclick="selectPayMethod(this,'${m.id}')">
+                <span style="font-size:22px;">${m.icon}</span>
+                <div style="flex:1;">
+                  <div style="font-size:13px;font-weight:600;">${m.label}</div>
+                  <div style="font-size:11px;color:var(--t-muted);">${m.sub}</div>
+                </div>
+                <div class="pay-radio" style="width:18px;height:18px;border-radius:50%;border:1px solid var(--i-faint);transition:all 0.2s;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  ${i===0?'<svg width="8" height="8" viewBox="0 0 24 24" fill="var(--g-main)" stroke="none"><circle cx="12" cy="12" r="8"/></svg>':''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- MoMo number input -->
+          <div id="momo-input" style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:24px;margin-bottom:28px;">
+            <div class="eyebrow" style="margin-bottom:16px;">MTN Mobile Money Number</div>
+            <div style="display:flex;gap:10px;">
+              <div style="background:var(--c-mid);border:1px solid rgba(247,242,234,0.08);border-radius:var(--r-md);padding:15px 16px;font-size:14px;white-space:nowrap;display:flex;align-items:center;gap:8px;color:var(--t-secondary);">🇬🇭 +233</div>
+              <input type="tel" id="momo-num" class="input" placeholder="24 000 0000" style="flex:1;"/>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:12px;padding:12px;background:var(--c-raise);border-radius:10px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--g-main)" stroke-width="2" style="flex-shrink:0;margin-top:1px;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span style="font-size:12px;color:var(--t-secondary);">You'll receive a Paystack prompt on this number to confirm payment.</span>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;">
+            <button onclick="goStep(3)" class="btn-ghost" style="padding:14px 32px;">Back</button>
+            <button onclick="confirmBooking()" id="confirm-btn" class="btn-primary" style="padding:14px 48px;font-size:13px;flex:1;justify-content:center;">
+              <span id="confirm-text">Confirm & Pay</span>
+              <span id="confirm-loader" style="display:none;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin-slow 1s linear infinite;"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+                Processing...
+              </span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Summary -->
+      <div>
+        <div style="position:sticky;top:92px;">
+          <div style="background:var(--c-surface);border:1px solid var(--g-border);border-radius:var(--r-xl);padding:28px;">
+            <div class="eyebrow" style="margin-bottom:22px;">Booking Summary</div>
+
+            <!-- Provider info -->
+            <div style="display:flex;align-items:center;gap:14px;padding-bottom:22px;border-bottom:1px solid var(--i-faint);margin-bottom:22px;">
+              <div style="width:50px;height:50px;border-radius:16px;background:var(--g-dim);border:1px solid var(--g-border);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">💇‍♀️</div>
+              <div>
+                <div class="font-display" style="font-size:16px;font-weight:500;">Glam Studio GH</div>
+                <div style="font-size:12px;color:var(--t-muted);">East Legon, Accra</div>
+                <div class="stars" style="font-size:12px;margin-top:2px;">★★★★★ <span style="color:var(--t-muted);font-family:'DM Sans',sans-serif;">4.9</span></div>
+              </div>
+            </div>
+
+            <!-- Selected items -->
+            <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;color:var(--t-muted);">Service</span>
+                <span style="font-size:13px;font-weight:600;" id="sum-service">Natural Twist</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;color:var(--t-muted);">Date</span>
+                <span style="font-size:13px;font-weight:600;" id="sum-date">–</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;color:var(--t-muted);">Time</span>
+                <span style="font-size:13px;font-weight:600;" id="sum-time">9:00 AM</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;color:var(--t-muted);">Duration</span>
+                <span style="font-size:13px;font-weight:600;" id="sum-dur">90 min</span>
+              </div>
+            </div>
+
+            <div class="divider" style="margin-bottom:20px;"></div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+              <span style="font-size:14px;font-weight:600;">Total</span>
+              <span class="font-display gold-gradient" style="font-size:28px;" id="sum-price">GHS 80</span>
+            </div>
+
+            <!-- Trust -->
+            <div style="background:var(--g-dim);border:1px solid var(--g-border);border-radius:var(--r-md);padding:16px;">
+              ${[
+                {icon:'🔒',text:'Payments secured by Paystack'},
+                {icon:'🔄',text:'Free cancellation 24hrs prior'},
+              ].map(t=>`
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;last-child:margin-bottom:0;">
+                  <span style="font-size:14px;">${t.icon}</span>
+                  <span style="font-size:11px;color:var(--t-secondary);">${t.text}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-${toastScript()}
+${mobileNav('')}
+${globalScripts()}
+
 <script>
-let booking = { service:'', price:0, duration:'', date:'', time:'', payMethod:'pay_now' };
-let curMonth = new Date();
+var currentStep = 1;
+var selectedService = {name:'Natural Twist', price:'GHS 80', dur:'90 min'};
+var selectedDate = null;
+var selectedTime = '9:00 AM';
+var payWhen = 'now';
 
-function selectService(id, name, price, duration) {
-  booking.service = name; booking.price = price; booking.duration = duration;
-  document.querySelectorAll('.service-option').forEach(el=>el.style.borderColor='#2D2250');
-  event.currentTarget.style.borderColor='#7C3AED';
-}
-
-function goToStep(n) {
-  if(n===2 && !booking.service){ showToast('Please select a service first','error'); return; }
-  if(n===3 && !booking.date){ showToast('Please select a date','error'); return; }
-  if(n===3 && !booking.time){ showToast('Please select a time','error'); return; }
-  for(let i=1;i<=4;i++) document.getElementById('step-'+i).style.display='none';
-  document.getElementById('step-'+n).style.display='block';
-  updateStepIndicators(n);
-  if(n===3){ updateSummary(); }
-  if(n===4){ updateFinalTotal(); }
-}
-
-function updateStepIndicators(current) {
-  for(let i=1;i<=4;i++){
-    const el=document.getElementById('step-ind-'+i);
-    if(i<current){ el.style.background='#10B981';el.style.color='white';el.style.border='none'; }
-    else if(i===current){ el.style.background='#7C3AED';el.style.color='white';el.style.border='none'; }
-    else{ el.style.background='#1A1033';el.style.color='#9D8EC0';el.style.border='2px solid #2D2250'; }
+// ── Calendar
+var calYear = 2026, calMonth = 3; // April = 3 (0-indexed)
+function renderCal() {
+  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month-label').textContent = months[calMonth] + ' ' + calYear;
+  var firstDay = new Date(calYear, calMonth, 1).getDay();
+  var daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  var today = new Date();
+  var grid = document.getElementById('cal-days');
+  grid.innerHTML = '';
+  for(var i=0;i<firstDay;i++){ var blank=document.createElement('div'); grid.appendChild(blank); }
+  for(var d=1;d<=daysInMonth;d++){
+    var el = document.createElement('div');
+    var isPast = new Date(calYear, calMonth, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    var isToday = d===today.getDate() && calMonth===today.getMonth() && calYear===today.getFullYear();
+    el.className = 'cal-day' + (isPast?' past':'') + (isToday?' today':'');
+    el.textContent = d;
+    if(!isPast){ var dayD = d; el.onclick = function(){ selectDay(this, dayD); }; el.setAttribute('data-day', d); }
+    grid.appendChild(el);
   }
+  // Re-bind closures properly
+  grid.querySelectorAll('.cal-day:not(.past)').forEach(function(el){
+    el.onclick = function(){ selectDay(this, +this.dataset.day); };
+  });
+}
+renderCal();
+
+function prevMonth() { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCal(); }
+function nextMonth() { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCal(); }
+
+function selectDay(el, day) {
+  document.querySelectorAll('.cal-day.selected').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedDate = day + ' ' + document.getElementById('cal-month-label').textContent;
+  document.getElementById('sum-date').textContent = selectedDate;
 }
 
-function selectTime(time, btn) {
-  booking.time = time;
-  document.querySelectorAll('.time-slot:not([disabled])').forEach(b=>{ b.style.background='#0F0A1E';b.style.borderColor='#2D2250';b.style.color='#9D8EC0'; });
-  btn.style.background='#7C3AED';btn.style.borderColor='#7C3AED';btn.style.color='white';
+function selectTime(el, time) {
+  document.querySelectorAll('.time-chip:not(.busy)').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedTime = time;
+  document.getElementById('sum-time').textContent = time;
 }
 
-function updateSummary() {
-  document.getElementById('sum-service').textContent = booking.service||'-';
-  document.getElementById('sum-date').textContent = booking.date||'-';
-  document.getElementById('sum-time').textContent = booking.time||'-';
-  document.getElementById('sum-duration').textContent = booking.duration||'-';
-  document.getElementById('sum-price').textContent = 'GHS '+booking.price;
-  const user = getUser();
-  if(user.name) document.getElementById('cust-name').value = user.name;
-  if(user.phone) document.getElementById('cust-phone').value = user.phone;
+function selectService(el, name, price, dur) {
+  document.querySelectorAll('.service-select-item').forEach(e=>{
+    e.classList.remove('selected');
+    var dot = e.querySelector('.sel-dot');
+    if(dot) dot.innerHTML = '';
+  });
+  el.classList.add('selected');
+  var dot = el.querySelector('.sel-dot');
+  if(dot) dot.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--g-main)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+  selectedService = {name, price, dur};
+  document.getElementById('sum-service').textContent = name;
+  document.getElementById('sum-price').textContent = price;
+  document.getElementById('sum-dur').textContent = dur;
 }
 
-function updateFinalTotal() {
-  document.getElementById('fin-price').textContent = 'GHS '+booking.price;
-  document.getElementById('fin-total').textContent = 'GHS '+(booking.price+2);
+function selectPayWhen(el, when) {
+  document.querySelectorAll('.pay-method').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  payWhen = when;
+  document.getElementById('payment-methods').style.display = when==='now' ? 'block' : 'none';
+  document.getElementById('momo-input').style.display = when==='now' ? 'block' : 'none';
 }
 
-function selectPayment(method, el) {
-  booking.payMethod = method;
-  document.querySelectorAll('.pay-opt').forEach(e=>e.style.borderColor='#2D2250');
-  el.style.borderColor='#7C3AED';
-  document.getElementById('pay-now-form').style.display = method==='pay_now'?'block':'none';
+function selectPayMethod(el, method) {
+  el.closest('#step4').querySelectorAll('.pay-method').forEach(e=>{
+    if(e.id!=='pay-now-wrap' && e.id!=='pay-later-wrap'){
+      e.classList.remove('selected');
+      var r=e.querySelector('.pay-radio'); if(r) r.innerHTML='';
+    }
+  });
+  el.classList.add('selected');
+  var r=el.querySelector('.pay-radio'); if(r) r.innerHTML='<svg width="8" height="8" viewBox="0 0 24 24" fill="var(--g-main)" stroke="none"><circle cx="12" cy="12" r="8"/></svg>';
+  document.getElementById('momo-input').style.display = (method==='card') ? 'none' : 'block';
 }
 
-function switchPayTab(tab, btn) {
-  document.getElementById('momo-form').style.display = tab==='momo'?'block':'none';
-  document.getElementById('card-form').style.display = tab==='card'?'block':'none';
-  document.querySelectorAll('#pay-now-form button').forEach(b=>{ b.style.background='transparent';b.style.color='#9D8EC0'; });
-  btn.style.background='#7C3AED';btn.style.color='white';
+function goStep(n) {
+  for(var i=1;i<=4;i++){
+    var panel = document.getElementById('step'+i);
+    if(panel) panel.style.display = i===n ? 'block' : 'none';
+    var node = document.getElementById('step-node-'+i);
+    if(node){
+      node.className = 'step-node ' + (i < n ? 'done' : i===n ? 'active' : 'pending');
+      node.innerHTML = i < n ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : i;
+    }
+    var line = document.getElementById('step-line-'+i);
+    if(line) line.className = 'step-line ' + (i < n ? 'done' : '');
+  }
+  currentStep = n;
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 async function confirmBooking() {
-  const btn = document.getElementById('confirm-btn');
-  const txt = document.getElementById('confirm-text');
-  const loader = document.getElementById('confirm-loader');
-  btn.disabled=true; txt.style.display='none'; loader.style.display='inline';
+  var btn  = document.getElementById('confirm-btn');
+  var txt  = document.getElementById('confirm-text');
+  var load = document.getElementById('confirm-loader');
+  btn.disabled=true; txt.style.display='none'; load.style.display='inline-flex';
+
   try {
-    const token = getToken();
-    const headers = token ? {Authorization:'Bearer '+token} : {};
-    const res = await axios.post('/api/bookings', {
-      providerId: 1,
-      service: booking.service,
-      date: booking.date,
-      time: booking.time,
-      price: booking.price,
-      paymentMethod: booking.payMethod,
-      notes: document.getElementById('cust-notes').value,
-    }, {headers});
-    const bookingId = res.data?.id || 'SL-'+Math.floor(Math.random()*99999);
-    showBookingSuccess(bookingId);
+    var token = getToken();
+    var res = await axios.post('/api/bookings', {
+      providerId: ${id},
+      service: selectedService.name,
+      date: selectedDate || '5 April 2026',
+      time: selectedTime,
+      paymentMethod: payWhen === 'now' ? 'mobile_money' : 'on_site',
+      totalAmount: parseInt(selectedService.price.replace(/[^0-9]/g,'')),
+      notes: document.getElementById('b-notes')?.value || ''
+    }, token ? {headers:{Authorization:'Bearer '+token}} : {});
+
+    showToast('Booking confirmed! ✦ Check your phone for confirmation.', 'success');
+    setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
   } catch(err) {
-    // Demo fallback
-    const bookingId = 'SL-'+Math.floor(Math.random()*99999);
-    showBookingSuccess(bookingId);
-  } finally {
-    btn.disabled=false; txt.style.display='inline'; loader.style.display='none';
+    // Simulate success for demo
+    showToast('Booking confirmed! ✦ You will receive a confirmation shortly.', 'success');
+    setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
   }
 }
 
-function showBookingSuccess(id) {
-  for(let i=1;i<=4;i++) document.getElementById('step-'+i).style.display='none';
-  document.getElementById('booking-success').style.display='block';
-  document.getElementById('booking-id').textContent = '#'+id;
-  document.getElementById('conf-service').textContent = booking.service;
-  document.getElementById('conf-datetime').textContent = (booking.date||'Tomorrow')+' at '+(booking.time||'2:00 PM');
-  document.getElementById('conf-amount').textContent = 'GHS '+(booking.price+2);
-  showToast('Booking confirmed! 🎉','success');
-}
-
-// Build calendar
-function buildCalendar(d) {
-  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('cal-month').textContent = months[d.getMonth()]+' '+d.getFullYear();
-  const cal = document.getElementById('calendar');
-  const headers = cal.querySelectorAll('div:nth-child(-n+7)');
-  // Clear date cells
-  while(cal.children.length > 7) cal.removeChild(cal.lastChild);
-  const first = new Date(d.getFullYear(),d.getMonth(),1).getDay();
-  const days = new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
-  const today = new Date();
-  for(let i=0;i<first;i++){
-    const el=document.createElement('div'); el.className='text-center py-2'; cal.appendChild(el);
-  }
-  for(let i=1;i<=days;i++){
-    const el=document.createElement('button');
-    const isToday=i===today.getDate()&&d.getMonth()===today.getMonth()&&d.getFullYear()===today.getFullYear();
-    const isPast=new Date(d.getFullYear(),d.getMonth(),i)<new Date(today.getFullYear(),today.getMonth(),today.getDate());
-    el.className='text-center py-2 w-9 h-9 rounded-full mx-auto text-sm font-medium transition';
-    el.textContent=i;
-    if(isPast){ el.style.color='#4B4069'; el.disabled=true; }
-    else if(isToday){ el.style.background='#7C3AED22';el.style.color='#C4B5FD';el.style.border='1px solid #7C3AED'; }
-    else{ el.style.color='#E2D9F3'; el.onmouseover=()=>{ if(!el.classList.contains('selected')) el.style.background='#2D2250'; }; el.onmouseout=()=>{ if(!el.classList.contains('selected')) el.style.background=''; }; }
-    el.onclick=()=>{
-      document.querySelectorAll('#calendar button.selected').forEach(b=>{ b.classList.remove('selected');b.style.background=''; });
-      el.classList.add('selected'); el.style.background='#7C3AED'; el.style.color='white';
-      booking.date = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(d.getFullYear(),d.getMonth(),i).getDay()]+', '+months[d.getMonth()].slice(0,3)+' '+i;
-      document.getElementById('selected-date-label').textContent='· '+booking.date;
-    };
-    cal.appendChild(el);
-  }
-}
-function prevMonth(){ curMonth.setMonth(curMonth.getMonth()-1); buildCalendar(curMonth); }
-function nextMonth(){ curMonth.setMonth(curMonth.getMonth()+1); buildCalendar(curMonth); }
-buildCalendar(curMonth);
-
-// Pre-fill from URL
-const urlParams = new URLSearchParams(window.location.search);
-const urlService = urlParams.get('service');
-const urlPrice = urlParams.get('price');
-if(urlService){ booking.service=urlService; booking.price=parseInt(urlPrice)||0; }
+// Pre-select date: today
+(function(){
+  var today = new Date();
+  var days = document.querySelectorAll('.cal-day:not(.past)');
+  if(days.length > 0){ days[0].click(); }
+})();
 </script>
 </body></html>`

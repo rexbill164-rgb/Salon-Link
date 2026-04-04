@@ -1,232 +1,311 @@
-import { baseHead, toastScript } from '../utils/layout'
+import { baseHead, globalScripts } from '../utils/layout'
 
-export const adminPanelPage = () => `<!DOCTYPE html>
+export const adminPage = () => `<!DOCTYPE html>
 <html lang="en">
-<head>${baseHead('Admin Panel')}</head>
-<body style="display:flex;min-height:100vh;background:#0F0A1E">
-<div style="width:240px;background:#1A1033;border-right:1px solid #2D2250;flex-shrink:0;display:flex;flex-direction:column">
-  <div class="p-5 border-b" style="border-color:#2D2250">
-    <div class="flex items-center gap-3">
-      <div style="width:36px;height:36px;border-radius:10px;background:#7C3AED;display:flex;align-items:center;justify-content:center">✂️</div>
-      <div><div class="font-bold text-sm">SalonLink</div><div class="text-xs" style="color:#F59E0B">Admin Panel</div></div>
-    </div>
-  </div>
-  <nav class="flex-1 p-3">
-    ${[
-      {icon:'fas fa-chart-pie',label:'Overview',id:'overview'},
-      {icon:'fas fa-users',label:'Users',id:'users'},
-      {icon:'fas fa-store',label:'Providers',id:'providers'},
-      {icon:'fas fa-calendar-check',label:'Bookings',id:'bookings'},
-      {icon:'fas fa-id-card',label:'KYC Queue',id:'kyc'},
-      {icon:'fas fa-flag',label:'Flagged',id:'flagged'},
-      {icon:'fas fa-chart-bar',label:'Reports',id:'reports'},
-    ].map((l,i)=>`
-      <button onclick="showSection('${l.id}',this)" class="flex items-center gap-3 w-full px-4 py-3 rounded-xl mb-1 text-sm font-medium transition text-left ${i===0?'active-nav':''}\" style="${i===0?'background:#7C3AED22;color:#C4B5FD;border:1px solid #7C3AED22':'color:#9D8EC0'}">
-        <i class="${l.icon} w-4"></i> ${l.label}
-      </button>
-    `).join('')}
-  </nav>
-  <div class="p-3 border-t" style="border-color:#2D2250">
-    <a href="/" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm" style="color:#9D8EC0"><i class="fas fa-home w-4"></i> Back to App</a>
-    <button onclick="logout()" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm w-full text-left" style="color:#EF4444"><i class="fas fa-sign-out-alt w-4"></i> Logout</button>
-  </div>
-</div>
+<head>
+${baseHead('Admin Panel', `
+<style>
+  .admin-layout { display:flex; min-height:100vh; }
+  .admin-sidebar { width:240px; background:var(--c-deep); border-right:1px solid var(--i-faint); flex-shrink:0; display:flex; flex-direction:column; position:sticky; top:0; height:100vh; }
+  .admin-main { flex:1; overflow:auto; min-width:0; background:var(--c-void); }
+  .admin-topbar { padding:16px 32px; background:var(--c-deep); border-bottom:1px solid var(--i-faint); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+  .admin-section { display:none; }
+  .admin-section.active { display:block; }
+  .kpi { background:var(--c-surface); border:1px solid var(--i-faint); border-radius:var(--r-lg); padding:22px; position:relative; overflow:hidden; transition:border-color 0.3s; }
+  .kpi:hover { border-color:var(--g-border); }
+  .kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--accent, var(--g-main)); }
+  .admin-table { width:100%; border-collapse:collapse; }
+  .admin-table th { font-size:10px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--t-muted); padding:14px 20px; border-bottom:1px solid var(--i-faint); text-align:left; }
+  .admin-table td { padding:14px 20px; border-bottom:1px solid rgba(247,242,234,0.04); font-size:13px; color:var(--t-secondary); }
+  .admin-table tr:hover td { background:var(--i-ghost); }
+  @media(max-width:768px){ .admin-sidebar{display:none;} }
+</style>
+`)}
+</head>
+<body style="background:var(--c-void);">
 
-<div class="flex-1 overflow-auto">
-  <div class="flex items-center justify-between px-6 py-4 border-b" style="border-color:#2D2250;background:#1A1033">
-    <h1 class="font-display font-bold text-xl" id="section-title">Platform Overview</h1>
-    <div class="flex items-center gap-3">
-      <span class="text-xs px-3 py-1 rounded-full" style="background:#10B98122;color:#10B981">● Live</span>
-      <span class="text-sm" style="color:#9D8EC0">${new Date().toLocaleDateString('en-GH',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</span>
-    </div>
-  </div>
+<div class="admin-layout">
 
-  <div class="p-6">
-    <!-- Overview Section -->
-    <div id="section-overview">
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        ${[
-          {label:'Total Users',val:'1,248',icon:'fas fa-users',color:'#7C3AED',change:'+48 this week'},
-          {label:'Providers',val:'312',icon:'fas fa-store',color:'#EC4899',change:'+12 pending KYC'},
-          {label:'Total Bookings',val:'8,942',icon:'fas fa-calendar',color:'#3B82F6',change:'+234 today'},
-          {label:'Revenue (GHS)',val:'284,600',icon:'fas fa-coins',color:'#F59E0B',change:'+GHS 12,400 today'},
-        ].map(s=>`
-          <div class="stat-card p-5 rounded-2xl">
-            <div style="width:40px;height:40px;border-radius:12px;background:${s.color}22;display:flex;align-items:center;justify-content:center;margin-bottom:12px">
-              <i class="${s.icon}" style="color:${s.color}"></i>
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside class="admin-sidebar">
+    <div style="padding:22px 18px;border-bottom:1px solid var(--i-faint);display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;border:1px solid var(--g-border);border-radius:9px;background:var(--g-dim);display:flex;align-items:center;justify-content:center;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--g-main)"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+      </div>
+      <span style="font-family:'Playfair Display',serif;font-size:16px;letter-spacing:0.08em;">SALONLINK</span>
+    </div>
+    <div style="padding:12px 10px;border-bottom:1px solid var(--i-faint);">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(192,72,72,0.08);border:1px solid rgba(192,72,72,0.2);border-radius:12px;">
+        <div style="width:34px;height:34px;border-radius:10px;background:rgba(192,72,72,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;">🛡️</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;">Admin Panel</div>
+          <div style="font-size:10px;color:var(--t-muted);">Full Access</div>
+        </div>
+      </div>
+    </div>
+    <nav style="flex:1;padding:10px;overflow-y:auto;">
+      ${[
+        {id:'overview',  icon:'⬡',  label:'Overview'},
+        {id:'users',     icon:'👥', label:'Users'},
+        {id:'providers', icon:'💇', label:'Providers'},
+        {id:'bookings',  icon:'📅', label:'Bookings'},
+        {id:'kyc',       icon:'🪪', label:'KYC Queue'},
+        {id:'payments',  icon:'💰', label:'Payments'},
+        {id:'reports',   icon:'📊', label:'Reports'},
+        {id:'security',  icon:'🔒', label:'Security'},
+      ].map((l,i)=>`
+        <button onclick="adminSection('${l.id}',this)" class="sidebar-item ${i===0?'active':''}" id="admin-nav-${l.id}">
+          <span class="icon">${l.icon}</span>
+          <span>${l.label}</span>
+        </button>
+      `).join('')}
+    </nav>
+    <div style="padding:10px;border-top:1px solid var(--i-faint);">
+      <a href="/" class="sidebar-item"><span class="icon">🏠</span><span>Back to App</span></a>
+    </div>
+  </aside>
+
+  <!-- ═══ MAIN ═══ -->
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <div>
+        <div class="font-display" style="font-size:20px;font-weight:500;" id="admin-title">Platform Overview</div>
+        <div style="font-size:12px;color:var(--t-muted);">SalonLink Admin · ${new Date().toLocaleDateString('en-GH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span class="badge badge-live" style="font-size:10px;">
+          <span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#5DC98A;margin-right:5px;"></span>
+          System Healthy
+        </span>
+        <button onclick="showToast('5 new alerts — KYC queue has items','error')" class="btn-icon" style="position:relative;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span style="position:absolute;top:8px;right:8px;width:7px;height:7px;background:var(--s-red);border-radius:50%;border:1px solid var(--c-void);"></span>
+        </button>
+      </div>
+    </div>
+
+    <div style="padding:32px;">
+
+      <!-- ── OVERVIEW ── -->
+      <div id="admin-overview" class="admin-section active">
+        <!-- KPIs -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;">
+          ${[
+            {val:'12,480',label:'Total Users',     sub:'↑ 23% this month',  accent:'var(--g-main)'},
+            {val:'2,406', label:'Active Providers',sub:'↑ 18% verified',    accent:'var(--s-green)'},
+            {val:'48,290',label:'Total Bookings',  sub:'↑ 31% this quarter',accent:'var(--s-blue)'},
+            {val:'GHS 2.4M',label:'Gross Revenue', sub:'↑ 44% YTD',        accent:'var(--g-deep)'},
+          ].map(k=>`
+            <div class="kpi" style="--accent:${k.accent}">
+              <div class="font-display gold-gradient" style="font-size:28px;margin-bottom:4px;">${k.val}</div>
+              <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-faint);margin-bottom:6px;">${k.label}</div>
+              <div style="font-size:11px;color:var(--s-green);">${k.sub}</div>
             </div>
-            <div class="font-display font-bold text-2xl mb-1">${s.val}</div>
-            <div class="text-xs font-medium mb-1" style="color:#9D8EC0">${s.label}</div>
-            <div class="text-xs" style="color:#10B981">${s.change}</div>
+          `).join('')}
+        </div>
+
+        <!-- Charts -->
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-bottom:32px;">
+          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:28px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+              <div>
+                <div class="eyebrow" style="margin-bottom:6px;">Platform Revenue</div>
+                <div class="font-display gold-gradient" style="font-size:24px;">GHS 2.4M</div>
+                <div style="font-size:11px;color:var(--s-green);">▲ 44% year to date</div>
+              </div>
+            </div>
+            <canvas id="admin-revenue" height="120"></canvas>
           </div>
-        `).join('')}
+          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:28px;">
+            <div class="eyebrow" style="margin-bottom:20px;">User Roles</div>
+            <canvas id="admin-roles" height="160"></canvas>
+            <div style="margin-top:16px;display:flex;flex-direction:column;gap:9px;">
+              ${[
+                {label:'Customers',val:'82%',color:'#C9A84C'},
+                {label:'Providers',val:'17%',color:'#5DC98A'},
+                {label:'Admins',   val:'1%', color:'#E07070'},
+              ].map(s=>`
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div style="width:8px;height:8px;border-radius:50%;background:${s.color};flex-shrink:0;"></div>
+                  <span style="font-size:12px;flex:1;">${s.label}</span>
+                  <span style="font-size:12px;font-weight:700;color:${s.color};">${s.val}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:28px;">
+          <div class="eyebrow" style="margin-bottom:20px;">Quick Actions</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+            ${[
+              {icon:'🔍',label:'Review KYC Queue',sub:'3 pending',action:'kyc'},
+              {icon:'⚠️',label:'Fraud Alerts',    sub:'2 flagged', action:'security'},
+              {icon:'📊',label:'Download Reports',sub:'CSV / PDF',  action:'reports'},
+              {icon:'📢',label:'Send Broadcast',  sub:'Push to all',action:'overview'},
+            ].map(a=>`
+              <button onclick="adminSection('${a.action}',document.getElementById('admin-nav-${a.action}'))" style="padding:20px;border-radius:var(--r-lg);background:var(--c-raise);border:1px solid var(--i-faint);text-align:left;cursor:pointer;transition:all 0.3s;width:100%;" onmouseover="this.style.borderColor='var(--g-border)'" onmouseout="this.style.borderColor='var(--i-faint)'">
+                <div style="font-size:24px;margin-bottom:10px;">${a.icon}</div>
+                <div style="font-size:13px;font-weight:600;margin-bottom:3px;">${a.label}</div>
+                <div style="font-size:11px;color:var(--t-muted);">${a.sub}</div>
+              </button>
+            `).join('')}
+          </div>
+        </div>
       </div>
 
-      <div class="grid lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2" style="background:#1A1033;border:1px solid #2D2250;border-radius:20px;padding:24px">
-          <h3 class="font-semibold mb-4">Booking Trends (Last 7 days)</h3>
-          <canvas id="bookings-chart" height="100"></canvas>
+      <!-- ── USERS ── -->
+      <div id="admin-users" class="admin-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+          <div class="eyebrow">Manage Users</div>
+          <div style="display:flex;gap:10px;">
+            <input type="search" class="input" placeholder="Search users..." style="width:220px;padding:9px 16px;"/>
+            <button onclick="showToast('Export initiated','info')" class="btn-outline" style="font-size:12px;padding:9px 22px;">Export CSV</button>
+          </div>
         </div>
-        <div style="background:#1A1033;border:1px solid #2D2250;border-radius:20px;padding:24px">
-          <h3 class="font-semibold mb-4">Alerts</h3>
+        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
+          <table class="admin-table">
+            <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Joined</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${[
+                {name:'Akosua Mensah',email:'akosua@example.com',role:'customer',joined:'Mar 2026',active:true},
+                {name:'Kofi Asante',  email:'kofi@example.com',  role:'provider',joined:'Jan 2026',active:true},
+                {name:'Demo Customer',email:'customer@demo.com', role:'customer',joined:'Apr 2026',active:true},
+                {name:'Yaa Boateng',  email:'yaa@example.com',   role:'customer',joined:'Feb 2026',active:false},
+                {name:'Demo Provider',email:'provider@demo.com', role:'provider',joined:'Apr 2026',active:true},
+              ].map(u=>`
+                <tr>
+                  <td style="font-weight:600;color:var(--t-primary);">${u.name}</td>
+                  <td>${u.email}</td>
+                  <td><span class="badge ${u.role==='provider'?'badge-gold':'badge-pending'}" style="font-size:9px;">${u.role}</span></td>
+                  <td>${u.joined}</td>
+                  <td><span class="badge ${u.active?'badge-verified':'badge-error'}" style="font-size:9px;">${u.active?'Active':'Suspended'}</span></td>
+                  <td>
+                    <div style="display:flex;gap:6px;">
+                      <button onclick="showToast('User details opened','info')" class="btn-ghost" style="padding:6px 14px;font-size:10px;">View</button>
+                      <button onclick="showToast('${u.active?'User suspended':'User reactivated'}','${u.active?'error':'success'}')" style="padding:6px 14px;border-radius:100px;font-size:10px;cursor:pointer;background:transparent;border:1px solid ${u.active?'rgba(192,72,72,0.3)':'rgba(61,170,110,0.3)'};color:${u.active?'var(--s-red)':'var(--s-green)'};">${u.active?'Suspend':'Restore'}</button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── KYC QUEUE ── -->
+      <div id="admin-kyc" class="admin-section">
+        <div class="eyebrow" style="margin-bottom:24px;">KYC Verification Queue</div>
+        <div style="display:flex;flex-direction:column;gap:16px;">
           ${[
-            {icon:'🔴',label:'Flagged Accounts',val:'5',action:'flagged'},
-            {icon:'🟡',label:'Pending KYC',val:'23',action:'kyc'},
-            {icon:'🟠',label:'Dispute Reports',val:'3',action:'reports'},
-            {icon:'🟢',label:'Active Providers',val:'289',action:'providers'},
-          ].map(a=>`
-            <div onclick="showSection('${a.action}')" class="flex items-center justify-between p-3 rounded-xl mb-2 cursor-pointer hover:bg-purple-900 transition" style="background:#0F0A1E;border:1px solid #2D2250">
-              <span class="text-sm">${a.icon} ${a.label}</span>
-              <span class="font-bold text-sm" style="color:#C4B5FD">${a.val}</span>
+            {name:'Adjoa Mensah',    biz:'Glam Studio GH',     submitted:'2 hours ago',  status:'pending'},
+            {name:'Kweku Sarpong',   biz:'KutzByKweku',         submitted:'5 hours ago',  status:'pending'},
+            {name:'Efua Tetteh',     biz:'Efua Glam',           submitted:'1 day ago',    status:'review'},
+          ].map(k=>`
+            <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+              <div style="width:50px;height:50px;border-radius:16px;background:var(--g-dim);border:1px solid var(--g-border);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">🪪</div>
+              <div style="flex:1;min-width:200px;">
+                <div style="font-size:15px;font-weight:700;margin-bottom:3px;">${k.name}</div>
+                <div style="font-size:13px;color:var(--t-secondary);">${k.biz} · Submitted ${k.submitted}</div>
+              </div>
+              <span class="badge badge-pending">${k.status}</span>
+              <div style="display:flex;gap:10px;">
+                <button onclick="showToast('Opening KYC documents for ${k.name}','info')" class="btn-ghost" style="font-size:11px;padding:8px 20px;">Review</button>
+                <button onclick="this.parentElement.parentElement.style.opacity='0.4';showToast('KYC approved for ${k.name} ✓','success')" class="btn-primary" style="font-size:11px;padding:8px 22px;">Approve</button>
+                <button onclick="this.parentElement.parentElement.style.opacity='0.4';showToast('KYC rejected for ${k.name}','error')" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);">Reject</button>
+              </div>
             </div>
           `).join('')}
         </div>
       </div>
-    </div>
 
-    <!-- Users Section -->
-    <div id="section-users" style="display:none">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="font-semibold text-lg">All Users</h2>
-        <input type="text" placeholder="Search users..." class="px-4 py-2 rounded-xl text-sm" style="background:#1A1033;border:1px solid #2D2250;width:240px"/>
-      </div>
-      <div style="background:#1A1033;border:1px solid #2D2250;border-radius:16px;overflow:hidden">
-        <table class="w-full">
-          <thead>
-            <tr style="border-bottom:1px solid #2D2250">
-              <th class="text-left p-4 text-sm font-semibold" style="color:#9D8EC0">User</th>
-              <th class="text-left p-4 text-sm font-semibold" style="color:#9D8EC0">Role</th>
-              <th class="text-left p-4 text-sm font-semibold" style="color:#9D8EC0">Status</th>
-              <th class="text-left p-4 text-sm font-semibold" style="color:#9D8EC0">Joined</th>
-              <th class="text-left p-4 text-sm font-semibold" style="color:#9D8EC0">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="users-table">
-            ${[
-              {name:'Demo Customer',email:'customer@demo.com',role:'customer',status:'active',joined:'Jan 15, 2025'},
-              {name:'Glam Studio GH',email:'provider@demo.com',role:'provider',status:'active',joined:'Feb 2, 2025'},
-              {name:'KutzByKofi',email:'kofi@demo.com',role:'provider',status:'active',joined:'Feb 10, 2025'},
-              {name:'Jane Stylist',email:'jane@demo.com',role:'provider',status:'pending',joined:'Mar 20, 2025'},
-              {name:'Flagged User',email:'flagged@demo.com',role:'customer',status:'flagged',joined:'Mar 25, 2025'},
-            ].map(u=>`
-              <tr style="border-bottom:1px solid #2D2250">
-                <td class="p-4">
-                  <div class="flex items-center gap-3">
-                    <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#EC4899);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold">${u.name[0]}</div>
-                    <div><div class="text-sm font-medium">${u.name}</div><div class="text-xs" style="color:#9D8EC0">${u.email}</div></div>
-                  </div>
-                </td>
-                <td class="p-4"><span class="tag capitalize">${u.role}</span></td>
-                <td class="p-4"><span class="text-xs px-2 py-1 rounded-full capitalize" style="background:${u.status==='active'?'#10B98122':u.status==='pending'?'#F59E0B22':'#EF444422'};color:${u.status==='active'?'#10B981':u.status==='pending'?'#F59E0B':'#EF4444'}">${u.status}</span></td>
-                <td class="p-4 text-sm" style="color:#9D8EC0">${u.joined}</td>
-                <td class="p-4">
-                  <div class="flex gap-2">
-                    <button onclick="showToast('User details viewed','info')" class="text-xs px-3 py-1.5 rounded-lg" style="background:#7C3AED22;color:#C4B5FD">View</button>
-                    ${u.status!=='flagged'?`<button onclick="showToast('User suspended','warning')" class="text-xs px-3 py-1.5 rounded-lg" style="background:#EF444422;color:#EF4444">Suspend</button>`:'<button onclick="showToast(\'Account reinstated\',\'success\')" class="text-xs px-3 py-1.5 rounded-lg" style="background:#10B98122;color:#10B981">Reinstate</button>'}
-                  </div>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- KYC Section -->
-    <div id="section-kyc" style="display:none">
-      <h2 class="font-semibold text-lg mb-6">KYC Verification Queue</h2>
-      <div class="flex flex-col gap-4">
-        ${[
-          {name:'Jane Stylist',biz:'Jane Hair Studio',submitted:'2 hours ago',type:'Hair Salon'},
-          {name:'Kofi Barber',biz:'Kofi Kutz',submitted:'5 hours ago',type:'Barbershop'},
-          {name:'Abena Nails',biz:'Nails by Abena Plus',submitted:'1 day ago',type:'Nail Tech'},
-        ].map(k=>`
-          <div style="background:#1A1033;border:1px solid #2D2250;border-radius:16px;padding:20px">
-            <div class="flex items-start justify-between mb-4">
-              <div class="flex items-center gap-3">
-                <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#EC4899);display:flex;align-items:center;justify-content:center;font-weight:bold">${k.name[0]}</div>
-                <div>
-                  <p class="font-semibold">${k.name}</p>
-                  <p class="text-sm" style="color:#9D8EC0">${k.biz} · ${k.type}</p>
-                  <p class="text-xs" style="color:#9D8EC0">Submitted ${k.submitted}</p>
-                </div>
+      <!-- ── SECURITY ── -->
+      <div id="admin-security" class="admin-section">
+        <div class="eyebrow" style="margin-bottom:24px;">Fraud & Security Alerts</div>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          ${[
+            {type:'Cancellation Abuse',  user:'User #4821',       detail:'7 cancellations in 14 days',    severity:'high'},
+            {type:'Fake Booking Pattern',user:'Provider #1204',   detail:'Unusual booking spike detected', severity:'medium'},
+          ].map(a=>`
+            <div style="background:${a.severity==='high'?'rgba(192,72,72,0.06)':'rgba(201,168,76,0.06)'};border:1px solid ${a.severity==='high'?'rgba(192,72,72,0.2)':'rgba(201,168,76,0.2)'};border-radius:var(--r-xl);padding:24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+              <div style="width:46px;height:46px;border-radius:14px;background:${a.severity==='high'?'rgba(192,72,72,0.15)':'rgba(201,168,76,0.12)'};display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">${a.severity==='high'?'🚨':'⚠️'}</div>
+              <div style="flex:1;min-width:200px;">
+                <div style="font-size:14px;font-weight:700;margin-bottom:3px;">${a.type}</div>
+                <div style="font-size:12px;color:var(--t-secondary);">${a.user} · ${a.detail}</div>
               </div>
-              <span class="text-xs px-3 py-1 rounded-full" style="background:#F59E0B22;color:#F59E0B">Pending Review</span>
-            </div>
-            <div class="grid grid-cols-3 gap-3 mb-4">
-              <div style="background:#0F0A1E;border:1px solid #2D2250;border-radius:12px;padding:16px;text-align:center">
-                <i class="fas fa-id-card text-2xl mb-2" style="color:#7C3AED"></i>
-                <p class="text-xs" style="color:#9D8EC0">Ghana Card</p>
-                <p class="text-xs font-medium" style="color:#10B981">Uploaded ✓</p>
-              </div>
-              <div style="background:#0F0A1E;border:1px solid #2D2250;border-radius:12px;padding:16px;text-align:center">
-                <i class="fas fa-user-circle text-2xl mb-2" style="color:#EC4899"></i>
-                <p class="text-xs" style="color:#9D8EC0">Live Selfie</p>
-                <p class="text-xs font-medium" style="color:#10B981">Captured ✓</p>
-              </div>
-              <div style="background:#0F0A1E;border:1px solid #2D2250;border-radius:12px;padding:16px;text-align:center">
-                <i class="fas fa-fingerprint text-2xl mb-2" style="color:#F59E0B"></i>
-                <p class="text-xs" style="color:#9D8EC0">Face Match</p>
-                <p class="text-xs font-medium" style="color:#F59E0B">Pending</p>
+              <span class="badge ${a.severity==='high'?'badge-error':'badge-pending'}" style="text-transform:uppercase;">${a.severity}</span>
+              <div style="display:flex;gap:8px;">
+                <button onclick="showToast('Case reviewed','info')" class="btn-ghost" style="font-size:11px;padding:8px 18px;">Review</button>
+                <button onclick="this.parentElement.parentElement.remove();showToast('Account suspended','error')" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);">Suspend</button>
               </div>
             </div>
-            <div class="flex gap-3">
-              <button onclick="approveKYC(this)" class="flex-1 py-2.5 rounded-xl text-sm font-semibold" style="background:#10B98122;color:#10B981;border:1px solid #10B98133">
-                <i class="fas fa-check mr-2"></i>Approve & Verify
-              </button>
-              <button onclick="rejectKYC(this)" class="flex-1 py-2.5 rounded-xl text-sm font-semibold" style="background:#EF444422;color:#EF4444;border:1px solid #EF444433">
-                <i class="fas fa-times mr-2"></i>Reject
-              </button>
-            </div>
-          </div>
-        `).join('')}
+          `).join('')}
+        </div>
       </div>
-    </div>
 
-    <!-- Providers + Bookings + Flagged + Reports sections -->
-    <div id="section-providers" style="display:none">
-      <h2 class="font-semibold text-lg mb-4">All Providers</h2>
-      <p style="color:#9D8EC0">312 registered providers. Use filters to manage.</p>
-    </div>
-    <div id="section-bookings" style="display:none">
-      <h2 class="font-semibold text-lg mb-4">All Bookings</h2>
-      <p style="color:#9D8EC0">8,942 total bookings. Export and manage here.</p>
-    </div>
-    <div id="section-flagged" style="display:none">
-      <h2 class="font-semibold text-lg mb-4">Flagged Accounts</h2>
-      <p style="color:#9D8EC0">5 accounts flagged for review (fake bookings, repeated cancellations).</p>
-    </div>
-    <div id="section-reports" style="display:none">
-      <h2 class="font-semibold text-lg mb-4">Reports & Analytics</h2>
-      <canvas id="revenue-chart" height="80"></canvas>
+      <!-- ── Remaining sections ── -->
+      <div id="admin-providers" class="admin-section"><div class="eyebrow">Providers</div><p style="color:var(--t-secondary);margin-top:16px;">Provider management panel loading...</p></div>
+      <div id="admin-bookings"  class="admin-section"><div class="eyebrow">Bookings</div><p style="color:var(--t-secondary);margin-top:16px;">Booking management panel loading...</p></div>
+      <div id="admin-payments"  class="admin-section"><div class="eyebrow">Payments</div><p style="color:var(--t-secondary);margin-top:16px;">Payment management panel loading...</p></div>
+      <div id="admin-reports"   class="admin-section"><div class="eyebrow">Reports</div><p style="color:var(--t-secondary);margin-top:16px;">Reports & analytics panel loading...</p></div>
+
     </div>
   </div>
 </div>
 
-${toastScript()}
+${globalScripts()}
 <script>
-function showSection(id, btn) {
-  document.querySelectorAll('[id^="section-"]').forEach(s=>s.style.display='none');
-  document.getElementById('section-'+id).style.display='block';
-  document.querySelectorAll('.active-nav, nav button').forEach(b=>{b.style.background='transparent';b.style.color='#9D8EC0';b.style.border='none';});
-  if(btn){btn.style.background='#7C3AED22';btn.style.color='#C4B5FD';btn.style.border='1px solid #7C3AED22';}
-  const titles={overview:'Platform Overview',users:'User Management',providers:'Provider Management',bookings:'Booking Management',kyc:'KYC Verification Queue',flagged:'Flagged Accounts',reports:'Reports & Analytics'};
-  document.getElementById('section-title').textContent=titles[id]||id;
+function adminSection(id, btn) {
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+  var sec = document.getElementById('admin-' + id);
+  if (sec) sec.classList.add('active');
+  if (btn) btn.classList.add('active');
+  var titles = {overview:'Platform Overview',users:'User Management',providers:'Provider Management',bookings:'Booking Management',kyc:'KYC Verification Queue',payments:'Payment Management',reports:'Reports & Analytics',security:'Security & Fraud'};
+  document.getElementById('admin-title').textContent = titles[id] || id;
 }
-function approveKYC(btn) { btn.closest('[style*="border-radius:16px"]').style.borderColor='#10B98144'; showToast('Provider verified successfully! ✅','success'); }
-function rejectKYC(btn) { showToast('KYC rejected. Provider notified.','warning'); }
 
-// Charts
-document.addEventListener('DOMContentLoaded',()=>{
-  const ctx = document.getElementById('bookings-chart');
-  if(ctx) new Chart(ctx,{
-    type:'line',
-    data:{
-      labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-      datasets:[{label:'Bookings',data:[45,62,58,80,72,95,68],borderColor:'#7C3AED',backgroundColor:'#7C3AED22',fill:true,tension:0.4,borderWidth:2}]
-    },
-    options:{plugins:{legend:{display:false}},scales:{x:{grid:{color:'#2D2250'},ticks:{color:'#9D8EC0'}},y:{grid:{color:'#2D2250'},ticks:{color:'#9D8EC0'}}}}
-  });
+document.addEventListener('DOMContentLoaded', function() {
+  if (window.Chart) {
+    new Chart(document.getElementById('admin-revenue'), {
+      type: 'bar',
+      data: {
+        labels: ['Oct','Nov','Dec','Jan','Feb','Mar','Apr'],
+        datasets: [{
+          data: [280000,320000,480000,390000,520000,610000,740000],
+          backgroundColor: 'rgba(201,168,76,0.25)',
+          borderColor: '#C9A84C',
+          borderWidth: 2,
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(247,242,234,0.04)' }, ticks: { color: '#7A6E62', font: { size: 10 } } },
+          y: { grid: { color: 'rgba(247,242,234,0.04)' }, ticks: { color: '#7A6E62', font: { size: 10 }, callback: v => 'GHS ' + (v/1000) + 'K' } }
+        }
+      }
+    });
+    new Chart(document.getElementById('admin-roles'), {
+      type: 'doughnut',
+      data: {
+        datasets: [{
+          data: [82, 17, 1],
+          backgroundColor: ['rgba(201,168,76,0.8)','rgba(61,170,110,0.8)','rgba(224,112,112,0.8)'],
+          borderColor: 'transparent',
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        cutout: '70%'
+      }
+    });
+  }
 });
 </script>
 </body></html>`

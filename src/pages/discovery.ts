@@ -1,207 +1,283 @@
-import { baseHead, navbar, mobileNav, toastScript } from '../utils/layout'
+import { baseHead, navbar, mobileNav, globalScripts } from '../utils/layout'
 
 export const discoveryPage = () => `<!DOCTYPE html>
 <html lang="en">
-<head>${baseHead('Discover Services')}</head>
-<body>
+<head>
+${baseHead('Discover Services', `
+<style>
+  .filter-row { display:flex; gap:10px; align-items:center; }
+  @media(max-width:640px){ .filter-row { flex-wrap:wrap; } }
+  .cat-chip { flex-shrink:0; padding:9px 20px; border-radius:100px; font-size:12px; font-weight:700; letter-spacing:0.06em; cursor:pointer; transition:all 0.3s var(--ease-luxury); white-space:nowrap; background:transparent; border:1px solid var(--i-faint); color:var(--t-secondary); }
+  .cat-chip:hover { border-color:var(--g-border); color:var(--t-primary); }
+  .cat-chip.active { background:var(--g-main); color:var(--c-void); border-color:var(--g-main); box-shadow:0 6px 20px rgba(201,168,76,0.3); }
+  .filter-panel { background:var(--c-surface); border:1px solid var(--g-border); border-radius:var(--r-xl); padding:36px; margin-bottom:32px; animation:fadeUp 0.3s var(--ease-luxury) both; }
+  .prov-card { background:var(--c-surface); border:1px solid var(--i-faint); border-radius:var(--r-xl); overflow:hidden; cursor:pointer; transition:all 0.45s var(--ease-luxury); position:relative; }
+  .prov-card:hover { border-color:var(--g-border-s); transform:translateY(-7px); box-shadow:0 40px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(201,168,76,0.08); }
+  .prov-card:hover .prov-img-wrap { transform:scale(1.04); }
+  .prov-img-wrap { transition:transform 0.6s var(--ease-luxury); }
+  .map-btn { display:flex; align-items:center; gap:9px; padding:10px 22px; background:var(--c-surface); border:1px solid var(--i-faint); border-radius:100px; color:var(--t-secondary); font-size:12px; font-weight:600; cursor:pointer; transition:all 0.3s; letter-spacing:0.04em; }
+  .map-btn:hover { border-color:var(--g-border); color:var(--g-main); }
+  .radio-custom { display:flex; align-items:center; gap:10px; margin-bottom:10px; cursor:pointer; }
+  .radio-dot { width:16px; height:16px; border-radius:50%; border:1px solid var(--i-faint); display:flex; align-items:center; justify-content:center; transition:all 0.2s; flex-shrink:0; }
+  .radio-custom.selected .radio-dot { border-color:var(--g-main); background:var(--g-main); }
+  .radio-custom.selected .radio-dot::after { content:''; width:6px; height:6px; border-radius:50%; background:var(--c-void); display:block; }
+</style>
+`)}
+</head>
+<body class="bg-grain">
 ${navbar('discover')}
-<div style="min-height:calc(100vh-64px);background:#0F0A1E;padding:24px 0 80px">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <!-- Search Header -->
-    <div class="mb-8">
-      <h1 class="font-display font-bold text-3xl mb-2">Find <span class="gradient-text">Beauty Services</span></h1>
-      <p style="color:#9D8EC0">Discover verified professionals near you</p>
-    </div>
 
-    <!-- Search bar -->
-    <div class="flex gap-3 mb-6">
-      <div style="flex:1;position:relative">
-        <i class="fas fa-search" style="position:absolute;left:16px;top:50%;transform:translateY(-50%);color:#9D8EC0;z-index:1"></i>
-        <input type="text" id="search-input" placeholder="Search salons, services, providers..." oninput="filterProviders()"
-          class="w-full pl-12 pr-4 py-3.5 rounded-2xl text-sm" style="background:#1A1033;border:1px solid #2D2250"/>
-      </div>
-      <div style="position:relative">
-        <button onclick="toggleFilters()" class="flex items-center gap-2 px-5 py-3.5 rounded-2xl font-medium text-sm" style="background:#1A1033;border:1px solid #2D2250">
-          <i class="fas fa-sliders-h" style="color:#7C3AED"></i>
-          <span>Filters</span>
-          <span id="filter-count" style="display:none;background:#7C3AED;color:white;border-radius:50%;width:20px;height:20px;font-size:11px;display:flex;align-items:center;justify-content:center">0</span>
+<div style="min-height:calc(100vh - 72px);padding:48px 0 120px;">
+  <div class="container">
+
+    <!-- ── PAGE HEADER ── -->
+    <div style="margin-bottom:52px;" class="afu">
+      <div class="eyebrow" style="margin-bottom:18px;">Find Your Professional</div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:20px;">
+        <h1 class="display-lg font-display">Discover <em class="gold-gradient">Beauty Services</em></h1>
+        <button class="map-btn" onclick="showToast('Map view coming soon ✦','info')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+          Map View
         </button>
       </div>
     </div>
 
-    <!-- Category pills -->
-    <div class="flex gap-2 overflow-x-auto pb-3 mb-6" style="scrollbar-width:none">
-      ${['All','Hair Styling','Barbing','Nail Care','Massage','Facials','Lashes','Makeup','Shaving']
-        .map((cat,i) => `<button onclick="filterByCategory('${cat}')" class="category-pill flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition ${i===0?'active':''}\" style="${i===0?'background:#7C3AED;color:white':'background:#1A1033;border:1px solid #2D2250;color:#9D8EC0'}">${cat}</button>`)
-        .join('')}
+    <!-- ── SEARCH ROW ── -->
+    <div class="filter-row afu-1" style="margin-bottom:24px;">
+      <div style="flex:1;position:relative;">
+        <svg style="position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--t-faint);pointer-events:none;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="search" oninput="filterCards()" placeholder="Search salons, barbers, nail techs..." class="input" style="padding-left:50px;padding-right:50px;height:52px;border-radius:100px;"/>
+        <button onclick="clearSearch()" id="clear-btn" style="position:absolute;right:18px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--t-faint);cursor:pointer;display:none;font-size:16px;">×</button>
+      </div>
+      <button onclick="toggleFilters()" id="filter-toggle" style="display:flex;align-items:center;gap:9px;height:52px;padding:0 24px;background:var(--c-surface);border:1px solid var(--i-faint);border-radius:100px;color:var(--t-secondary);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.3s;white-space:nowrap;letter-spacing:0.04em;" onmouseover="this.style.borderColor='var(--g-border)';this.style.color='var(--g-main)'" onmouseout="this.style.borderColor='var(--i-faint)';this.style.color='var(--t-secondary)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        <span id="filter-label">Filters</span>
+        <span id="filter-count" style="display:none;background:var(--g-main);color:var(--c-void);width:18px;height:18px;border-radius:50%;font-size:10px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;margin-left:2px;">0</span>
+      </button>
     </div>
 
-    <!-- Filter panel -->
-    <div id="filter-panel" style="display:none;background:#1A1033;border:1px solid #2D2250;border-radius:20px;padding:24px;margin-bottom:24px">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <div>
-          <label class="block text-sm font-semibold mb-3">Price Range</label>
-          <div class="flex gap-2 flex-col">
-            ${[['Under GHS 50','0-50'],['GHS 50-100','50-100'],['GHS 100-200','100-200'],['GHS 200+','200-999']]
-              .map(([label,val]) => `<label class="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" name="price" value="${val}" style="accent-color:#7C3AED" onchange="filterProviders()"/><span style="color:#9D8EC0">${label}</span></label>`)
-              .join('')}
-          </div>
+    <!-- ── CATEGORY CHIPS ── -->
+    <div style="display:flex;gap:9px;overflow-x:auto;padding-bottom:6px;margin-bottom:32px;" class="no-scrollbar afu-2">
+      ${['All','Hair Styling','Barbing','Nail Care','Massage','Facials','Lashes','Makeup','Bridal'].map((cat,i)=>
+        `<button onclick="filterCat('${cat}',this)" class="cat-chip ${i===0?'active':''}">${cat}</button>`
+      ).join('')}
+    </div>
+
+    <!-- ── FILTER PANEL ── -->
+    <div id="filter-panel" style="display:none;">
+      <div class="filter-panel">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:36px;">
+          ${[
+            {label:'Price Range',     key:'price',  opts:[['Any Price','all'],['Under GHS 50','0-50'],['GHS 50–100','50-100'],['GHS 100–200','100-200'],['GHS 200+','200+']]},
+            {label:'Minimum Rating',  key:'rating', opts:[['Any Rating','0'],['4.8+ Stars','4.8'],['4.5+ Stars','4.5'],['4.0+ Stars','4.0']]},
+            {label:'Distance',        key:'dist',   opts:[['Anywhere','all'],['Within 2 km','2'],['Within 5 km','5'],['Within 10 km','10']]},
+            {label:'Availability',    key:'avail',  opts:[['Any Time','all'],['Open Now','open'],['Verified Only','verified'],['Available Today','today']]},
+          ].map(f=>`
+            <div>
+              <div class="eyebrow" style="margin-bottom:16px;">${f.label}</div>
+              ${f.opts.map(([label,val],i)=>`
+                <div class="radio-custom ${i===0?'selected':''}" data-group="${f.key}" data-val="${val}" onclick="selectFilter('${f.key}',this)">
+                  <div class="radio-dot"></div>
+                  <span style="font-size:13px;color:var(--t-secondary);font-weight:300;">${label}</span>
+                </div>
+              `).join('')}
+            </div>
+          `).join('')}
         </div>
-        <div>
-          <label class="block text-sm font-semibold mb-3">Rating</label>
-          <div class="flex gap-2 flex-col">
-            ${[['4.5+ Stars','4.5'],['4.0+ Stars','4.0'],['3.5+ Stars','3.5'],['Any Rating','0']]
-              .map(([label,val]) => `<label class="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" name="rating" value="${val}" style="accent-color:#7C3AED" onchange="filterProviders()"/><span style="color:#9D8EC0">${label}</span></label>`)
-              .join('')}
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-semibold mb-3">Distance</label>
-          <div class="flex gap-2 flex-col">
-            ${[['Within 1km','1'],['Within 5km','5'],['Within 10km','10'],['Any Distance','999']]
-              .map(([label,val]) => `<label class="flex items-center gap-2 text-sm cursor-pointer"><input type="radio" name="distance" value="${val}" style="accent-color:#7C3AED" onchange="filterProviders()"/><span style="color:#9D8EC0">${label}</span></label>`)
-              .join('')}
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-semibold mb-3">Availability</label>
-          <div class="flex gap-2 flex-col">
-            ${[['Available Today','today'],['This Week','week'],['Verified Only','verified'],['Open Now','open']]
-              .map(([label,val]) => `<label class="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" value="${val}" style="accent-color:#7C3AED" onchange="filterProviders()"/><span style="color:#9D8EC0">${label}</span></label>`)
-              .join('')}
-          </div>
+        <div style="display:flex;gap:12px;margin-top:32px;padding-top:28px;border-top:1px solid var(--i-faint);">
+          <button onclick="resetFilters()" class="btn-ghost" style="padding:10px 24px;">Reset All</button>
+          <button onclick="applyFilters()" class="btn-primary" style="padding:10px 28px;font-size:12px;">Apply Filters</button>
         </div>
       </div>
-      <div class="flex gap-3 mt-4">
-        <button onclick="clearFilters()" class="px-4 py-2 rounded-xl text-sm" style="background:#0F0A1E;border:1px solid #2D2250;color:#9D8EC0">Clear All</button>
-        <button onclick="toggleFilters()" class="gradient-btn px-6 py-2 rounded-xl text-white text-sm font-medium">Apply Filters</button>
+    </div>
+
+    <!-- ── RESULTS BAR ── -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;flex-wrap:wrap;gap:12px;">
+      <p style="font-size:14px;color:var(--t-secondary);">
+        <span id="count" style="color:var(--t-primary);font-weight:700;font-size:16px;">9</span>
+        <span style="margin-left:6px;">professionals found</span>
+      </p>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:12px;color:var(--t-muted);">Sort:</span>
+        <select onchange="sortCards(this.value)" class="input" style="width:auto;padding:9px 36px 9px 14px;border-radius:100px;font-size:12px;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23B0A090%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22/></svg>');background-repeat:no-repeat;background-position:right 14px center;background-size:12px;-webkit-appearance:none;">
+          <option>Top Rated</option>
+          <option>Price: Low → High</option>
+          <option>Price: High → Low</option>
+          <option>Nearest First</option>
+          <option>Most Reviews</option>
+        </select>
       </div>
     </div>
 
-    <!-- Sort bar -->
-    <div class="flex items-center justify-between mb-6">
-      <p class="text-sm" style="color:#9D8EC0"><span id="results-count">24</span> providers found</p>
-      <select onchange="sortProviders(this.value)" class="px-4 py-2 rounded-xl text-sm" style="background:#1A1033;border:1px solid #2D2250;color:#E2D9F3">
-        <option value="rating">Top Rated</option>
-        <option value="distance">Nearest First</option>
-        <option value="price_asc">Price: Low to High</option>
-        <option value="price_desc">Price: High to Low</option>
-        <option value="reviews">Most Reviews</option>
-      </select>
+    <!-- ── PROVIDER GRID ── -->
+    <div id="providers-grid" class="grid-3">
+      ${renderAllProviders()}
     </div>
 
-    <!-- Provider Grid -->
-    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="providers-grid">
-      ${generateAllProviders()}
+    <!-- Empty state -->
+    <div id="empty-state" style="display:none;text-align:center;padding:100px 20px;">
+      <div style="font-size:64px;margin-bottom:24px;">🔍</div>
+      <h3 class="font-display" style="font-size:24px;margin-bottom:12px;">No results found</h3>
+      <p style="font-size:14px;color:var(--t-secondary);margin-bottom:28px;">Try adjusting your filters or search terms</p>
+      <button onclick="clearSearch();resetFilters()" class="btn-outline">Clear All Filters</button>
     </div>
 
     <!-- Load more -->
-    <div class="text-center mt-10">
-      <button onclick="loadMore()" class="px-8 py-3 rounded-2xl font-medium text-sm glass" style="border:1px solid #2D2250;color:#C4B5FD">
-        <i class="fas fa-chevron-down mr-2"></i>Load More Providers
+    <div style="text-align:center;margin-top:72px;" id="load-more-wrap">
+      <button onclick="loadMore()" class="btn-ghost" style="padding:14px 40px;font-size:13px;">
+        Load More Providers
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
     </div>
+
   </div>
 </div>
-${mobileNav('discover')}
-${toastScript()}
-<script>
-function toggleFilters() {
-  const panel = document.getElementById('filter-panel');
-  panel.style.display = panel.style.display==='none'?'block':'none';
-}
-function filterByCategory(cat) {
-  document.querySelectorAll('.category-pill').forEach(p=>{
-    p.style.background = '#1A1033';
-    p.style.borderColor = '#2D2250';
-    p.style.color = '#9D8EC0';
-    p.style.border = '1px solid #2D2250';
-  });
-  event.target.style.background = '#7C3AED';
-  event.target.style.color = 'white';
-  event.target.style.border = 'none';
-  filterProviders();
-}
-function filterProviders() {
-  const q = document.getElementById('search-input').value.toLowerCase();
-  const cards = document.querySelectorAll('.prov-card');
-  let count = 0;
-  cards.forEach(c=>{
-    const name = c.dataset.name?.toLowerCase()||'';
-    const tags = c.dataset.tags?.toLowerCase()||'';
-    const show = !q || name.includes(q) || tags.includes(q);
-    c.style.display = show ? 'block' : 'none';
-    if(show) count++;
-  });
-  document.getElementById('results-count').textContent = count;
-}
-function sortProviders(by) { showToast('Sorted by '+by,'info'); }
-function clearFilters() {
-  document.querySelectorAll('input[type=radio]').forEach(r=>r.checked=false);
-  document.querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=false);
-  filterProviders();
-}
-function loadMore() { showToast('Loading more providers...','info'); }
 
-// Load providers from API
-async function loadProviders() {
-  try {
-    const res = await axios.get('/api/providers');
-    if(res.data && res.data.length > 0) {
-      // Would update grid with real data
-    }
-  } catch(e) { /* use static data */ }
+${mobileNav('discover')}
+${globalScripts()}
+
+<script>
+var filtersOpen = false;
+var activeFilters = {};
+
+function toggleFilters() {
+  filtersOpen = !filtersOpen;
+  var p = document.getElementById('filter-panel');
+  p.style.display = filtersOpen ? 'block' : 'none';
+  document.getElementById('filter-label').textContent = filtersOpen ? 'Hide Filters' : 'Filters';
 }
-loadProviders();
+
+function filterCat(cat, btn) {
+  document.querySelectorAll('.cat-chip').forEach(b => b.className = 'cat-chip');
+  btn.className = 'cat-chip active';
+  filterCards();
+}
+
+function selectFilter(group, el) {
+  document.querySelectorAll('[data-group="' + group + '"]').forEach(e => {
+    e.classList.remove('selected');
+    e.querySelector('.radio-dot').style.background = '';
+    e.querySelector('.radio-dot').style.borderColor = 'var(--i-faint)';
+  });
+  el.classList.add('selected');
+  activeFilters[group] = el.dataset.val;
+}
+
+function applyFilters() {
+  toggleFilters();
+  var cnt = Object.values(activeFilters).filter(v => v !== 'all' && v !== '0').length;
+  var fc = document.getElementById('filter-count');
+  if (cnt > 0) { fc.style.display = 'inline-flex'; fc.textContent = cnt; }
+  else { fc.style.display = 'none'; }
+  showToast('Filters applied ✦', 'success');
+  filterCards();
+}
+
+function resetFilters() {
+  activeFilters = {};
+  document.querySelectorAll('.radio-custom').forEach((el, i) => {
+    var grp = el.dataset.group;
+    var isFirst = !document.querySelector('.radio-custom[data-group="' + grp + '"].selected');
+    if (i === 0 || isFirst) el.classList.add('selected');
+  });
+  document.getElementById('filter-count').style.display = 'none';
+  showToast('Filters reset', 'info');
+}
+
+function filterCards() {
+  var q = (document.getElementById('search').value || '').toLowerCase();
+  var cards = document.querySelectorAll('.prov-card');
+  var n = 0;
+  cards.forEach(c => {
+    var txt = (c.dataset.search || '').toLowerCase();
+    var show = !q || txt.includes(q);
+    c.style.display = show ? '' : 'none';
+    if (show) n++;
+  });
+  document.getElementById('count').textContent = n;
+  document.getElementById('empty-state').style.display = n === 0 ? 'block' : 'none';
+  document.getElementById('providers-grid').style.display = n === 0 ? 'none' : '';
+  document.getElementById('clear-btn').style.display = q ? 'block' : 'none';
+}
+
+function clearSearch() {
+  document.getElementById('search').value = '';
+  filterCards();
+}
+
+function sortCards(v) { showToast('Sorted by: ' + v, 'info'); }
+
+function loadMore() {
+  showToast('Loading more providers...', 'info');
+  document.getElementById('load-more-wrap').style.display = 'none';
+}
 </script>
 </body></html>`
 
-function generateAllProviders() {
+function renderAllProviders() {
   const providers = [
-    {id:1,name:'Glam Studio GH',type:'Hair Salon',rating:4.9,reviews:128,price:80,location:'East Legon, Accra',dist:'1.2km',verified:true,emoji:'💇‍♀️',tags:['Braiding','Natural Hair','Locs','Weave'],color:'#7C3AED',open:true},
-    {id:2,name:'KutzByKofi',type:'Barbershop',rating:4.8,reviews:96,price:40,location:'Osu, Accra',dist:'2.1km',verified:true,emoji:'✂️',tags:['Fade','Lineup','Dreads','Beard'],color:'#3B82F6',open:true},
-    {id:3,name:'Nails by Abena',type:'Nail Tech',rating:5.0,reviews:64,price:60,location:'Airport Area',dist:'3.4km',verified:true,emoji:'💅',tags:['Gel','Acrylics','Nail Art'],color:'#EC4899',open:false},
-    {id:4,name:'Relax & Revive',type:'Massage Therapist',rating:4.7,reviews:52,price:120,location:'Cantonments, Accra',dist:'4.2km',verified:true,emoji:'💆',tags:['Swedish','Deep Tissue','Hot Stone'],color:'#10B981',open:true},
-    {id:5,name:'Faces by Ama',type:'Makeup Artist',rating:4.8,reviews:87,price:150,location:'Labone, Accra',dist:'5.1km',verified:true,emoji:'💄',tags:['Bridal','Evening','Natural'],color:'#F59E0B',open:true},
-    {id:6,name:'LashQueen Studio',type:'Lash Technician',rating:4.9,reviews:73,price:90,location:'Dzorwulu, Accra',dist:'6.3km',verified:false,emoji:'👁️',tags:['Classic','Volume','Hybrid'],color:'#8B5CF6',open:true},
-    {id:7,name:'The Fade Factory',type:'Barbershop',rating:4.6,reviews:114,price:35,location:'Madina, Accra',dist:'7.8km',verified:true,emoji:'💈',tags:['Fade','Taper','Dreads'],color:'#EF4444',open:true},
-    {id:8,name:'Glow & Grace Spa',type:'Facial Spa',rating:4.8,reviews:45,price:200,location:'Ridge, Accra',dist:'2.9km',verified:true,emoji:'🧖',tags:['HydraFacial','Acne Treatment','Glow'],color:'#06B6D4',open:false},
-    {id:9,name:'Natural Roots Salon',type:'Natural Hair',rating:4.7,reviews:99,price:70,location:'Tema',dist:'12km',verified:true,emoji:'🌿',tags:['Loc Retwist','Natural Styles','TWA'],color:'#22C55E',open:true},
+    {id:1, name:'Glam Studio GH',    type:'Hair Salon',      r:4.9, rev:128, price:80,  dist:'1.2km', loc:'East Legon',    verified:true,  open:true,  emoji:'💇‍♀️', tags:['Braiding','Natural','Locs']},
+    {id:2, name:'KutzByKofi',        type:'Barbershop',      r:4.8, rev:96,  price:40,  dist:'2.1km', loc:'Osu, Accra',    verified:true,  open:true,  emoji:'✂️',   tags:['Fade','Beard','Dreads']},
+    {id:3, name:'Nails by Abena',    type:'Nail Technician', r:5.0, rev:64,  price:60,  dist:'3.4km', loc:'Airport Area',  verified:true,  open:false, emoji:'💅',   tags:['Gel','Acrylics','Art']},
+    {id:4, name:'Relax & Revive',    type:'Massage',         r:4.7, rev:52,  price:120, dist:'4.2km', loc:'Cantonments',   verified:true,  open:true,  emoji:'💆',   tags:['Swedish','Deep Tissue']},
+    {id:5, name:'Faces by Ama',      type:'Makeup Artist',   r:4.8, rev:87,  price:150, dist:'5.1km', loc:'Labone',        verified:true,  open:true,  emoji:'💄',   tags:['Bridal','Evening']},
+    {id:6, name:'LashQueen Studio',  type:'Lash Technician', r:4.9, rev:73,  price:90,  dist:'6.3km', loc:'Dzorwulu',      verified:false, open:true,  emoji:'👁️',   tags:['Classic','Volume']},
+    {id:7, name:'The Fade Factory',  type:'Barbershop',      r:4.6, rev:114, price:35,  dist:'7.8km', loc:'Madina',        verified:true,  open:true,  emoji:'💈',   tags:['Fade','Taper']},
+    {id:8, name:'Glow & Grace Spa',  type:'Facial Spa',      r:4.8, rev:45,  price:200, dist:'2.9km', loc:'Ridge, Accra',  verified:true,  open:false, emoji:'🧖',   tags:['Facial','HydraFacial']},
+    {id:9, name:'Natural Roots GH',  type:'Natural Hair',    r:4.7, rev:99,  price:70,  dist:'12km',  loc:'Tema',          verified:true,  open:true,  emoji:'🌿',   tags:['Loc Retwist','TWA']},
   ]
   return providers.map(p => `
-    <div class="prov-card provider-card" data-name="${p.name}" data-tags="${p.tags.join(',')}" onclick="window.location.href='/provider/${p.id}'">
-      <div style="height:140px;background:linear-gradient(135deg,${p.color}22,${p.color}11);display:flex;align-items:center;justify-content:center;font-size:56px;position:relative">
-        ${p.emoji}
-        <div style="position:absolute;top:12px;left:12px;display:flex;gap:6px">
-          ${p.verified ? `<span class="text-xs px-2 py-1 rounded-full font-medium" style="background:#10B98122;color:#10B981;border:1px solid #10B98133"><i class="fas fa-check-circle mr-1"></i>Verified</span>` : '<span class="text-xs px-2 py-1 rounded-full" style="background:#F59E0B22;color:#F59E0B;border:1px solid #F59E0B33">Pending KYC</span>'}
+    <div class="prov-card" data-search="${p.name} ${p.type} ${p.loc} ${p.tags.join(' ')}".toLowerCase()" onclick="window.location.href='/provider/${p.id}'">
+      <!-- Image area -->
+      <div style="height:172px;background:linear-gradient(135deg,var(--c-dark),var(--c-mist));display:flex;align-items:center;justify-content:center;position:relative;border-bottom:1px solid var(--i-faint);overflow:hidden;">
+        <div class="prov-img-wrap" style="font-size:68px;filter:drop-shadow(0 8px 20px rgba(0,0,0,0.5));user-select:none;">${p.emoji}</div>
+
+        <!-- Status badges -->
+        <div style="position:absolute;top:14px;left:14px;display:flex;gap:7px;">
+          ${p.verified ? `<span class="badge badge-verified" style="font-size:10px;"><svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" style="margin-right:2px;"><path d="M9 12l2 2 4-4"/></svg>Verified</span>` : '<span class="badge badge-pending" style="font-size:10px;">Unverified</span>'}
         </div>
-        <div style="position:absolute;top:12px;right:12px">
-          <span class="text-xs px-2 py-1 rounded-full" style="background:${p.open?'#10B98122':'#EF444422'};color:${p.open?'#10B981':'#EF4444'}">● ${p.open?'Open':'Closed'}</span>
+        <div style="position:absolute;top:14px;right:14px;">
+          <span class="badge ${p.open?'badge-live':'badge-closed'}" style="font-size:10px;">
+            ${p.open ? '<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#5DC98A;margin-right:4px;vertical-align:middle;"></span>Open' : 'Closed'}
+          </span>
+        </div>
+
+        <!-- Distance -->
+        <div style="position:absolute;bottom:12px;right:14px;font-size:10px;color:var(--t-muted);display:flex;align-items:center;gap:5px;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${p.dist}
         </div>
       </div>
-      <div style="padding:16px">
-        <div class="flex items-start justify-between mb-1">
+
+      <!-- Content -->
+      <div style="padding:22px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
           <div>
-            <h3 class="font-semibold">${p.name}</h3>
-            <p class="text-xs" style="color:#9D8EC0">${p.type} · <i class="fas fa-map-marker-alt"></i> ${p.location}</p>
+            <div class="font-display" style="font-size:18px;font-weight:500;margin-bottom:3px;">${p.name}</div>
+            <div style="font-size:12px;color:var(--t-muted);">${p.type} · ${p.loc}</div>
           </div>
-          <div class="text-right flex-shrink-0">
-            <div class="font-bold text-sm" style="color:#7C3AED">GHS ${p.price}</div>
-            <div class="text-xs" style="color:#9D8EC0">${p.dist} away</div>
+          <div style="text-align:right;flex-shrink:0;margin-left:10px;">
+            <div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-faint);margin-bottom:3px;">from</div>
+            <div class="font-display gold-gradient" style="font-size:19px;">GHS ${p.price}</div>
           </div>
         </div>
-        <div class="flex items-center gap-2 my-2">
-          <div style="color:#F59E0B;font-size:12px">${'★'.repeat(Math.floor(p.rating))}</div>
-          <span class="text-xs font-semibold">${p.rating}</span>
-          <span class="text-xs" style="color:#9D8EC0">(${p.reviews})</span>
+
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:14px;">
+          <span class="stars" style="font-size:12px;">★★★★★</span>
+          <span style="font-size:13px;font-weight:700;color:var(--g-main);">${p.r}</span>
+          <span style="font-size:11px;color:var(--t-muted);">(${p.rev})</span>
         </div>
-        <div class="flex gap-2 flex-wrap mb-3">
-          ${p.tags.slice(0,3).map(t=>`<span class="tag">${t}</span>`).join('')}
+
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">
+          ${p.tags.map(t=>`<span class="tag">${t}</span>`).join('')}
         </div>
-        <div class="flex gap-2">
-          <button onclick="event.stopPropagation();window.location.href='/book/${p.id}'" class="flex-1 gradient-btn py-2.5 rounded-xl text-white text-sm font-semibold">Book Now</button>
-          <button onclick="event.stopPropagation();saveFavorite(${p.id})" class="w-10 h-10 flex items-center justify-center rounded-xl" style="background:#0F0A1E;border:1px solid #2D2250;color:#9D8EC0">
-            <i class="far fa-heart"></i>
+
+        <div style="display:flex;gap:9px;">
+          <a href="/book/${p.id}" onclick="event.stopPropagation()" class="btn-primary" style="flex:1;justify-content:center;padding:11px 14px;font-size:11px;">
+            Book Now
+          </a>
+          <button onclick="event.stopPropagation();this.innerHTML='<svg width=15 height=15 viewBox=0_0_24_24 fill=var(--g-main) stroke=none><path d=M20.84_4.61a5.5_5.5_0_0_0-7.78_0L12_5.67l-1.06-1.06a5.5_5.5_0_0_0-7.78_7.78l1.06_1.06L12_21.23l7.78-7.78_1.06-1.06a5.5_5.5_0_0_0_0-7.78z/></svg>';showToast('Saved to favourites','success')" class="btn-icon" title="Save">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           </button>
         </div>
       </div>
