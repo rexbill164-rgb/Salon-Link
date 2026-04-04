@@ -183,6 +183,9 @@ var activeFilters = {};
 var allProviders = [];
 var activeCat = 'All';
 
+function goToProvider(id) { window.location.href = '/provider/' + id; }
+function showFav(btn) { btn.innerHTML = '<i class="fas fa-heart" style="color:var(--s-red);font-size:14px;"></i>'; showToast('Saved to favourites', 'success'); }
+
 // Provider images for variety
 var providerImages = {
   hair_salon: [
@@ -305,7 +308,7 @@ function buildProviderCard(p) {
   var stars = Math.round(parseFloat(p.rating) || 4);
   return '<div class="prov-card" data-search="' + (p.business_name + ' ' + p.city + ' ' + p.service_category).toLowerCase() +
     '" data-price="' + (p.price_from/100||0) + '" data-rating="' + p.rating + '" data-reviews="' + p.total_reviews + '"' +
-    ' onclick="window.location.href=\'/provider/' + p.id + '\'">' +
+    ' onclick="goToProvider(' + p.id + ')">' +
     '<div style="height:200px;position:relative;overflow:hidden;">' +
       '<img class="prov-img-inner" src="' + img + '" alt="' + p.business_name + '" loading="lazy" style="position:absolute;inset:0;"/>' +
       '<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(26,18,9,0.25),transparent);"></div>' +
@@ -345,7 +348,7 @@ function buildProviderCard(p) {
         '<a href="/book/' + p.id + '" onclick="event.stopPropagation()" class="btn-primary" style="flex:1;justify-content:center;padding:11px 14px;font-size:11px;">' +
           '<i class="far fa-calendar-check" style="font-size:11px;"></i> Book Now' +
         '</a>' +
-        '<button onclick="event.stopPropagation();this.querySelector(\'i\').classList.toggle(\'far\');this.querySelector(\'i\').classList.toggle(\'fas\');showToast(\'Saved to favourites\',\'success\')" class="btn-icon" title="Save" style="border-radius:12px;">' +
+        '<button onclick="event.stopPropagation();showFav(this)" class="btn-icon" title="Save" style="border-radius:12px;">' +
           '<i class="far fa-heart" style="font-size:14px;"></i>' +
         '</button>' +
       '</div>' +
