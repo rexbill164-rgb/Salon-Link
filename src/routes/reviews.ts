@@ -1,15 +1,22 @@
 import { Hono } from 'hono'
-const reviews = new Hono()
-const store: any[] = [
-  { id: 1, providerId: 1, customerId: 1, customerName: 'Akosua M.', rating: 5, text: 'Absolutely love my locs! Maame is so skilled.', service: 'Loc Retwist', createdAt: new Date(Date.now()-86400000*2).toISOString() },
-  { id: 2, providerId: 1, customerId: 2, customerName: 'Efua T.', rating: 5, text: 'Box braids came out perfect!', service: 'Box Braids', createdAt: new Date(Date.now()-86400000*7).toISOString() },
-]
-let nid = 3
-reviews.get('/provider/:id', (c) => c.json(store.filter(r => r.providerId === parseInt(c.req.param('id')))))
-reviews.post('/', async (c) => {
-  const body = await c.req.json()
-  const r = { id: nid++, ...body, createdAt: new Date().toISOString() }
-  store.push(r)
-  return c.json(r, 201)
+
+type Bindings = { DB: D1Database }
+
+const reviews = new Hono<{ Bindings: Bindings }>()
+
+// GET /api/reviews/provider/:id
+reviews.get('/provider/:id', async (c) => {
+  try {
+    const result = await c.env.DB.prepare(`
+      SELECT r.*, u.first_name, u.last_name, u.avatar_url
+      FROM reviews r JOIN users u ON r.customer_id = u.id
+      WHERE r.provider_id = ? ORDER BY r.created_at DESC
+    `).bind(c.req.param('id')).all()
+
+    return c.json({ success: true, reviews: result.results })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
 })
+
 export default reviews

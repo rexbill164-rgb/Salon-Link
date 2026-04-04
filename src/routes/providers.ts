@@ -1,40 +1,182 @@
 import { Hono } from 'hono'
+import { verify } from 'hono/jwt'
 
-const providers = new Hono()
+type Bindings = { DB: D1Database }
 
-const providerData = [
-  { id: 1, name: 'Glam Studio GH', type: 'Hair Salon', rating: 4.9, reviews: 128, price: 80, location: 'East Legon, Accra', distance: 1.2, verified: true, emoji: '💇‍♀️', tags: ['Braiding', 'Natural Hair', 'Locs'], open: true, phone: '+233201234567', email: 'glam@demo.com', about: 'Premier hair salon in East Legon specializing in natural hair.', workingHours: 'Mon–Sat: 8am–7pm', lat: 5.6037, lng: -0.1870, services: [{name:'Natural Twist',price:80,duration:'2-3hrs'},{name:'Box Braids',price:150,duration:'4-5hrs'},{name:'Loc Retwist',price:60,duration:'1-2hrs'},{name:'Silk Press',price:100,duration:'2hrs'}] },
-  { id: 2, name: 'KutzByKofi', type: 'Barbershop', rating: 4.8, reviews: 96, price: 40, location: 'Osu, Accra', distance: 2.1, verified: true, emoji: '✂️', tags: ['Fade', 'Lineup', 'Dreads'], open: true, phone: '+233209876543', email: 'kutz@demo.com', about: 'Top barbershop in Osu. Clean cuts, fresh fades.', workingHours: 'Mon–Sun: 7am–8pm', lat: 5.5560, lng: -0.1969, services: [{name:'Fade Cut',price:40,duration:'45min'},{name:'Lineup',price:20,duration:'20min'},{name:'Dreads Retwist',price:80,duration:'2hrs'}] },
-  { id: 3, name: 'Nails by Abena', type: 'Nail Tech', rating: 5.0, reviews: 64, price: 60, location: 'Airport Area, Accra', distance: 3.4, verified: true, emoji: '💅', tags: ['Gel', 'Acrylics', 'Nail Art'], open: false, phone: '+233203456789', email: 'nails@demo.com', about: 'Nail technician with 6+ years experience.', workingHours: 'Tue–Sat: 9am–6pm', lat: 5.6052, lng: -0.1718, services: [{name:'Gel Manicure',price:60,duration:'1hr'},{name:'Acrylic Set',price:90,duration:'1.5hrs'},{name:'Nail Art',price:80,duration:'1hr'}] },
-  { id: 4, name: 'Relax & Revive', type: 'Massage', rating: 4.7, reviews: 52, price: 120, location: 'Cantonments, Accra', distance: 4.2, verified: true, emoji: '💆', tags: ['Swedish', 'Deep Tissue'], open: true, phone: '+233204567890', email: 'relax@demo.com', about: 'Professional massage therapy in a relaxing setting.', workingHours: 'Mon–Sat: 9am–7pm', lat: 5.5760, lng: -0.1944, services: [{name:'Swedish Massage',price:120,duration:'1hr'},{name:'Deep Tissue',price:150,duration:'1hr'},{name:'Hot Stone',price:180,duration:'90min'}] },
-  { id: 5, name: 'Faces by Ama', type: 'Makeup Artist', rating: 4.8, reviews: 87, price: 150, location: 'Labone, Accra', distance: 5.1, verified: true, emoji: '💄', tags: ['Bridal', 'Evening', 'Natural'], open: true, phone: '+233205678901', email: 'faces@demo.com', about: 'Award-winning makeup artist for all occasions.', workingHours: 'By appointment', lat: 5.5614, lng: -0.1782, services: [{name:'Bridal Makeup',price:300,duration:'2hrs'},{name:'Evening Glam',price:150,duration:'1.5hrs'},{name:'Natural Beat',price:100,duration:'1hr'}] },
-]
+const providers = new Hono<{ Bindings: Bindings }>()
 
-providers.get('/', (c) => {
-  const { service, sort, lat, lng, maxDist, minRating } = c.req.query()
-  let data = [...providerData]
-  if (service) data = data.filter(p => p.type.toLowerCase().includes(service.toLowerCase()) || p.tags.some(t => t.toLowerCase().includes(service.toLowerCase())))
-  if (minRating) data = data.filter(p => p.rating >= parseFloat(minRating))
-  if (sort === 'rating') data.sort((a, b) => b.rating - a.rating)
-  else if (sort === 'price_asc') data.sort((a, b) => a.price - b.price)
-  else if (sort === 'price_desc') data.sort((a, b) => b.price - a.price)
-  else if (sort === 'distance') data.sort((a, b) => a.distance - b.distance)
-  return c.json(data)
+async function getUser(c: any) {
+  try {
+    const auth = c.req.header('Authorization')
+    if (!auth?.startsWith('Bearer ')) return null
+    const payload = await verify(auth.split(' ')[1], 'salonlink_jwt_secret_2026') as any
+    return payload
+  } catch { return null }
+}
+
+// GET /api/providers — list all providers with filters
+providers.get('/', async (c) => {
+  try {
+    const { category, city, min_rating, max_price, search, limit = '20', offset = '0' } = c.req.query()
+
+    let query = `
+      SELECT p.*, u.first_name, u.last_name, u.avatar_url as user_avatar,
+        (SELECT COUNT(*) FROM services s WHERE s.provider_id = p.id AND s.is_active = 1) as service_count
+      FROM providers p
+      JOIN users u ON p.user_id = u.id
+      WHERE p.is_verified = 1
+    `
+    const params: any[] = []
+
+    if (category) { query += ' AND p.service_category = ?'; params.push(category) }
+    if (city) { query += ' AND p.city = ?'; params.push(city) }
+    if (min_rating) { query += ' AND p.rating >= ?'; params.push(parseFloat(min_rating)) }
+    if (max_price) { query += ' AND p.price_from <= ?'; params.push(parseInt(max_price) * 100) }
+    if (search) { query += ' AND (p.business_name LIKE ? OR p.bio LIKE ?)'; params.push(`%${search}%`, `%${search}%`) }
+
+    query += ' ORDER BY p.rating DESC, p.total_reviews DESC LIMIT ? OFFSET ?'
+    params.push(parseInt(limit), parseInt(offset))
+
+    const result = await c.env.DB.prepare(query).bind(...params).all()
+    return c.json({ success: true, providers: result.results })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
 })
 
-providers.get('/:id', (c) => {
-  const id = parseInt(c.req.param('id'))
-  const p = providerData.find(p => p.id === id)
-  if (!p) return c.json({ error: 'Provider not found' }, 404)
-  return c.json(p)
+// GET /api/providers/:id — single provider with services and reviews
+providers.get('/:id', async (c) => {
+  try {
+    const id = c.req.param('id')
+
+    const provider = await c.env.DB.prepare(`
+      SELECT p.*, u.first_name, u.last_name, u.email, u.phone
+      FROM providers p JOIN users u ON p.user_id = u.id
+      WHERE p.id = ?
+    `).bind(id).first()
+
+    if (!provider) return c.json({ success: false, error: 'Provider not found' }, 404)
+
+    const services = await c.env.DB.prepare(
+      'SELECT * FROM services WHERE provider_id = ? AND is_active = 1 ORDER BY price ASC'
+    ).bind(id).all()
+
+    const reviews = await c.env.DB.prepare(`
+      SELECT r.*, u.first_name, u.last_name, u.avatar_url
+      FROM reviews r JOIN users u ON r.customer_id = u.id
+      WHERE r.provider_id = ? ORDER BY r.created_at DESC LIMIT 10
+    `).bind(id).all()
+
+    return c.json({ success: true, provider, services: services.results, reviews: reviews.results })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
 })
 
-providers.post('/:id/favourite', (c) => c.json({ message: 'Added to favourites' }))
+// GET /api/providers/:id/availability — available slots
+providers.get('/:id/availability', async (c) => {
+  try {
+    const id = c.req.param('id')
+    const { date } = c.req.query()
+    if (!date) return c.json({ success: false, error: 'Date required' }, 400)
 
-providers.get('/:id/availability', (c) => {
-  const slots = ['8:00 AM','9:00 AM','10:00 AM','11:00 AM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM']
-  const booked = ['10:00 AM','2:00 PM']
-  return c.json({ available: slots.filter(s => !booked.includes(s)), booked })
+    // Get all booked slots for this provider on this date
+    const booked = await c.env.DB.prepare(
+      "SELECT booking_time FROM bookings WHERE provider_id = ? AND booking_date = ? AND status NOT IN ('cancelled')"
+    ).bind(id, date).all()
+
+    const bookedTimes = booked.results.map((b: any) => b.booking_time)
+
+    // Generate time slots 9am-6pm in 30min increments
+    const slots = []
+    for (let h = 9; h < 18; h++) {
+      for (let m = 0; m < 60; m += 30) {
+        const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+        slots.push({ time, available: !bookedTimes.includes(time) })
+      }
+    }
+
+    return c.json({ success: true, date, slots })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// PUT /api/providers/me — update provider profile (authenticated)
+providers.put('/me', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user || user.role !== 'provider') {
+      return c.json({ success: false, error: 'Unauthorized' }, 401)
+    }
+
+    const body = await c.req.json()
+    const { bio, address, city, price_from, price_to, is_accepting_bookings } = body
+
+    await c.env.DB.prepare(`
+      UPDATE providers SET bio = ?, address = ?, city = ?, price_from = ?, price_to = ?,
+      is_accepting_bookings = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?
+    `).bind(bio, address, city, price_from, price_to, is_accepting_bookings ? 1 : 0, user.sub).run()
+
+    return c.json({ success: true, message: 'Profile updated' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// GET /api/providers/me/dashboard — provider dashboard stats
+providers.get('/me/dashboard', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user || user.role !== 'provider') {
+      return c.json({ success: false, error: 'Unauthorized' }, 401)
+    }
+
+    const provider = await c.env.DB.prepare(
+      'SELECT * FROM providers WHERE user_id = ?'
+    ).bind(user.sub).first() as any
+    if (!provider) return c.json({ success: false, error: 'Provider not found' }, 404)
+
+    const today = new Date().toISOString().split('T')[0]
+
+    const todayBookings = await c.env.DB.prepare(`
+      SELECT b.*, u.first_name, u.last_name, u.phone, u.avatar_url, s.name as service_name, s.duration_minutes
+      FROM bookings b JOIN users u ON b.customer_id = u.id JOIN services s ON b.service_id = s.id
+      WHERE b.provider_id = ? AND b.booking_date = ? ORDER BY b.booking_time ASC
+    `).bind(provider.id, today).all()
+
+    const weekRevenue = await c.env.DB.prepare(`
+      SELECT COALESCE(SUM(total_amount), 0) as total FROM bookings
+      WHERE provider_id = ? AND payment_status = 'paid'
+      AND booking_date >= date('now', '-7 days')
+    `).bind(provider.id).first() as any
+
+    const totalClients = await c.env.DB.prepare(
+      "SELECT COUNT(DISTINCT customer_id) as count FROM bookings WHERE provider_id = ? AND status = 'completed'"
+    ).bind(provider.id).first() as any
+
+    const pendingBookings = await c.env.DB.prepare(`
+      SELECT b.*, u.first_name, u.last_name, u.avatar_url, s.name as service_name
+      FROM bookings b JOIN users u ON b.customer_id = u.id JOIN services s ON b.service_id = s.id
+      WHERE b.provider_id = ? AND b.status = 'pending' ORDER BY b.booking_date ASC, b.booking_time ASC LIMIT 10
+    `).bind(provider.id).all()
+
+    return c.json({
+      success: true,
+      provider,
+      stats: {
+        today_bookings: todayBookings.results.length,
+        week_revenue: weekRevenue?.total || 0,
+        total_clients: totalClients?.count || 0,
+        rating: provider.rating,
+        total_reviews: provider.total_reviews
+      },
+      today_appointments: todayBookings.results,
+      pending_bookings: pendingBookings.results
+    })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
 })
 
 export default providers

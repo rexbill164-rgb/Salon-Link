@@ -28,7 +28,13 @@ import { hairstyleHistoryPage } from './pages/hairstyleHistory'
 import { settingsPage } from './pages/settings'
 import { notificationsPage } from './pages/notifications'
 
-const app = new Hono()
+type Bindings = {
+  DB: D1Database
+  PAYSTACK_SECRET_KEY: string
+  JWT_SECRET: string
+}
+
+const app = new Hono<{ Bindings: Bindings }>()
 
 // Middleware
 app.use('*', logger())
@@ -38,11 +44,6 @@ app.use('*', cors({
   allowHeaders: ['Content-Type', 'Authorization'],
 }))
 app.use('*', secureHeaders())
-
-// Static files
-app.use('/static/*', async (c, next) => {
-  await next()
-})
 
 // ─── API ROUTES ──────────────────────────────────────────
 app.route('/api/auth', authRoutes)
@@ -70,10 +71,11 @@ app.get('/settings', (c) => c.html(settingsPage()))
 app.get('/notifications', (c) => c.html(notificationsPage()))
 
 // Health check
-app.get('/api/health', (c) => c.json({ 
-  status: 'ok', 
-  app: 'SalonLink', 
-  version: '1.0.0',
+app.get('/api/health', (c) => c.json({
+  status: 'ok',
+  app: 'SalonLink',
+  version: '2.0.0',
+  db: 'D1 Connected',
   timestamp: new Date().toISOString()
 }))
 
