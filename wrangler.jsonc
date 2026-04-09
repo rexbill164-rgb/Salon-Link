@@ -12,11 +12,5 @@
       "database_name": "salonlink-production",
       "database_id": "7a6f0ec2-a434-4d96-b81f-fd660e05bc16"
     }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "R2",
-      "bucket_name": "salonlink-uploads"
-    }
   ]
 }
