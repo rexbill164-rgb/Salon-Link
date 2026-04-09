@@ -247,7 +247,6 @@ export const onboardingPage = () => `<!DOCTYPE html>
     </div>
 
     <div style="display:flex;gap:12px;">
-      <button onclick="skipKyc()" class="btn-ghost" style="padding:14px 22px;font-size:13px;white-space:nowrap;">Skip for now</button>
       <button onclick="validateStep1()" class="btn-primary" style="flex:1;justify-content:center;padding:16px;font-size:15px;">Submit KYC &amp; Continue <i class="fas fa-arrow-right" style="margin-left:8px;"></i></button>
     </div>
   </div>
@@ -296,6 +295,7 @@ export const onboardingPage = () => `<!DOCTYPE html>
 
     <div style="display:flex;gap:12px;">
       <button onclick="goObStep(2)" class="btn-ghost" style="padding:14px 28px;">Back</button>
+      <button onclick="skipServices()" class="btn-ghost" style="padding:14px 22px;font-size:13px;white-space:nowrap;">Skip for now</button>
       <button onclick="submitOnboarding()" class="btn-primary" style="flex:1;justify-content:center;padding:14px;font-size:14px;">Finish Setup <i class="fas fa-check" style="margin-left:8px;"></i></button>
     </div>
   </div>
@@ -504,9 +504,9 @@ function applyCapture(target, dataUrl) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // STEP VALIDATION
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function skipKyc() {
-  showToast('KYC skipped — you can add it later from your dashboard', 'info');
-  goObStep(2);
+function skipServices() {
+  showToast('Services skipped — add them from your dashboard anytime', 'info');
+  goObStep(4);
 }
 
 function validateStep1() {
