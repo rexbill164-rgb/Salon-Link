@@ -56,6 +56,9 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
 .form-row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:10px; }
 /* ── Pending banner ── */
 .pending-banner { background:linear-gradient(135deg,rgba(201,168,76,0.1),rgba(131,58,180,0.06)); border:1px solid var(--g-border); border-radius:16px; padding:16px; margin-bottom:20px; display:none; }
+/* ── Gallery add button ── */
+.gallery-add-btn { aspect-ratio:1; border-radius:12px; background:#fff; border:2px dashed var(--i-faint); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition:border-color 0.2s,background 0.2s; }
+.gallery-add-btn:hover { border-color:var(--g-border); background:var(--g-dim); }
 /* ── Mobile responsive ── */
 @media(max-width:768px){
   .sidebar { transform:translateX(-100%); }
@@ -527,7 +530,7 @@ function renderTodayAppts(appts) {
         '<div style="font-size:12px;font-weight:700;color:var(--g-main);">'+(a.booking_time||'')+'</div>' +
         '<span class="badge '+bc+'" style="font-size:9px;">'+a.status+'</span>' +
       '</div>' +
-      (a.status==='pending'?'<button onclick="updateAppt('+a.id+',\'confirmed\')" class="btn-primary" style="padding:6px 12px;font-size:10px;margin-left:8px;">Confirm</button>':'') +
+      (a.status==='pending'?'<button data-id="'+a.id+'" data-status="confirmed" onclick="updateApptBtn(this)" class="btn-primary" style="padding:6px 12px;font-size:10px;margin-left:8px;">Confirm</button>':'') +
     '</div>';
   }).join('');
 }
@@ -559,9 +562,9 @@ function renderApptsList(list) {
         '<span class="badge '+bc+'" style="font-size:9px;">'+a.status+'</span>' +
       '</div>' +
       '<div style="display:flex;gap:6px;flex-wrap:wrap;">' +
-        (a.status==='pending'?'<button onclick="updateAppt('+a.id+',\'confirmed\')" class="btn-primary" style="padding:6px 12px;font-size:10px;">Confirm</button>':'') +
-        (a.status==='confirmed'?'<button onclick="updateAppt('+a.id+',\'completed\')" style="padding:6px 12px;font-size:10px;border-radius:8px;border:1px solid var(--g-border);background:var(--g-dim);color:var(--g-main);cursor:pointer;">Done</button>':'') +
-        (a.status==='pending'||a.status==='confirmed'?'<button onclick="updateAppt('+a.id+',\'cancelled\')" style="padding:6px 12px;font-size:10px;border-radius:8px;border:1px solid rgba(224,112,112,0.3);background:transparent;color:var(--s-red);cursor:pointer;">Cancel</button>':'') +
+        (a.status==='pending'?'<button data-id="'+a.id+'" data-status="confirmed" onclick="updateApptBtn(this)" class="btn-primary" style="padding:6px 12px;font-size:10px;">Confirm</button>':'') +
+        (a.status==='confirmed'?'<button data-id="'+a.id+'" data-status="completed" onclick="updateApptBtn(this)" style="padding:6px 12px;font-size:10px;border-radius:8px;border:1px solid var(--g-border);background:var(--g-dim);color:var(--g-main);cursor:pointer;">Done</button>':'') +
+        (a.status==='pending'||a.status==='confirmed'?'<button data-id="'+a.id+'" data-status="cancelled" onclick="updateApptBtn(this)" style="padding:6px 12px;font-size:10px;border-radius:8px;border:1px solid rgba(224,112,112,0.3);background:transparent;color:var(--s-red);cursor:pointer;">Cancel</button>':'') +
       '</div>' +
     '</div>';
   }).join('');
@@ -576,6 +579,11 @@ function filterAppts(btn, status) {
   renderApptsList(filtered);
 }
 
+function updateApptBtn(btn) {
+  var id = btn.getAttribute('data-id');
+  var status = btn.getAttribute('data-status');
+  updateAppt(id, status);
+}
 function updateAppt(id, status) {
   var token = localStorage.getItem('sl_token');
   axios.patch('/api/bookings/'+id+'/status', { status: status }, { headers: { Authorization: 'Bearer ' + token } })
@@ -627,7 +635,7 @@ function loadMyServices(token) {
         return '<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--i-faint);">' +
           '<div style="flex:1;">' +
             '<div style="font-size:13px;font-weight:700;">'+s.name+'</div>' +
-            '<div style="font-size:11px;color:var(--t-muted);">'+(s.duration||60)+' min</div>' +
+            '<div style="font-size:11px;color:var(--t-muted);">'+(s.duration_minutes||s.duration||60)+' min</div>' +
           '</div>' +
           '<div style="font-size:15px;font-weight:700;color:var(--g-main);">GHS '+Math.round((s.price||0)/100)+'</div>' +
           '<button onclick="deleteService('+s.id+')" style="width:28px;height:28px;border-radius:8px;border:1px solid rgba(224,112,112,0.3);background:transparent;color:var(--s-red);cursor:pointer;font-size:12px;">✕</button>' +
@@ -682,7 +690,7 @@ function loadGallery(token) {
           '<button onclick="deleteGalleryImage('+p.id+')" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,0.55);border:none;color:white;cursor:pointer;font-size:10px;">✕</button>' +
         '</div>';
       }).join('');
-      html += '<div onclick="triggerGalleryUpload()" style="aspect-ratio:1;border-radius:12px;background:#fff;border:2px dashed var(--i-faint);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;" onmouseover="this.style.borderColor=\'var(--g-border)\'" onmouseout="this.style.borderColor=\'var(--i-faint)\'"><div style="font-size:24px;">➕</div><div style="font-size:10px;color:var(--t-muted);margin-top:4px;">Add Photo</div></div>';
+      html += '<div onclick="triggerGalleryUpload()" class="gallery-add-btn"><div style="font-size:24px;">➕</div><div style="font-size:10px;color:var(--t-muted);margin-top:4px;">Add Photo</div></div>';
       grid.innerHTML = html;
     }).catch(function(){ document.getElementById('gallery-grid').innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;grid-column:1/-1;">Could not load gallery.</div>'; });
 }
@@ -697,7 +705,7 @@ function deleteGalleryImage(id) {
 
 function upgradeGallery() {
   var ref = 'GALLERY-' + Date.now();
-  if (!confirm('Upgrade to Gallery Pro for GHS 10/month? Reference: '+ref+'\n\nContact admin via MoMo to pay.')) return;
+  if (!confirm('Upgrade to Gallery Pro for GHS 10/month? Reference: '+ref+'. Contact admin via MoMo to pay.')) return;
   var token = localStorage.getItem('sl_token');
   axios.post('/api/uploads/subscribe-gallery', { payment_reference: ref }, { headers:{ Authorization:'Bearer '+token } })
     .then(function(){ showToast('Gallery Pro activated! ✦', 'success'); document.getElementById('pro-banner').style.display='none'; })
@@ -781,10 +789,8 @@ function loadReviews(token) {
 /* ── Fees / Earnings ── */
 function loadFees() {
   var token=localStorage.getItem('sl_token');
-  var user=JSON.parse(localStorage.getItem('sl_user')||'{}');
-  if (!user.provider_id && !providerIdGlobal) return;
-  var pid = user.provider_id || providerIdGlobal;
-  axios.get('/api/admin/provider-fees/'+pid, { headers:{ Authorization:'Bearer '+token } })
+  if (!token) return;
+  axios.get('/api/providers/me/fees', { headers:{ Authorization:'Bearer '+token } })
     .then(function(r) {
       var s=r.data.summary||{};
       var setEl=function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
@@ -841,21 +847,21 @@ function loadSettings(token) {
       setVal('set-city', p.city);
       setVal('set-address', p.address);
       setVal('set-bio', p.bio);
-      setVal('set-price-min', p.price_range_min ? p.price_range_min/100 : '');
-      setVal('set-price-max', p.price_range_max ? p.price_range_max/100 : '');
+      setVal('set-price-min', p.price_from ? Math.round(p.price_from/100) : '');
+      setVal('set-price-max', p.price_to ? Math.round(p.price_to/100) : '');
     }).catch(function(){});
 }
 
 function saveProfile() {
   var token=localStorage.getItem('sl_token');
   var payload = {
-    business_name: document.getElementById('set-business-name').value.trim(),
-    phone:         document.getElementById('set-phone').value.trim(),
-    city:          document.getElementById('set-city').value.trim(),
-    address:       document.getElementById('set-address').value.trim(),
-    bio:           document.getElementById('set-bio').value.trim(),
-    price_range_min: parseInt(document.getElementById('set-price-min').value||0)*100||undefined,
-    price_range_max: parseInt(document.getElementById('set-price-max').value||0)*100||undefined,
+    business_name: document.getElementById('set-business-name').value.trim()||undefined,
+    phone:         document.getElementById('set-phone').value.trim()||undefined,
+    city:          document.getElementById('set-city').value.trim()||undefined,
+    address:       document.getElementById('set-address').value.trim()||undefined,
+    bio:           document.getElementById('set-bio').value.trim()||undefined,
+    price_from: parseInt(document.getElementById('set-price-min').value||'0')*100||undefined,
+    price_to: parseInt(document.getElementById('set-price-max').value||'0')*100||undefined,
   };
   axios.put('/api/providers/me', payload, { headers:{ Authorization:'Bearer '+token } })
     .then(function(){ showToast('Profile saved! ✦', 'success'); })

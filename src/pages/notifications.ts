@@ -49,7 +49,7 @@ function renderNotifs(list) {
   el.innerHTML = list.map(function(n) {
     var unread = !n.is_read;
     var icon = typeIcons[n.type] || '🔔';
-    return '<div onclick="markRead(this,' + n.id + ')" style="display:flex;align-items:flex-start;gap:18px;padding:22px;border-radius:var(--r-lg);cursor:pointer;transition:background 0.2s;background:' + (unread?'rgba(201,168,76,0.04)':'transparent') + ';border:1px solid ' + (unread?'rgba(201,168,76,0.1)':'transparent') + ';" onmouseover="this.style.background=\'var(--i-ghost)\'" onmouseout="this.style.background=\'' + (unread?'rgba(201,168,76,0.04)':'transparent') + '\'">' +
+    return '<div data-id="' + n.id + '" onclick="markReadBtn(this)" class="notif-item' + (unread?' notif-unread':'') + '">' +
       '<div style="width:46px;height:46px;border-radius:14px;background:' + (unread?'var(--g-dim)':'var(--c-surface)') + ';border:1px solid ' + (unread?'var(--g-border)':'var(--i-faint)') + ';display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">' + icon + '</div>' +
       '<div style="flex:1;min-width:0;">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:5px;">' +

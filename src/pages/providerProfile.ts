@@ -305,7 +305,7 @@ ${globalScripts()}
           var priceGhs = Math.round((s.price || 0) / 100);
           var durMins = s.duration_minutes || 60;
           var durStr = durMins >= 60 ? (durMins / 60).toFixed(1).replace('.0','') + ' hr' + (durMins >= 120 ? 's' : '') : durMins + ' min';
-          return '<div class="service-item" onclick="window.location.href=\'/book/${id}?service=' + s.id + '\'" style="cursor:pointer;">' +
+          return '<div class="service-item" data-svc-id="' + s.id + '" onclick="bookService(this)" style="cursor:pointer;">' +
             '<div style="display:flex;align-items:center;gap:14px;">' +
               '<div style="width:36px;height:36px;border-radius:10px;background:var(--g-dim);border:1px solid var(--g-border);display:flex;align-items:center;justify-content:center;font-size:16px;">✦</div>' +
               '<div>' +
@@ -402,5 +402,11 @@ ${globalScripts()}
     }
   }).catch(function(e) { console.error('Provider load error', e); });
 })();
+
+function bookService(el) {
+  var svcId = el.getAttribute('data-svc-id');
+  var pid = window.location.pathname.split('/').pop();
+  window.location.href = '/book/' + pid + (svcId ? '?service=' + svcId : '');
+}
 </script>
 </body></html>`

@@ -427,9 +427,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (kyctbody) {
       var pending = rows.filter(function(p) { return p.kyc_status === 'pending' || p.kyc_status === 'submitted'; });
       kyctbody.innerHTML = pending.length ? pending.map(function(p) {
-        var frontImg  = p.kyc_front_url  ? '<img src="' + p.kyc_front_url  + '" style="width:70px;height:45px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="viewImg(this.src,\'Ghana Card Front\')" title="Click to enlarge"/>' : '<span style="color:#bbb;font-size:11px;">Not uploaded</span>';
-        var backImg   = p.kyc_back_url   ? '<img src="' + p.kyc_back_url   + '" style="width:70px;height:45px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="viewImg(this.src,\'Ghana Card Back\')" title="Click to enlarge"/>'  : '<span style="color:#bbb;font-size:11px;">Not uploaded</span>';
-        var selfieImg = p.kyc_selfie_url ? '<img src="' + p.kyc_selfie_url + '" style="width:45px;height:45px;object-fit:cover;border-radius:50%;cursor:pointer;" onclick="viewImg(this.src,\'Selfie\')" title="Click to enlarge"/>'             : '<span style="color:#bbb;font-size:11px;">Not taken</span>';
+        var frontImg  = p.kyc_front_url  ? '<img src="' + p.kyc_front_url  + '" style="width:70px;height:45px;object-fit:cover;border-radius:6px;cursor:pointer;" data-caption="Ghana Card Front" onclick="viewImgBtn(this)" title="Click to enlarge"/>' : '<span style="color:#bbb;font-size:11px;">Not uploaded</span>';
+        var backImg   = p.kyc_back_url   ? '<img src="' + p.kyc_back_url   + '" style="width:70px;height:45px;object-fit:cover;border-radius:6px;cursor:pointer;" data-caption="Ghana Card Back" onclick="viewImgBtn(this)" title="Click to enlarge"/>'  : '<span style="color:#bbb;font-size:11px;">Not uploaded</span>';
+        var selfieImg = p.kyc_selfie_url ? '<img src="' + p.kyc_selfie_url + '" style="width:45px;height:45px;object-fit:cover;border-radius:50%;cursor:pointer;" data-caption="Selfie" onclick="viewImgBtn(this)" title="Click to enlarge"/>'             : '<span style="color:#bbb;font-size:11px;">Not taken</span>';
         var cardNum   = p.kyc_card_number ? '<div style="font-size:10px;font-weight:700;color:#a0793c;margin-top:4px;">' + p.kyc_card_number + '</div>' : '';
         return '<tr>' +
           '<td><div style="font-weight:700;">' + (p.business_name || '—') + '</div><div style="font-size:11px;color:#888;">' + p.first_name + ' ' + p.last_name + '</div>' + cardNum + '</td>' +
@@ -472,6 +472,9 @@ function toggleUser(id) {
 }
 
 // View KYC image in lightbox
+function viewImgBtn(el) {
+  viewImg(el.src, el.getAttribute('data-caption') || 'Image');
+}
 function viewImg(src, title) {
   var overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;';

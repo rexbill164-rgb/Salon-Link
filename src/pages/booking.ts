@@ -464,7 +464,7 @@ function loadAvailability(date) {
       }
       slotsEl.innerHTML = slots.map(function(s, i) {
         return '<div class="time-chip' + (!s.available ? ' busy' : '') + '"' +
-          (s.available ? ' onclick="selectTime(this,\'' + s.time + '\')"' : '') + '>' + s.time + '</div>';
+          (s.available ? ' data-time="' + s.time + '" onclick="selectTimeBtn(this)"' : '') + '>' + s.time + '</div>';
       }).join('');
       // Auto-select first available
       var first = slots.find(function(s){ return s.available; });
@@ -479,13 +479,17 @@ function loadAvailability(date) {
       // Fallback: show default slots
       var defaultSlots = ['9:00 AM','9:30 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM'];
       slotsEl.innerHTML = defaultSlots.map(function(t, i) {
-        return '<div class="time-chip' + (i===0?' selected':'') + '" onclick="selectTime(this,\'' + t + '\')">' + t + '</div>';
+        return '<div class="time-chip' + (i===0?' selected':'') + '" data-time="' + t + '" onclick="selectTimeBtn(this)">' + t + '</div>';
       }).join('');
       selectedTime = defaultSlots[0];
       document.getElementById('sum-time').textContent = defaultSlots[0];
     });
 }
 
+function selectTimeBtn(el) {
+  var time = el.getAttribute('data-time');
+  selectTime(el, time);
+}
 function selectTime(el, time) {
   document.querySelectorAll('.time-chip:not(.busy)').forEach(function(e){ e.classList.remove('selected'); });
   el.classList.add('selected');
