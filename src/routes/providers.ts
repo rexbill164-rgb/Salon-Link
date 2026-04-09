@@ -24,7 +24,7 @@ providers.get('/', async (c) => {
         (SELECT COUNT(*) FROM services s WHERE s.provider_id = p.id AND s.is_active = 1) as service_count
       FROM providers p
       JOIN users u ON p.user_id = u.id
-      WHERE p.is_verified = 1
+      WHERE 1=1
     `
     const params: any[] = []
 
@@ -113,7 +113,8 @@ providers.put('/me', async (c) => {
     const body = await c.req.json()
     const {
       bio, address, city, price_from, price_to, is_accepting_bookings, business_name, phone,
-      kyc_status, kyc_card_number, kyc_front_url, kyc_back_url, kyc_selfie_url
+      kyc_status, kyc_card_number, kyc_front_url, kyc_back_url, kyc_selfie_url,
+      location_lat, location_lng
     } = body
 
     await c.env.DB.prepare(`
@@ -130,6 +131,8 @@ providers.put('/me', async (c) => {
         kyc_front_url = COALESCE(?, kyc_front_url),
         kyc_back_url = COALESCE(?, kyc_back_url),
         kyc_selfie_url = COALESCE(?, kyc_selfie_url),
+        location_lat = COALESCE(?, location_lat),
+        location_lng = COALESCE(?, location_lng),
         updated_at = CURRENT_TIMESTAMP
       WHERE user_id = ?
     `).bind(
@@ -138,6 +141,8 @@ providers.put('/me', async (c) => {
       is_accepting_bookings !== undefined ? (is_accepting_bookings ? 1 : 0) : null,
       kyc_status||null, kyc_card_number||null,
       kyc_front_url||null, kyc_back_url||null, kyc_selfie_url||null,
+      location_lat !== undefined ? location_lat : null,
+      location_lng !== undefined ? location_lng : null,
       user.sub
     ).run()
 
@@ -159,12 +164,95 @@ providers.post('/me/services', async (c) => {
     if (!user || user.role !== 'provider') return c.json({ success: false, error: 'Unauthorized' }, 401)
     const provider = await c.env.DB.prepare('SELECT id FROM providers WHERE user_id = ?').bind(user.sub).first() as any
     if (!provider) return c.json({ success: false, error: 'Provider not found' }, 404)
-    const { name, price, duration } = await c.req.json()
+    const { name, price, duration, description } = await c.req.json()
     if (!name) return c.json({ success: false, error: 'Service name required' }, 400)
+    // Parse duration: accept "60", "2hr", "1.5hrs", "90 min" etc → store as integer minutes
+    let durationMins = 60
+    if (duration) {
+      const d = String(duration)
+      if (/^\d+$/.test(d.trim())) {
+        durationMins = parseInt(d)
+      } else {
+        const hrMatch = d.match(/(\d+\.?\d*)\s*hr/i)
+        const minMatch = d.match(/(\d+)\s*min/i)
+        if (hrMatch) durationMins = Math.round(parseFloat(hrMatch[1]) * 60)
+        else if (minMatch) durationMins = parseInt(minMatch[1])
+      }
+    }
     const result = await c.env.DB.prepare(
-      'INSERT INTO services (provider_id, name, price, duration_minutes, is_active) VALUES (?, ?, ?, ?, 1)'
-    ).bind(provider.id, name, price || 0, duration || '60 min').run()
+      'INSERT INTO services (provider_id, name, description, price, duration_minutes, is_active) VALUES (?, ?, ?, ?, ?, 1)'
+    ).bind(provider.id, name, description || null, price || 0, durationMins).run()
     return c.json({ success: true, id: result.meta.last_row_id })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// GET /api/providers/me/services — list provider's own services
+providers.get('/me/services', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user || user.role !== 'provider') return c.json({ success: false, error: 'Unauthorized' }, 401)
+    const provider = await c.env.DB.prepare('SELECT id FROM providers WHERE user_id = ?').bind(user.sub).first() as any
+    if (!provider) return c.json({ success: false, error: 'Provider not found' }, 404)
+    const services = await c.env.DB.prepare(
+      'SELECT * FROM services WHERE provider_id = ? ORDER BY created_at ASC'
+    ).bind(provider.id).all()
+    return c.json({ success: true, services: services.results })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// DELETE /api/providers/me/services/:id — delete a service
+providers.delete('/me/services/:id', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user || user.role !== 'provider') return c.json({ success: false, error: 'Unauthorized' }, 401)
+    const provider = await c.env.DB.prepare('SELECT id FROM providers WHERE user_id = ?').bind(user.sub).first() as any
+    if (!provider) return c.json({ success: false, error: 'Provider not found' }, 404)
+    await c.env.DB.prepare(
+      'DELETE FROM services WHERE id = ? AND provider_id = ?'
+    ).bind(c.req.param('id'), provider.id).run()
+    return c.json({ success: true })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// GET /api/providers/nearby — providers sorted by distance from lat/lng
+providers.get('/nearby', async (c) => {
+  try {
+    const { lat, lng, limit = '20' } = c.req.query()
+    // Fetch all providers and compute distance in JS (D1 has no geo functions)
+    const result = await c.env.DB.prepare(`
+      SELECT p.*, u.first_name, u.last_name,
+        (SELECT COUNT(*) FROM services s WHERE s.provider_id = p.id AND s.is_active = 1) as service_count
+      FROM providers p JOIN users u ON p.user_id = u.id
+    `).all()
+
+    let providers = result.results as any[]
+
+    if (lat && lng) {
+      const userLat = parseFloat(lat)
+      const userLng = parseFloat(lng)
+      // Haversine distance formula
+      providers = providers.map((p: any) => {
+        if (p.location_lat && p.location_lng) {
+          const R = 6371 // km
+          const dLat = (p.location_lat - userLat) * Math.PI / 180
+          const dLng = (p.location_lng - userLng) * Math.PI / 180
+          const a = Math.sin(dLat/2)**2 + Math.cos(userLat*Math.PI/180)*Math.cos(p.location_lat*Math.PI/180)*Math.sin(dLng/2)**2
+          p.distance_km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+        } else {
+          p.distance_km = 9999
+        }
+        return p
+      })
+      providers.sort((a: any, b: any) => a.distance_km - b.distance_km)
+    }
+
+    return c.json({ success: true, providers: providers.slice(0, parseInt(limit)) })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }

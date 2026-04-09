@@ -4,6 +4,8 @@ export const providerDashboardPage = () => `<!DOCTYPE html>
 <html lang="en">
 <head>
 ${baseHead('Provider Dashboard', `
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   .dash-layout { display:flex; min-height:100vh; }
   .sidebar { width:260px; background:var(--c-deep); border-right:1px solid var(--i-faint); flex-shrink:0; display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow-y:auto; }
@@ -468,7 +470,51 @@ ${baseHead('Provider Dashboard', `
       <!-- ── Other sections (clients, reviews, settings) ── -->
       <div id="sec-clients"  class="section"><div class="eyebrow">Clients</div><p style="color:var(--t-secondary);margin-top:16px;">Client management coming soon.</p></div>
       <div id="sec-reviews"  class="section"><div class="eyebrow">Reviews</div><p style="color:var(--t-secondary);margin-top:16px;">Review management coming soon.</p></div>
-      <div id="sec-settings" class="section"><div class="eyebrow">Settings</div><p style="color:var(--t-secondary);margin-top:16px;">Profile settings coming soon.</p></div>
+      <!-- ── SETTINGS / LOCATION ── -->
+      <div id="sec-settings" class="section">
+        <div class="eyebrow" style="margin-bottom:24px;">Profile & Location Settings</div>
+
+        <!-- Services Manager -->
+        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:28px;margin-bottom:24px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <div>
+              <div style="font-size:15px;font-weight:700;">My Services</div>
+              <div style="font-size:12px;color:var(--t-muted);margin-top:3px;">Add or remove the services you offer</div>
+            </div>
+            <button onclick="showAddServiceForm()" class="btn-primary" style="padding:9px 20px;font-size:12px;">+ Add Service</button>
+          </div>
+          <!-- Add service form (hidden by default) -->
+          <div id="add-svc-form" style="display:none;background:var(--c-raise);border:1px solid var(--i-faint);border-radius:12px;padding:16px;margin-bottom:16px;">
+            <div style="display:grid;grid-template-columns:1fr 120px 130px;gap:10px;margin-bottom:12px;">
+              <input type="text" id="new-svc-name" class="input" placeholder="Service name" style="font-size:13px;" />
+              <input type="number" id="new-svc-price" class="input" placeholder="GHS price" min="1" style="font-size:13px;" />
+              <input type="number" id="new-svc-duration" class="input" placeholder="Duration (mins)" value="60" min="10" step="5" style="font-size:13px;" />
+            </div>
+            <div style="display:flex;gap:10px;">
+              <button onclick="saveNewService()" class="btn-primary" style="padding:9px 20px;font-size:12px;">Save Service</button>
+              <button onclick="document.getElementById('add-svc-form').style.display='none'" class="btn-ghost" style="padding:9px 20px;font-size:12px;">Cancel</button>
+            </div>
+          </div>
+          <div id="my-services-list">
+            <div style="text-align:center;color:var(--t-muted);padding:20px;">Loading services...</div>
+          </div>
+        </div>
+
+        <!-- Location Picker -->
+        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:28px;">
+          <div style="font-size:15px;font-weight:700;margin-bottom:6px;">📍 Your Business Location</div>
+          <div style="font-size:12px;color:var(--t-muted);margin-bottom:16px;">Pin your exact location so customers can find you. Click on the map or use the button below.</div>
+          <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+            <button onclick="useMyLocation()" style="padding:10px 20px;border-radius:100px;font-size:12px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#833ab4,#e1306c);color:white;border:none;">
+              📍 Use My Current Location
+            </button>
+            <button onclick="saveLocation()" class="btn-primary" style="padding:10px 20px;font-size:12px;" id="save-location-btn" disabled>Save Location</button>
+          </div>
+          <div id="location-coords" style="font-size:12px;color:var(--t-muted);margin-bottom:12px;">No location set yet. Click the map or use the button above.</div>
+          <div id="location-picker-map" style="width:100%;height:320px;border-radius:14px;border:1px solid var(--i-faint);overflow:hidden;"></div>
+          <div style="font-size:11px;color:var(--t-muted);margin-top:8px;">💡 Tip: You can drag the marker to fine-tune your exact position.</div>
+        </div>
+      </div>
 
     </div>
   </div>
@@ -800,6 +846,149 @@ function loadProviderFees() {
     });
 }
 
+// ── SERVICES MANAGER ──
+var locationMap = null;
+var locationMarker = null;
+var pickedLat = null;
+var pickedLng = null;
+
+function showAddServiceForm() {
+  document.getElementById('add-svc-form').style.display = 'block';
+  document.getElementById('new-svc-name').focus();
+}
+
+function saveNewService() {
+  var token = localStorage.getItem('sl_token');
+  var name = document.getElementById('new-svc-name').value.trim();
+  var price = parseInt(document.getElementById('new-svc-price').value) || 0;
+  var duration = parseInt(document.getElementById('new-svc-duration').value) || 60;
+  if (!name) { showToast('Please enter a service name', 'error'); return; }
+  if (!price) { showToast('Please enter a price', 'error'); return; }
+  axios.post('/api/providers/me/services', { name, price: price * 100, duration }, { headers: { Authorization: 'Bearer ' + token } })
+    .then(function() {
+      showToast('Service added! ✦', 'success');
+      document.getElementById('add-svc-form').style.display = 'none';
+      document.getElementById('new-svc-name').value = '';
+      document.getElementById('new-svc-price').value = '';
+      document.getElementById('new-svc-duration').value = '60';
+      loadMyServices(token);
+    }).catch(function(e) { showToast(e.response ? e.response.data.error : 'Save failed', 'error'); });
+}
+
+function deleteService(id) {
+  if (!confirm('Delete this service?')) return;
+  var token = localStorage.getItem('sl_token');
+  axios.delete('/api/providers/me/services/' + id, { headers: { Authorization: 'Bearer ' + token } })
+    .then(function() { showToast('Service deleted', 'info'); loadMyServices(token); })
+    .catch(function() { showToast('Delete failed', 'error'); });
+}
+
+function loadMyServices(token) {
+  axios.get('/api/providers/me/services', { headers: { Authorization: 'Bearer ' + token } })
+    .then(function(r) {
+      var list = document.getElementById('my-services-list');
+      if (!list) return;
+      var svcs = r.data.services || [];
+      if (!svcs.length) {
+        list.innerHTML = '<div style="text-align:center;color:var(--t-muted);padding:20px;">No services yet. Add your first service above.</div>';
+        return;
+      }
+      list.innerHTML = svcs.map(function(s) {
+        return '<div style="display:flex;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid var(--i-faint);">' +
+          '<div style="flex:1;">' +
+            '<div style="font-size:13px;font-weight:700;">' + s.name + '</div>' +
+            '<div style="font-size:11px;color:var(--t-muted);">⏱ ' + (s.duration_minutes || 60) + ' min</div>' +
+          '</div>' +
+          '<div style="font-size:15px;font-weight:800;color:var(--g-main);">GHS ' + Math.round((s.price||0)/100) + '</div>' +
+          '<button onclick="deleteService(' + s.id + ')" style="width:32px;height:32px;border-radius:50%;background:rgba(224,112,112,0.1);border:none;color:var(--s-red);cursor:pointer;font-size:14px;flex-shrink:0;">✕</button>' +
+        '</div>';
+      }).join('');
+    }).catch(function() {});
+}
+
+// ── LOCATION PICKER ──
+function initLocationMap(providerLat, providerLng) {
+  if (!window.L || locationMap) return;
+  // Default to Accra, Ghana if no coords
+  var lat = providerLat || 5.6037;
+  var lng = providerLng || -0.1870;
+  locationMap = L.map('location-picker-map').setView([lat, lng], providerLat ? 15 : 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(locationMap);
+
+  var markerIcon = L.divIcon({
+    html: '<div style="background:linear-gradient(135deg,#833ab4,#e1306c);width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>',
+    iconSize: [28,28], iconAnchor: [14,28], className: ''
+  });
+
+  if (providerLat && providerLng) {
+    pickedLat = providerLat; pickedLng = providerLng;
+    locationMarker = L.marker([lat, lng], { icon: markerIcon, draggable: true }).addTo(locationMap);
+    updateCoordDisplay(lat, lng);
+    document.getElementById('save-location-btn').disabled = false;
+  }
+
+  // Click on map to set marker
+  locationMap.on('click', function(e) {
+    pickedLat = e.latlng.lat; pickedLng = e.latlng.lng;
+    if (locationMarker) {
+      locationMarker.setLatLng(e.latlng);
+    } else {
+      locationMarker = L.marker(e.latlng, { icon: markerIcon, draggable: true }).addTo(locationMap);
+      locationMarker.on('dragend', function(ev) {
+        pickedLat = ev.target.getLatLng().lat; pickedLng = ev.target.getLatLng().lng;
+        updateCoordDisplay(pickedLat, pickedLng);
+      });
+    }
+    updateCoordDisplay(pickedLat, pickedLng);
+    document.getElementById('save-location-btn').disabled = false;
+  });
+
+  if (locationMarker) {
+    locationMarker.on('dragend', function(ev) {
+      pickedLat = ev.target.getLatLng().lat; pickedLng = ev.target.getLatLng().lng;
+      updateCoordDisplay(pickedLat, pickedLng);
+    });
+  }
+}
+
+function updateCoordDisplay(lat, lng) {
+  var el = document.getElementById('location-coords');
+  if (el) el.innerHTML = '📍 <strong>Lat:</strong> ' + lat.toFixed(5) + ', <strong>Lng:</strong> ' + lng.toFixed(5);
+}
+
+function useMyLocation() {
+  if (!navigator.geolocation) { showToast('Geolocation not supported', 'error'); return; }
+  showToast('Getting your location...', 'info');
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    pickedLat = pos.coords.latitude; pickedLng = pos.coords.longitude;
+    if (locationMap) {
+      locationMap.setView([pickedLat, pickedLng], 16);
+      var markerIcon = L.divIcon({
+        html: '<div style="background:linear-gradient(135deg,#833ab4,#e1306c);width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>',
+        iconSize: [28,28], iconAnchor: [14,28], className: ''
+      });
+      if (locationMarker) {
+        locationMarker.setLatLng([pickedLat, pickedLng]);
+      } else {
+        locationMarker = L.marker([pickedLat, pickedLng], { icon: markerIcon, draggable: true }).addTo(locationMap);
+      }
+      updateCoordDisplay(pickedLat, pickedLng);
+      document.getElementById('save-location-btn').disabled = false;
+    }
+    showToast('Location detected! ✦ Click Save to confirm.', 'success');
+  }, function() { showToast('Could not get location. Please allow location access.', 'error'); });
+}
+
+function saveLocation() {
+  if (!pickedLat || !pickedLng) { showToast('Please pick a location first', 'error'); return; }
+  var token = localStorage.getItem('sl_token');
+  axios.put('/api/providers/me', { location_lat: pickedLat, location_lng: pickedLng }, { headers: { Authorization: 'Bearer ' + token } })
+    .then(function() { showToast('Location saved! ✦ Customers can now find you on the map.', 'success'); })
+    .catch(function() { showToast('Save failed', 'error'); });
+}
+
 // Hook into section show to load data
 var origShowSection = showSection;
 showSection = function(id, btn) {
@@ -809,6 +998,18 @@ showSection = function(id, btn) {
     if (token && providerIdGlobal) loadGallery(token);
   }
   if (id === 'fees') loadProviderFees();
+  if (id === 'settings') {
+    var token2 = localStorage.getItem('sl_token');
+    loadMyServices(token2);
+    // Init map after slight delay for DOM render
+    setTimeout(function() {
+      axios.get('/api/providers/me/dashboard', { headers: { Authorization: 'Bearer ' + token2 } })
+        .then(function(r) {
+          var p = r.data.provider;
+          initLocationMap(p.location_lat, p.location_lng);
+        }).catch(function() { initLocationMap(null, null); });
+    }, 200);
+  }
 };
 </script>
 </body></html>`

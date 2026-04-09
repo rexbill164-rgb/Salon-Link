@@ -52,9 +52,9 @@ ${navbar('discover')}
       <div class="eyebrow" style="margin-bottom:14px;"><i class="fas fa-compass" style="margin-right:7px;"></i>Find Your Professional</div>
       <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:20px;">
         <h1 class="display-lg font-display">Discover <em class="gold-gradient">Beauty Services</em></h1>
-        <button onclick="showToast('Map view coming soon ✦','info')" style="display:flex;align-items:center;gap:9px;height:48px;padding:0 22px;background:#FFFFFF;border:1.5px solid var(--i-faint);border-radius:100px;color:var(--t-secondary);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.3s;white-space:nowrap;" onmouseover="this.style.borderColor='var(--g-border)';this.style.color='var(--g-deep)'" onmouseout="this.style.borderColor='var(--i-faint)';this.style.color='var(--t-secondary)'">
+        <button id="location-btn" onclick="detectLocation()" style="display:flex;align-items:center;gap:9px;height:48px;padding:0 22px;background:#FFFFFF;border:1.5px solid var(--i-faint);border-radius:100px;color:var(--t-secondary);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.3s;white-space:nowrap;" onmouseover="this.style.borderColor='var(--g-border)';this.style.color='var(--g-deep)'" onmouseout="if(!userLocation){this.style.borderColor='var(--i-faint)';this.style.color='var(--t-secondary)'}">
           <i class="fas fa-map-marker-alt" style="font-size:13px;"></i>
-          Map View
+          📍 Near Me
         </button>
       </div>
     </div>
@@ -182,9 +182,57 @@ var filtersOpen = false;
 var activeFilters = {};
 var allProviders = [];
 var activeCat = 'All';
+var userLocation = null; // { lat, lng }
 
-function goToProvider(id) { window.location.href = '/provider/' + id; }
+function goToProvider(id, isAvailable) {
+  if (!isAvailable) {
+    showToast('This provider is currently unavailable. You can still view their profile.', 'info');
+    setTimeout(function() { window.location.href = '/provider/' + id; }, 1200);
+    return;
+  }
+  window.location.href = '/provider/' + id;
+}
 function showFav(btn) { btn.innerHTML = '<i class="fas fa-heart" style="color:var(--s-red);font-size:14px;"></i>'; showToast('Saved to favourites', 'success'); }
+
+// Haversine distance (km) between two lat/lng points
+function haversineKm(lat1, lng1, lat2, lng2) {
+  var R = 6371;
+  var dLat = (lat2 - lat1) * Math.PI / 180;
+  var dLng = (lng2 - lng1) * Math.PI / 180;
+  var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+          Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+          Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function detectLocation() {
+  var btn = document.getElementById('location-btn');
+  if (btn) { btn.textContent = 'Detecting...'; btn.disabled = true; }
+  if (!navigator.geolocation) {
+    showToast('Location not supported on this browser', 'error');
+    if (btn) { btn.textContent = '📍 Near Me'; btn.disabled = false; }
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+    // Re-sort providers by distance
+    allProviders = allProviders.map(function(p) {
+      if (p.location_lat && p.location_lng) {
+        p.distance_km = haversineKm(userLocation.lat, userLocation.lng, p.location_lat, p.location_lng);
+      } else {
+        p.distance_km = 9999;
+      }
+      return p;
+    });
+    allProviders.sort(function(a, b) { return (a.distance_km||9999) - (b.distance_km||9999); });
+    renderGrid();
+    showToast('Showing nearest services first 📍', 'success');
+    if (btn) { btn.textContent = '✓ Near Me'; btn.style.background = 'var(--g-main)'; btn.style.color = '#fff'; btn.disabled = false; }
+  }, function() {
+    showToast('Could not get your location. Please allow location access.', 'error');
+    if (btn) { btn.textContent = '📍 Near Me'; btn.disabled = false; }
+  });
+}
 
 // Provider images for variety
 var providerImages = {
@@ -290,10 +338,15 @@ function clearSearch() {
 }
 
 function sortCards(v) {
+  if (v === 'Nearest First' && !userLocation) {
+    showToast('Enable location first using the 📍 Near Me button', 'info');
+    return;
+  }
   allProviders.sort(function(a, b) {
     if (v === 'Price: Low → High') return (a.price_from||0) - (b.price_from||0);
     if (v === 'Price: High → Low') return (b.price_from||0) - (a.price_from||0);
     if (v === 'Most Reviews') return (b.total_reviews||0) - (a.total_reviews||0);
+    if (v === 'Nearest First') return (a.distance_km||9999) - (b.distance_km||9999);
     return (parseFloat(b.rating)||0) - (parseFloat(a.rating)||0);
   });
   renderGrid();
@@ -304,25 +357,35 @@ function loadMore() { showToast('All providers loaded', 'info'); document.getEle
 function buildProviderCard(p) {
   var catLabel = (p.service_category || '').replace(/_/g, ' ').replace(/\b\w/g, function(l){ return l.toUpperCase(); });
   var priceFrom = p.price_from ? 'GHS ' + Math.round(p.price_from/100) : 'GHS 40';
-  var img = getProviderImage(p.service_category, p.id);
+  // Use logo if available, else use category image
+  var img = p.logo_url || getProviderImage(p.service_category, p.id);
   var stars = Math.round(parseFloat(p.rating) || 4);
+  // Provider is bookable if they accept bookings (verification is optional for booking)
+  var isAccepting = !!p.is_accepting_bookings;
+  var isVerified = !!p.is_verified;
+  var isAvailable = isAccepting; // Only block if not accepting bookings
+  var distLabel = (p.distance_km && p.distance_km < 9999)
+    ? (p.distance_km < 1 ? Math.round(p.distance_km * 1000) + 'm away' : p.distance_km.toFixed(1) + 'km away')
+    : (p.city || 'Accra');
+
   return '<div class="prov-card" data-search="' + (p.business_name + ' ' + p.city + ' ' + p.service_category).toLowerCase() +
     '" data-price="' + (p.price_from/100||0) + '" data-rating="' + p.rating + '" data-reviews="' + p.total_reviews + '"' +
-    ' onclick="goToProvider(' + p.id + ')">' +
+    ' onclick="goToProvider(' + p.id + ',' + isAvailable + ')" style="' + (!isAccepting ? 'opacity:0.85;' : '') + '">' +
     '<div style="height:200px;position:relative;overflow:hidden;">' +
-      '<img class="prov-img-inner" src="' + img + '" alt="' + p.business_name + '" loading="lazy" style="position:absolute;inset:0;"/>' +
-      '<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(26,18,9,0.25),transparent);"></div>' +
+      '<img class="prov-img-inner" src="' + img + '" alt="' + p.business_name + '" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"/>' +
+      (!isAccepting ? '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;"><span style="background:rgba(0,0,0,0.7);color:#fff;font-size:11px;font-weight:700;padding:6px 14px;border-radius:100px;letter-spacing:0.05em;">NOT ACCEPTING BOOKINGS</span></div>' : '') +
+      '<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(26,18,9,0.3),transparent);pointer-events:none;"></div>' +
       '<div style="position:absolute;top:14px;left:14px;">' +
-        (p.is_verified ? '<span class="badge badge-verified" style="background:rgba(255,255,255,0.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);"><i class="fas fa-shield-alt" style="font-size:8px;"></i> Verified</span>' :
-          '<span class="badge badge-pending" style="background:rgba(255,255,255,0.92);">Unverified</span>') +
+        (isVerified ? '<span class="badge badge-verified" style="background:rgba(255,255,255,0.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);"><i class="fas fa-shield-alt" style="font-size:8px;"></i> Verified</span>' :
+          '<span class="badge badge-pending" style="background:rgba(255,255,255,0.92);">New</span>') +
       '</div>' +
       '<div style="position:absolute;top:14px;right:14px;">' +
-        '<span class="badge ' + (p.is_accepting_bookings ? 'badge-live' : 'badge-closed') + '" style="background:rgba(255,255,255,0.92);backdrop-filter:blur(8px);">' +
-          (p.is_accepting_bookings ? '<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#1E8050;margin-right:3px;"></span>Open' : '<i class="far fa-clock" style="font-size:8px;margin-right:3px;"></i>Closed') +
+        '<span class="badge ' + (isAccepting ? 'badge-live' : 'badge-closed') + '" style="background:rgba(255,255,255,0.92);backdrop-filter:blur(8px);">' +
+          (isAccepting ? '<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#1E8050;margin-right:3px;"></span>Open' : '<i class="far fa-clock" style="font-size:8px;margin-right:3px;"></i>Closed') +
         '</span>' +
       '</div>' +
-      '<div style="position:absolute;bottom:12px;left:14px;font-size:11px;color:rgba(255,255,255,0.85);display:flex;align-items:center;gap:5px;">' +
-        '<i class="fas fa-map-marker-alt" style="font-size:10px;"></i>' + p.city +
+      '<div style="position:absolute;bottom:12px;left:14px;font-size:11px;color:rgba(255,255,255,0.9);display:flex;align-items:center;gap:5px;">' +
+        '<i class="fas fa-map-marker-alt" style="font-size:10px;"></i>' + distLabel +
       '</div>' +
     '</div>' +
     '<div style="padding:22px;">' +
@@ -345,9 +408,10 @@ function buildProviderCard(p) {
         (p.total_bookings ? '<span class="tag"><i class="fas fa-users" style="font-size:9px;margin-right:4px;"></i>' + p.total_bookings + ' clients</span>' : '') +
       '</div>' +
       '<div style="display:flex;gap:9px;">' +
-        '<a href="/book/' + p.id + '" onclick="event.stopPropagation()" class="btn-primary" style="flex:1;justify-content:center;padding:11px 14px;font-size:11px;">' +
-          '<i class="far fa-calendar-check" style="font-size:11px;"></i> Book Now' +
-        '</a>' +
+        (isAccepting
+          ? '<a href="/book/' + p.id + '" onclick="event.stopPropagation()" class="btn-primary" style="flex:1;justify-content:center;padding:11px 14px;font-size:11px;"><i class="far fa-calendar-check" style="font-size:11px;"></i> Book Now</a>'
+          : '<button onclick="event.stopPropagation();goToProvider(' + p.id + ',false)" class="btn-ghost" style="flex:1;justify-content:center;padding:11px 14px;font-size:11px;opacity:0.7;"><i class="fas fa-eye" style="font-size:11px;"></i> View Profile</button>'
+        ) +
         '<button onclick="event.stopPropagation();showFav(this)" class="btn-icon" title="Save" style="border-radius:12px;">' +
           '<i class="far fa-heart" style="font-size:14px;"></i>' +
         '</button>' +
@@ -357,8 +421,27 @@ function buildProviderCard(p) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  // Silently try to get user location
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      var btn = document.getElementById('location-btn');
+      if (btn) { btn.textContent = '✓ Near Me'; btn.style.background = 'var(--g-main)'; btn.style.color = '#fff'; }
+    }, function() { /* location denied, that's okay */ });
+  }
+
   axios.get('/api/providers').then(function(res) {
     allProviders = res.data.providers || [];
+    // If we already have location, sort by distance
+    if (userLocation) {
+      allProviders = allProviders.map(function(p) {
+        if (p.location_lat && p.location_lng) {
+          p.distance_km = haversineKm(userLocation.lat, userLocation.lng, p.location_lat, p.location_lng);
+        } else { p.distance_km = 9999; }
+        return p;
+      });
+      allProviders.sort(function(a, b) { return (a.distance_km||9999) - (b.distance_km||9999); });
+    }
     renderGrid();
   }).catch(function() {
     showToast('Could not load providers', 'error');

@@ -535,11 +535,11 @@ function addService() {
   var list = document.getElementById('services-list');
   var div  = document.createElement('div');
   div.className = 'service-entry';
-  div.style.cssText = 'background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:16px;display:grid;grid-template-columns:1fr 100px 100px 40px;gap:10px;align-items:center;';
+  div.style.cssText = 'background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:16px;display:grid;grid-template-columns:1fr 110px 120px 40px;gap:10px;align-items:center;';
   div.innerHTML =
-    '<input type="text" class="input" placeholder="Service name (e.g. Box Braids)" style="font-size:13px;"/>' +
-    '<input type="number" class="input" placeholder="GHS" style="font-size:13px;" min="1"/>' +
-    '<input type="text" class="input" placeholder="e.g. 2hr" style="font-size:13px;"/>' +
+    '<input type="text" class="input svc-name" placeholder="Service name (e.g. Box Braids)" style="font-size:13px;"/>' +
+    '<input type="number" class="input svc-price" placeholder="GHS price" style="font-size:13px;" min="1" step="1"/>' +
+    '<input type="number" class="input svc-duration" placeholder="Duration (mins)" style="font-size:13px;" min="10" step="5" value="60"/>' +
     '<button onclick="this.closest(\\'.service-entry\\').remove()" style="background:rgba(255,59,48,0.1);border:none;border-radius:10px;width:38px;height:38px;cursor:pointer;color:#FF3B30;font-size:16px;">✕</button>';
   list.appendChild(div);
 }
@@ -575,14 +575,18 @@ async function submitOnboarding() {
 
     // Save services
     var servicePs = Array.from(entries).map(function(e) {
-      var inputs = e.querySelectorAll('input');
-      var name  = inputs[0] && inputs[0].value.trim();
-      var price = inputs[1] && parseInt(inputs[1].value);
-      var dur   = inputs[2] && inputs[2].value.trim();
+      var nameEl     = e.querySelector('.svc-name')     || e.querySelectorAll('input')[0];
+      var priceEl    = e.querySelector('.svc-price')    || e.querySelectorAll('input')[1];
+      var durationEl = e.querySelector('.svc-duration') || e.querySelectorAll('input')[2];
+      var name  = nameEl && nameEl.value.trim();
+      var price = priceEl && parseInt(priceEl.value);
+      var dur   = durationEl && parseInt(durationEl.value);
       if (!name || !price) return Promise.resolve();
       return axios.post('/api/providers/me/services', {
-        name: name, price: price * 100, duration: dur || '60 min'
-      }, { headers: { Authorization: 'Bearer ' + token } }).catch(function(){});
+        name: name, price: price * 100, duration: dur || 60
+      }, { headers: { Authorization: 'Bearer ' + token } }).catch(function(err){
+        console.error('Service save error', err);
+      });
     });
     await Promise.all(servicePs);
 
