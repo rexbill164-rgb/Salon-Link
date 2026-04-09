@@ -834,12 +834,13 @@ function renderPayoutList(provs) {
     return;
   }
   tb.innerHTML = pending.map(function(p) {
+    var safeName = (p.business_name||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;');
     return '<tr>' +
       '<td><strong>'+p.business_name+'</strong></td>' +
       '<td>'+(p.momo_number ? '<span style="font-family:monospace;">'+p.momo_number+'</span><br><small style="color:var(--t-muted);">'+(p.momo_name||'')+'</small>' : '<span style="color:#E07070;font-size:11px;">⚠ No MoMo set</span>')+'</td>' +
       '<td style="text-align:center;"><span style="background:rgba(224,112,112,0.1);color:#E07070;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700;">'+p.pending_count+' txns</span></td>' +
       '<td><strong style="color:#E07070;">'+ghs(p.pending_amount)+'</strong></td>' +
-      '<td><button onclick="markProviderPaid('+p.provider_id+',\''+p.business_name+'\')" style="padding:6px 14px;border-radius:100px;font-size:11px;font-weight:700;background:#5DC98A;color:white;border:none;cursor:pointer;">✅ Pay All</button></td>' +
+      '<td><button onclick="markProviderPaid('+p.provider_id+')" data-pname="'+safeName+'" style="padding:6px 14px;border-radius:100px;font-size:11px;font-weight:700;background:#5DC98A;color:white;border:none;cursor:pointer;">✅ Pay All</button></td>' +
     '</tr>';
   }).join('');
 }
@@ -909,6 +910,10 @@ function bulkMarkPaid() {
 }
 
 function markProviderPaid(providerId, name) {
+  if (!name) {
+    var btn = document.querySelector('[onclick*="markProviderPaid('+providerId+')"]');
+    name = (btn && btn.getAttribute('data-pname')) || 'this provider';
+  }
   if (!confirm('Mark ALL pending transactions for '+name+' as paid out?')) return;
   var token = localStorage.getItem('sl_token');
   axios.post('/api/payments/admin/payout', { provider_id: providerId, notes:'Bulk payout by admin' }, { headers:{ Authorization:'Bearer '+token }})
