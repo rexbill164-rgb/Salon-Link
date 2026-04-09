@@ -5,6 +5,9 @@ export const baseHead = (title: string, extra = '') => `
   <meta name="description" content="SalonLink — Ghana's most exclusive beauty booking experience."/>
   <link rel="icon" href="/favicon.png"/>
   <link rel="apple-touch-icon" href="/icon-192.png"/>
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0MHMPCL5D2"></script>
+  <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-0MHMPCL5D2');</script>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.0/css/all.min.css"/>
@@ -500,7 +503,7 @@ export const navbar = (active = '') => `
 
     <!-- Logo -->
     <a href="/" style="display:flex;align-items:center;text-decoration:none;flex-shrink:0;">
-      <img src="/salonlink-logo.png" alt="SalonLink" style="height:36px;"/>
+      <img src="/salonlink-logo.png" alt="SalonLink" style="height:40px;width:auto;display:block;object-fit:contain;"/>
     </a>
 
     <!-- Center links -->
