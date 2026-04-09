@@ -1,9 +1,46 @@
 import { Hono } from 'hono'
 import { sign, verify } from 'hono/jwt'
 
-type Bindings = { DB: D1Database }
+type Bindings = { DB: D1Database; ADMIN_EMAIL?: string; SENDGRID_KEY?: string }
 
 const auth = new Hono<{ Bindings: Bindings }>()
+
+// Send email via SendGrid (if key configured) or store as notification
+async function sendAdminEmail(c: any, subject: string, body: string) {
+  try {
+    const ADMIN_EMAIL = c.env.ADMIN_EMAIL || 'admin@salonlink.it.com'
+    const SENDGRID_KEY = c.env.SENDGRID_KEY
+
+    if (SENDGRID_KEY) {
+      await fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SENDGRID_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email: ADMIN_EMAIL }] }],
+          from: { email: 'noreply@salonlink.it.com', name: 'SalonLink' },
+          subject,
+          content: [{ type: 'text/html', value: body }]
+        })
+      })
+    }
+
+    // Always store as admin notification in DB
+    const adminUser = await c.env.DB.prepare(
+      "SELECT id FROM users WHERE role = 'admin' LIMIT 1"
+    ).first() as any
+    if (adminUser) {
+      await c.env.DB.prepare(`
+        INSERT INTO notifications (user_id, title, message, type, action_url)
+        VALUES (?, ?, ?, 'system', '/admin')
+      `).bind(adminUser.id, subject, body.replace(/<[^>]+>/g, '').substring(0, 200)).run()
+    }
+  } catch (_) {
+    // Email is best-effort, don't block registration
+  }
+}
 
 // Helper: hash password using Web Crypto (no bcrypt needed in Workers)
 async function hashPassword(password: string): Promise<string> {
@@ -66,6 +103,21 @@ auth.post('/register', async (c) => {
     const user = await c.env.DB.prepare(
       'SELECT id, email, phone, first_name, last_name, role, avatar_url, is_verified FROM users WHERE id = ?'
     ).bind(userId).first()
+
+    // Notify admin of new registration
+    const roleLabel = userRole === 'provider' ? '🔴 SERVICE PROVIDER' : '🟢 CUSTOMER'
+    const emailSubject = `New ${roleLabel} Registration - ${first_name} ${last_name}`
+    const emailBody = `
+      <h2>New Registration on SalonLink</h2>
+      <p><strong>Type:</strong> ${roleLabel}</p>
+      <p><strong>Name:</strong> ${first_name} ${last_name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Phone:</strong> ${phone || 'Not provided'}</p>
+      ${userRole === 'provider' ? `<p><strong>Business:</strong> ${business_name}</p><p><strong>Service:</strong> ${service_category}</p>` : ''}
+      <p><strong>Registered:</strong> ${new Date().toLocaleString()}</p>
+      ${userRole === 'provider' ? '<p><a href="https://salonlink.it.com/admin">👉 Approve this provider in Admin Panel</a></p>' : ''}
+    `
+    await sendAdminEmail(c, emailSubject, emailBody)
 
     return c.json({ success: true, token, user })
   } catch (e: any) {

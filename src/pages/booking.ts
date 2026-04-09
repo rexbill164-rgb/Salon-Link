@@ -319,9 +319,17 @@ ${navbar('')}
 
             <div class="divider" style="margin-bottom:20px;"></div>
 
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span style="font-size:12px;color:var(--t-muted);">Service Price</span>
+              <span style="font-size:13px;font-weight:600;" id="sum-service-price">GHS 80</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <span style="font-size:12px;color:var(--t-muted);">Platform Fee</span>
+              <span style="font-size:13px;color:var(--t-muted);">GHS 3</span>
+            </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
               <span style="font-size:14px;font-weight:600;">Total</span>
-              <span class="font-display gold-gradient" style="font-size:28px;" id="sum-price">GHS 80</span>
+              <span class="font-display gold-gradient" style="font-size:28px;" id="sum-price">GHS 83</span>
             </div>
 
             <!-- Trust -->
@@ -408,7 +416,11 @@ function selectService(el, name, price, dur) {
   if(dot) dot.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--g-main)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
   selectedService = {name, price, dur};
   document.getElementById('sum-service').textContent = name;
-  document.getElementById('sum-price').textContent = price;
+  var svcEl = document.getElementById('sum-service-price');
+  if (svcEl) svcEl.textContent = price;
+  // Add GHS 3 platform fee
+  var priceNum = parseInt(price.replace(/[^0-9]/g,'')) || 0;
+  document.getElementById('sum-price').textContent = 'GHS ' + (priceNum + 3);
   document.getElementById('sum-dur').textContent = dur;
 }
 
@@ -474,6 +486,22 @@ async function confirmBooking() {
     var msg = err.response?.data?.error || 'Booking failed. Please try again.';
     showToast(msg, 'error');
   }
+}
+
+// Select a dynamically loaded service (price in pesewas from API)
+function selectSvc(el) {
+  document.querySelectorAll('.service-item').forEach(function(e) { e.classList.remove('selected'); });
+  el.classList.add('selected');
+  var name = el.getAttribute('data-name');
+  var pricePs = parseInt(el.getAttribute('data-price')) || 0;
+  var dur = el.getAttribute('data-duration') + ' min';
+  var priceGhs = Math.round(pricePs / 100);
+  selectedService = { id: parseInt(el.getAttribute('data-id')), name, pricePs, dur };
+  document.getElementById('sum-service').textContent = name;
+  var svcEl = document.getElementById('sum-service-price');
+  if (svcEl) svcEl.textContent = 'GHS ' + priceGhs;
+  document.getElementById('sum-price').textContent = 'GHS ' + (priceGhs + 3); // +GHS 3 platform fee
+  document.getElementById('sum-dur').textContent = dur;
 }
 
 // Load real provider data and services

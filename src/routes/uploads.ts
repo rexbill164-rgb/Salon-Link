@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { verify } from 'hono/jwt'
 
-type Bindings = { DB: D1Database; R2: R2Bucket }
+type Bindings = { DB: D1Database }
 
 const uploads = new Hono<{ Bindings: Bindings }>()
 
@@ -13,54 +13,184 @@ async function getUser(c: any) {
   } catch { return null }
 }
 
-// POST /api/uploads/image — upload image to R2
-uploads.post('/image', async (c) => {
+// Convert base64 data URL to simulated stored URL (since R2 may not be enabled)
+// Images stored as base64 in DB for now (up to 10MB)
+function getImageSize(base64: string): number {
+  const base64Data = base64.split(',')[1] || base64
+  return Math.ceil((base64Data.length * 3) / 4)
+}
+
+// POST /api/uploads/provider-logo — upload provider logo (stored as URL/base64)
+uploads.post('/provider-logo', async (c) => {
   try {
     const user = await getUser(c)
     if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
+    if (user.role !== 'provider') return c.json({ success: false, error: 'Only providers can upload logos' }, 403)
 
-    const formData = await c.req.formData()
-    const file = formData.get('file') as File
-    if (!file) return c.json({ success: false, error: 'No file provided' }, 400)
+    const provider = await c.env.DB.prepare(
+      'SELECT id FROM providers WHERE user_id = ?'
+    ).bind(user.sub).first() as any
+    if (!provider) return c.json({ success: false, error: 'Provider profile not found' }, 404)
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-    if (!allowedTypes.includes(file.type)) {
-      return c.json({ success: false, error: 'Only JPG, PNG, WebP, GIF allowed' }, 400)
+    const body = await c.req.json()
+    const { image_url } = body
+
+    if (!image_url) return c.json({ success: false, error: 'Image URL or base64 required' }, 400)
+
+    // Check size if base64
+    if (image_url.startsWith('data:')) {
+      const size = getImageSize(image_url)
+      if (size > 10 * 1024 * 1024) {
+        return c.json({ success: false, error: 'Logo too large. Max 10MB' }, 400)
+      }
     }
 
-    // Max 5MB
-    if (file.size > 5 * 1024 * 1024) {
-      return c.json({ success: false, error: 'File too large. Max 5MB' }, 400)
-    }
+    // Update provider logo
+    await c.env.DB.prepare(
+      'UPDATE providers SET logo_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+    ).bind(image_url, provider.id).run()
 
-    const ext = file.name.split('.').pop() || 'jpg'
-    const key = `uploads/${user.sub}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    // Also save to gallery as logo
+    await c.env.DB.prepare(
+      'INSERT OR REPLACE INTO provider_gallery (provider_id, image_url, is_logo, caption) VALUES (?, ?, 1, ?)'
+    ).bind(provider.id, image_url, 'Business Logo').run()
 
-    const arrayBuffer = await file.arrayBuffer()
-    await c.env.R2.put(key, arrayBuffer, {
-      httpMetadata: { contentType: file.type }
-    })
-
-    const imageUrl = `/api/uploads/file/${key}`
-    return c.json({ success: true, url: imageUrl, key })
+    return c.json({ success: true, message: 'Logo uploaded successfully', url: image_url })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
 })
 
-// GET /api/uploads/file/* — serve image from R2
-uploads.get('/file/*', async (c) => {
+// POST /api/uploads/provider-gallery — upload gallery image
+uploads.post('/provider-gallery', async (c) => {
   try {
-    const key = c.req.path.replace('/api/uploads/file/', '')
-    const object = await c.env.R2.get(key)
-    if (!object) return c.json({ error: 'File not found' }, 404)
+    const user = await getUser(c)
+    if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
+    if (user.role !== 'provider') return c.json({ success: false, error: 'Only providers can upload gallery' }, 403)
 
-    return new Response(object.body, {
-      headers: {
-        'Content-Type': object.httpMetadata?.contentType || 'image/jpeg',
-        'Cache-Control': 'public, max-age=31536000'
+    const provider = await c.env.DB.prepare(
+      'SELECT id, gallery_count, has_pro_gallery FROM providers WHERE user_id = ?'
+    ).bind(user.sub).first() as any
+    if (!provider) return c.json({ success: false, error: 'Provider profile not found' }, 404)
+
+    // Check gallery limits: free = 5 images, pro = 10 images
+    const galleryCount = provider.gallery_count || 0
+    const maxImages = provider.has_pro_gallery ? 10 : 5
+
+    if (galleryCount >= maxImages) {
+      const msg = provider.has_pro_gallery
+        ? 'Gallery limit reached (10 images max on Pro plan)'
+        : 'Free plan limit reached (5 images). Upgrade to Gallery Pro (GHS 10/month) for up to 10 images.'
+      return c.json({ success: false, error: msg, upgrade_required: !provider.has_pro_gallery }, 403)
+    }
+
+    const body = await c.req.json()
+    const { image_url, caption } = body
+
+    if (!image_url) return c.json({ success: false, error: 'Image required' }, 400)
+
+    // Validate size (max 10MB)
+    if (image_url.startsWith('data:')) {
+      const size = getImageSize(image_url)
+      if (size > 10 * 1024 * 1024) {
+        return c.json({ success: false, error: 'Image too large. Max 10MB per image' }, 400)
       }
+    }
+
+    // Insert gallery image
+    const result = await c.env.DB.prepare(
+      'INSERT INTO provider_gallery (provider_id, image_url, caption, is_logo) VALUES (?, ?, ?, 0)'
+    ).bind(provider.id, image_url, caption || null).run()
+
+    // Update gallery count
+    await c.env.DB.prepare(
+      'UPDATE providers SET gallery_count = gallery_count + 1 WHERE id = ?'
+    ).bind(provider.id).run()
+
+    return c.json({
+      success: true,
+      id: result.meta.last_row_id,
+      message: `Image uploaded (${galleryCount + 1}/${maxImages})`,
+      count: galleryCount + 1,
+      max: maxImages
+    })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// GET /api/uploads/provider-gallery/:provider_id — get provider gallery
+uploads.get('/provider-gallery/:provider_id', async (c) => {
+  try {
+    const providerId = c.req.param('provider_id')
+    const gallery = await c.env.DB.prepare(
+      'SELECT id, image_url, caption, is_logo, created_at FROM provider_gallery WHERE provider_id = ? ORDER BY is_logo DESC, created_at DESC'
+    ).bind(providerId).all()
+
+    return c.json({ success: true, gallery: gallery.results })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// DELETE /api/uploads/provider-gallery/:id — delete gallery image
+uploads.delete('/provider-gallery/:id', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
+
+    const provider = await c.env.DB.prepare(
+      'SELECT id FROM providers WHERE user_id = ?'
+    ).bind(user.sub).first() as any
+    if (!provider) return c.json({ success: false, error: 'Provider not found' }, 404)
+
+    const image = await c.env.DB.prepare(
+      'SELECT id, is_logo FROM provider_gallery WHERE id = ? AND provider_id = ?'
+    ).bind(c.req.param('id'), provider.id).first() as any
+    if (!image) return c.json({ success: false, error: 'Image not found' }, 404)
+
+    await c.env.DB.prepare('DELETE FROM provider_gallery WHERE id = ?').bind(c.req.param('id')).run()
+    if (!image.is_logo) {
+      await c.env.DB.prepare('UPDATE providers SET gallery_count = MAX(0, gallery_count - 1) WHERE id = ?').bind(provider.id).run()
+    }
+
+    return c.json({ success: true, message: 'Image deleted' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// POST /api/uploads/subscribe-gallery — upgrade to gallery pro (GHS 10/month)
+uploads.post('/subscribe-gallery', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
+    if (user.role !== 'provider') return c.json({ success: false, error: 'Providers only' }, 403)
+
+    const provider = await c.env.DB.prepare(
+      'SELECT id FROM providers WHERE user_id = ?'
+    ).bind(user.sub).first() as any
+    if (!provider) return c.json({ success: false, error: 'Provider profile not found' }, 404)
+
+    const { payment_reference } = await c.req.json()
+
+    // Set expiry to 30 days from now
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + 30)
+
+    await c.env.DB.prepare(`
+      INSERT INTO provider_subscriptions (provider_id, plan, status, expires_at, amount_paid, payment_reference)
+      VALUES (?, 'gallery_pro', 'active', ?, 1000, ?)
+    `).bind(provider.id, expiresAt.toISOString(), payment_reference || 'manual').run()
+
+    await c.env.DB.prepare(
+      'UPDATE providers SET has_pro_gallery = 1 WHERE id = ?'
+    ).bind(provider.id).run()
+
+    return c.json({
+      success: true,
+      message: 'Gallery Pro activated! You can now upload up to 10 images.',
+      expires_at: expiresAt.toISOString()
     })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)

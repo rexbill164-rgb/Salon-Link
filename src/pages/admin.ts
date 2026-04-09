@@ -45,14 +45,17 @@ ${baseHead('Admin Panel', `
     </div>
     <nav style="flex:1;padding:10px;overflow-y:auto;">
       ${[
-        {id:'overview',  icon:'⬡',  label:'Overview'},
-        {id:'users',     icon:'👥', label:'Users'},
-        {id:'providers', icon:'💇', label:'Providers'},
-        {id:'bookings',  icon:'📅', label:'Bookings'},
-        {id:'kyc',       icon:'🪪', label:'KYC Queue'},
-        {id:'payments',  icon:'💰', label:'Payments'},
-        {id:'reports',   icon:'📊', label:'Reports'},
-        {id:'security',  icon:'🔒', label:'Security'},
+        {id:'overview',    icon:'⬡',  label:'Overview'},
+        {id:'users',       icon:'👥', label:'Users'},
+        {id:'providers',   icon:'💇', label:'Providers'},
+        {id:'bookings',    icon:'📅', label:'Bookings'},
+        {id:'kyc',         icon:'🪪', label:'KYC Queue'},
+        {id:'payments',    icon:'💰', label:'Payments'},
+        {id:'fees',        icon:'🧾', label:'Platform Fees'},
+        {id:'registrants', icon:'📋', label:'Registrants'},
+        {id:'reconcile',   icon:'🔄', label:'Daily Reconcile'},
+        {id:'reports',     icon:'📊', label:'Reports'},
+        {id:'security',    icon:'🔒', label:'Security'},
       ].map((l,i)=>`
         <button onclick="adminSection('${l.id}',this)" class="sidebar-item ${i===0?'active':''}" id="admin-nav-${l.id}">
           <span class="icon">${l.icon}</span>
@@ -231,6 +234,78 @@ ${baseHead('Admin Panel', `
       <div id="admin-payments"  class="admin-section"><div class="eyebrow">Payments</div><p style="color:var(--t-secondary);margin-top:16px;">Payment management panel loading...</p></div>
       <div id="admin-reports"   class="admin-section"><div class="eyebrow">Reports</div><p style="color:var(--t-secondary);margin-top:16px;">Reports & analytics panel loading...</p></div>
 
+      <!-- ── PLATFORM FEES SECTION ── -->
+      <div id="admin-fees" class="admin-section">
+        <div class="eyebrow" style="margin-bottom:8px;">Platform Service Fees (GHS 3/booking)</div>
+        <div style="font-size:12px;color:var(--t-muted);margin-bottom:20px;">Track fees owed by providers. Due by midnight of each booking day.</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
+          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:20px;text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:var(--g-main);" id="admin-fees-pending-amt">GHS 0</div>
+            <div style="font-size:11px;color:var(--t-muted);">Total Pending</div>
+          </div>
+          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:20px;text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:var(--s-green);" id="admin-fees-paid-amt">GHS 0</div>
+            <div style="font-size:11px;color:var(--t-muted);">Total Collected</div>
+          </div>
+          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:20px;text-align:center;">
+            <div style="font-size:22px;font-weight:800;color:var(--s-red);" id="admin-fees-overdue">0</div>
+            <div style="font-size:11px;color:var(--t-muted);">Overdue Fees</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;">
+          <button onclick="loadFees('pending')" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:var(--g-dim);border:1px solid var(--g-border);color:var(--g-main);">Pending</button>
+          <button onclick="loadFees('paid')" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid var(--i-faint);color:var(--t-secondary);">Paid</button>
+          <button onclick="loadFees('')" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid var(--i-faint);color:var(--t-secondary);">All</button>
+        </div>
+        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
+          <table class="admin-table">
+            <thead><tr><th>Provider</th><th>Email</th><th>Booking Date</th><th>Fee</th><th>Due Date</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="fees-tbody"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t-muted);">Click a filter above to load fees</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── REGISTRANTS SECTION ── -->
+      <div id="admin-registrants" class="admin-section">
+        <div class="eyebrow" style="margin-bottom:8px;">All Registrants</div>
+        <div style="font-size:12px;color:var(--t-muted);margin-bottom:20px;">Track all customer and provider sign-ups. Approve providers here.</div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+          <button onclick="loadRegistrants(7)" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid var(--i-faint);color:var(--t-secondary);">Last 7 days</button>
+          <button onclick="loadRegistrants(30)" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:var(--g-dim);border:1px solid var(--g-border);color:var(--g-main);">Last 30 days</button>
+          <button onclick="loadRegistrants(90)" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid var(--i-faint);color:var(--t-secondary);">Last 90 days</button>
+          <button onclick="loadRegistrants(365)" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid var(--i-faint);color:var(--t-secondary);">All time</button>
+        </div>
+        <div id="reg-count-summary" style="margin-bottom:16px;font-size:13px;color:var(--t-secondary);"></div>
+        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
+          <table class="admin-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Type</th><th>Business</th><th>KYC</th><th>Joined</th><th>Action</th></tr></thead>
+            <tbody id="registrants-tbody"><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--t-muted);">Loading registrants...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── DAILY RECONCILIATION ── -->
+      <div id="admin-reconcile" class="admin-section">
+        <div class="eyebrow" style="margin-bottom:8px;">Daily Fee Reconciliation</div>
+        <div style="font-size:12px;color:var(--t-muted);margin-bottom:20px;">Check which providers have paid their GHS 3/booking fees for any given day. All fees are due by midnight.</div>
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">
+          <input type="date" id="reconcile-date" style="padding:10px 14px;border-radius:10px;background:var(--c-surface);border:1px solid var(--i-faint);color:var(--t-primary);font-size:12px;" />
+          <button onclick="loadReconcile()" style="padding:10px 24px;border-radius:100px;font-size:12px;cursor:pointer;background:linear-gradient(135deg,var(--g-deep),var(--g-main));color:white;border:none;font-weight:700;">Load Report</button>
+        </div>
+        <div id="reconcile-summary" style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;">
+          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:16px;text-align:center;"><div style="font-size:20px;font-weight:800;" id="rec-total-fees">-</div><div style="font-size:11px;color:var(--t-muted);">Total Fees</div></div>
+          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:16px;text-align:center;"><div style="font-size:20px;font-weight:800;color:var(--s-green);" id="rec-paid">-</div><div style="font-size:11px;color:var(--t-muted);">Paid</div></div>
+          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:16px;text-align:center;"><div style="font-size:20px;font-weight:800;color:var(--s-red);" id="rec-pending">-</div><div style="font-size:11px;color:var(--t-muted);">Pending</div></div>
+          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:16px;text-align:center;"><div style="font-size:20px;font-weight:800;color:var(--g-main);" id="rec-amount">-</div><div style="font-size:11px;color:var(--t-muted);">Total Amount</div></div>
+        </div>
+        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
+          <table class="admin-table">
+            <thead><tr><th>Provider</th><th>Email / Phone</th><th>Fee</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="reconcile-tbody"><tr><td colspan="5" style="text-align:center;padding:32px;color:var(--t-muted);">Select a date and click Load Report</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -243,8 +318,14 @@ function adminSection(id, btn) {
   var sec = document.getElementById('admin-' + id);
   if (sec) sec.classList.add('active');
   if (btn) btn.classList.add('active');
-  var titles = {overview:'Platform Overview',users:'User Management',providers:'Provider Management',bookings:'Booking Management',kyc:'KYC Verification Queue',payments:'Payment Management',reports:'Reports & Analytics',security:'Security & Fraud'};
+  var titles = {overview:'Platform Overview',users:'User Management',providers:'Provider Management',bookings:'Booking Management',kyc:'KYC Verification Queue',payments:'Payment Management',reports:'Reports & Analytics',security:'Security & Fraud',fees:'Platform Service Fees',registrants:'Registrants Tracker',reconcile:'Daily Fee Reconciliation'};
   document.getElementById('admin-title').textContent = titles[id] || id;
+  if (id === 'fees') { loadFeeSummary(); loadFees('pending'); }
+  if (id === 'registrants') loadRegistrants(30);
+  if (id === 'reconcile') {
+    var dateInput = document.getElementById('reconcile-date');
+    if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
+  }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -412,6 +493,121 @@ function rejectKyc(id) {
   axios.patch('/api/admin/providers/' + id + '/kyc', { kyc_status: 'rejected', is_verified: false }, { headers: { Authorization: 'Bearer ' + token } })
     .then(function() { showToast('Provider rejected', 'info'); setTimeout(function(){location.reload();},1000); })
     .catch(function() { showToast('Action failed', 'error'); });
+}
+
+// ── PLATFORM FEES ──
+function loadFeeSummary() {
+  var token = localStorage.getItem('sl_token');
+  var h = { Authorization: 'Bearer ' + token };
+  axios.get('/api/admin/service-fees?status=pending', { headers: h }).then(function(r) {
+    var s = r.data.summary || {};
+    var pa = document.getElementById('admin-fees-pending-amt');
+    var od = document.getElementById('admin-fees-overdue');
+    if (pa) pa.textContent = 'GHS ' + ((s.total_pending_amount || 0) / 100).toFixed(2);
+    if (od) od.textContent = s.overdue_count || 0;
+  }).catch(function(){});
+  axios.get('/api/admin/service-fees?status=paid', { headers: h }).then(function(r) {
+    var s = r.data.summary || {};
+    var pa = document.getElementById('admin-fees-paid-amt');
+    if (pa) pa.textContent = 'GHS ' + ((s.total_pending_amount || 0) / 100).toFixed(2);
+  }).catch(function(){});
+}
+
+function loadFees(status) {
+  var token = localStorage.getItem('sl_token');
+  var url = '/api/admin/service-fees' + (status ? '?status=' + status : '');
+  axios.get(url, { headers: { Authorization: 'Bearer ' + token } }).then(function(r) {
+    var tbody = document.getElementById('fees-tbody');
+    if (!tbody) return;
+    var fees = r.data.fees || [];
+    if (!fees.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t-muted);">No fees found</td></tr>'; return; }
+    tbody.innerHTML = fees.map(function(f) {
+      var isOverdue = f.status === 'pending' && new Date(f.due_date) < new Date();
+      return '<tr>' +
+        '<td style="font-weight:700;">' + f.business_name + '</td>' +
+        '<td style="font-size:11px;">' + f.provider_email + '</td>' +
+        '<td>' + f.booking_date + '</td>' +
+        '<td style="font-weight:700;color:var(--g-main);">GHS ' + ((f.fee_amount||0)/100).toFixed(2) + '</td>' +
+        '<td>' + f.due_date + '</td>' +
+        '<td><span class="badge ' + (f.status==='paid'?'badge-verified':isOverdue?'':'badge-pending') + '" style="' + (isOverdue?'background:rgba(224,112,112,0.15);color:var(--s-red);border-color:rgba(224,112,112,0.3);':'') + '">' + (f.status==='paid'?'✓ Paid':isOverdue?'⚠ Overdue':'⏳ Pending') + '</span></td>' +
+        '<td>' + (f.status !== 'paid' ? '<button onclick="markFeePaid(' + f.id + ')" class="btn-primary" style="padding:5px 12px;font-size:10px;">Mark Paid</button>' : '—') + '</td>' +
+      '</tr>';
+    }).join('');
+  }).catch(function(){});
+}
+
+function markFeePaid(id) {
+  var token = localStorage.getItem('sl_token');
+  axios.patch('/api/admin/service-fees/' + id + '/pay', {}, { headers: { Authorization: 'Bearer ' + token } })
+    .then(function() { showToast('Fee marked as paid ✦', 'success'); loadFees('pending'); loadFeeSummary(); })
+    .catch(function() { showToast('Action failed', 'error'); });
+}
+
+// ── REGISTRANTS ──
+function loadRegistrants(days) {
+  var token = localStorage.getItem('sl_token');
+  axios.get('/api/admin/registrants?days=' + days, { headers: { Authorization: 'Bearer ' + token } }).then(function(r) {
+    var summary = document.getElementById('reg-count-summary');
+    var counts = r.data.counts || [];
+    var countMap = {};
+    counts.forEach(function(c) { countMap[c.role] = c.count; });
+    if (summary) {
+      summary.innerHTML = '📊 Last ' + days + ' days: <strong>' + (countMap.customer || 0) + ' customers</strong>, <strong>' + (countMap.provider || 0) + ' providers</strong>, <strong>' + (countMap.admin || 0) + ' admins</strong>';
+    }
+    var tbody = document.getElementById('registrants-tbody');
+    if (!tbody) return;
+    var regs = r.data.registrants || [];
+    if (!regs.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--t-muted);">No registrations in this period</td></tr>'; return; }
+    tbody.innerHTML = regs.map(function(u) {
+      return '<tr>' +
+        '<td style="font-weight:700;">' + u.first_name + ' ' + u.last_name + '</td>' +
+        '<td style="font-size:11px;">' + u.email + '</td>' +
+        '<td style="font-size:11px;">' + (u.phone || '—') + '</td>' +
+        '<td><span class="badge ' + (u.role==='provider'?'badge-live':u.role==='admin'?'badge-verified':'badge-pending') + '">' + u.role + '</span></td>' +
+        '<td style="font-size:11px;">' + (u.business_name || '—') + '</td>' +
+        '<td><span class="badge ' + (u.kyc_status==='approved'?'badge-verified':u.kyc_status==='rejected'?'badge-error':'badge-pending') + '">' + (u.kyc_status || (u.role === 'customer' ? 'auto' : 'pending')) + '</span></td>' +
+        '<td style="font-size:11px;">' + new Date(u.created_at).toLocaleDateString() + '</td>' +
+        '<td>' + (u.role === 'provider' && u.kyc_status !== 'approved' ? '<button onclick="quickApprove(' + (u.provider_id || 0) + ')" class="btn-primary" style="padding:5px 12px;font-size:10px;">Approve</button>' : u.role === 'customer' ? '<span style="color:var(--s-green);font-size:11px;">✓ Auto</span>' : '—') + '</td>' +
+      '</tr>';
+    }).join('');
+  }).catch(function(){});
+}
+
+function quickApprove(providerId) {
+  if (!providerId) return;
+  var token = localStorage.getItem('sl_token');
+  axios.patch('/api/admin/providers/' + providerId + '/approve', {}, { headers: { Authorization: 'Bearer ' + token } })
+    .then(function() { showToast('Provider approved! ✦', 'success'); loadRegistrants(30); })
+    .catch(function() { showToast('Approval failed', 'error'); });
+}
+
+// ── DAILY RECONCILIATION ──
+function loadReconcile() {
+  var token = localStorage.getItem('sl_token');
+  var date = document.getElementById('reconcile-date').value;
+  if (!date) { showToast('Please select a date', 'error'); return; }
+  axios.get('/api/admin/daily-reconciliation?date=' + date, { headers: { Authorization: 'Bearer ' + token } }).then(function(r) {
+    var s = r.data.summary || {};
+    document.getElementById('rec-total-fees').textContent = s.total_fees || 0;
+    document.getElementById('rec-paid').textContent = s.paid_count || 0;
+    document.getElementById('rec-pending').textContent = s.pending_count || 0;
+    document.getElementById('rec-amount').textContent = 'GHS ' + ((s.total_amount || 0) / 100).toFixed(2);
+
+    var tbody = document.getElementById('reconcile-tbody');
+    if (!tbody) return;
+    var fees = r.data.fees || [];
+    if (!fees.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--t-muted);">No bookings on ' + date + '</td></tr>'; return; }
+    tbody.innerHTML = fees.map(function(f) {
+      var isPaid = f.status === 'paid';
+      return '<tr>' +
+        '<td style="font-weight:700;">' + f.business_name + '</td>' +
+        '<td style="font-size:11px;">' + f.email + '<br><span style="color:var(--t-muted);">' + (f.phone||'') + '</span></td>' +
+        '<td style="font-weight:700;color:var(--g-main);">GHS ' + ((f.fee_amount||0)/100).toFixed(2) + '</td>' +
+        '<td><span class="badge ' + (isPaid?'badge-verified':'badge-pending') + '">' + (isPaid?'✓ Paid':'⏳ Pending') + '</span></td>' +
+        '<td>' + (!isPaid ? '<button onclick="markFeePaid(' + f.id + ')" class="btn-primary" style="padding:5px 12px;font-size:10px;">Mark Paid</button>' : '✓') + '</td>' +
+      '</tr>';
+    }).join('');
+  }).catch(function(e) { showToast('Failed to load reconciliation', 'error'); });
 }
 </script>
 </body></html>`

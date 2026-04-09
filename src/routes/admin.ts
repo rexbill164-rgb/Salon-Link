@@ -164,4 +164,198 @@ admin.get('/bookings', async (c) => {
   }
 })
 
+// GET /api/admin/service-fees — view all pending service fees (3 GHS per booking)
+admin.get('/service-fees', async (c) => {
+  try {
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+
+    const { status, date } = c.req.query()
+    let query = `
+      SELECT sf.*, p.business_name, u.email as provider_email,
+        b.booking_date, b.booking_time, b.total_amount
+      FROM service_fees sf
+      JOIN providers p ON sf.provider_id = p.id
+      JOIN users u ON p.user_id = u.id
+      JOIN bookings b ON sf.booking_id = b.id
+      WHERE 1=1
+    `
+    const params: any[] = []
+    if (status) { query += ' AND sf.status = ?'; params.push(status) }
+    if (date) { query += ' AND sf.due_date = ?'; params.push(date) }
+    query += ' ORDER BY sf.due_date ASC, sf.created_at DESC LIMIT 200'
+
+    const result = await c.env.DB.prepare(query).bind(...params).all()
+
+    // Calculate totals
+    const totalPending = await c.env.DB.prepare(
+      "SELECT COALESCE(SUM(fee_amount), 0) as total, COUNT(*) as count FROM service_fees WHERE status = 'pending'"
+    ).first() as any
+
+    const overdueCount = await c.env.DB.prepare(
+      "SELECT COUNT(*) as count FROM service_fees WHERE status = 'pending' AND due_date < date('now')"
+    ).first() as any
+
+    return c.json({
+      success: true,
+      fees: result.results,
+      summary: {
+        total_pending_amount: totalPending?.total || 0,
+        total_pending_count: totalPending?.count || 0,
+        overdue_count: overdueCount?.count || 0
+      }
+    })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// GET /api/admin/provider-fees/:provider_id — fees for specific provider
+admin.get('/provider-fees/:provider_id', async (c) => {
+  try {
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+
+    const providerId = c.req.param('provider_id')
+    const fees = await c.env.DB.prepare(`
+      SELECT sf.*, b.booking_date, b.booking_time
+      FROM service_fees sf
+      JOIN bookings b ON sf.booking_id = b.id
+      WHERE sf.provider_id = ?
+      ORDER BY sf.due_date DESC
+    `).bind(providerId).all()
+
+    const summary = await c.env.DB.prepare(`
+      SELECT
+        COUNT(*) as total_bookings,
+        COALESCE(SUM(CASE WHEN status='pending' THEN fee_amount ELSE 0 END), 0) as pending_amount,
+        COALESCE(SUM(CASE WHEN status='paid' THEN fee_amount ELSE 0 END), 0) as paid_amount
+      FROM service_fees WHERE provider_id = ?
+    `).bind(providerId).first() as any
+
+    return c.json({ success: true, fees: fees.results, summary })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// PATCH /api/admin/service-fees/:id/pay — mark service fee as paid
+admin.patch('/service-fees/:id/pay', async (c) => {
+  try {
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+
+    await c.env.DB.prepare(
+      "UPDATE service_fees SET status = 'paid', paid_at = CURRENT_TIMESTAMP WHERE id = ?"
+    ).bind(c.req.param('id')).run()
+
+    return c.json({ success: true, message: 'Fee marked as paid' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// GET /api/admin/registrants — track all registrants with details
+admin.get('/registrants', async (c) => {
+  try {
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+
+    const { days = '30' } = c.req.query()
+    const result = await c.env.DB.prepare(`
+      SELECT
+        u.id, u.email, u.phone, u.first_name, u.last_name, u.role,
+        u.is_verified, u.is_active, u.created_at,
+        p.business_name, p.service_category, p.kyc_status, p.is_verified as provider_verified
+      FROM users u
+      LEFT JOIN providers p ON p.user_id = u.id
+      WHERE u.created_at >= datetime('now', '-${parseInt(days)} days')
+      ORDER BY u.created_at DESC
+    `).all()
+
+    const counts = await c.env.DB.prepare(`
+      SELECT role, COUNT(*) as count FROM users
+      WHERE created_at >= datetime('now', '-${parseInt(days)} days')
+      GROUP BY role
+    `).all()
+
+    return c.json({
+      success: true,
+      registrants: result.results,
+      counts: counts.results,
+      period_days: parseInt(days)
+    })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// PATCH /api/admin/providers/:id/approve — approve provider registration
+admin.patch('/providers/:id/approve', async (c) => {
+  try {
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+
+    await c.env.DB.prepare(
+      "UPDATE providers SET kyc_status = 'approved', is_verified = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+    ).bind(c.req.param('id')).run()
+
+    // Notify provider
+    const provUser = await c.env.DB.prepare(
+      'SELECT u.id FROM users u JOIN providers p ON p.user_id = u.id WHERE p.id = ?'
+    ).bind(c.req.param('id')).first() as any
+
+    if (provUser) {
+      await c.env.DB.prepare(`
+        INSERT INTO notifications (user_id, title, message, type, action_url)
+        VALUES (?, '✅ Account Approved!', 'Your SalonLink provider account has been approved! You can now receive bookings.', 'system', '/provider/dashboard')
+      `).bind(provUser.id).run()
+    }
+
+    return c.json({ success: true, message: 'Provider approved successfully' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// GET /api/admin/daily-reconciliation — today's fee reconciliation report
+admin.get('/daily-reconciliation', async (c) => {
+  try {
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+
+    const { date } = c.req.query()
+    const targetDate = date || new Date().toISOString().split('T')[0]
+
+    const fees = await c.env.DB.prepare(`
+      SELECT sf.*, p.business_name, u.email, u.phone
+      FROM service_fees sf
+      JOIN providers p ON sf.provider_id = p.id
+      JOIN users u ON p.user_id = u.id
+      WHERE sf.due_date = ?
+      ORDER BY sf.status ASC, p.business_name ASC
+    `).bind(targetDate).all()
+
+    const summary = await c.env.DB.prepare(`
+      SELECT
+        COUNT(*) as total_fees,
+        COALESCE(SUM(fee_amount), 0) as total_amount,
+        COALESCE(SUM(CASE WHEN status='pending' THEN fee_amount ELSE 0 END), 0) as pending_amount,
+        COALESCE(SUM(CASE WHEN status='paid' THEN fee_amount ELSE 0 END), 0) as paid_amount,
+        COUNT(CASE WHEN status='pending' THEN 1 END) as pending_count,
+        COUNT(CASE WHEN status='paid' THEN 1 END) as paid_count
+      FROM service_fees WHERE due_date = ?
+    `).bind(targetDate).first()
+
+    return c.json({
+      success: true,
+      date: targetDate,
+      fees: fees.results,
+      summary
+    })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
 export default admin

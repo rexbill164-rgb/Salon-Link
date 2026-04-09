@@ -49,13 +49,23 @@ bookings.post('/', async (c) => {
     ).bind(user.sub, booking_date, booking_time).first()
     if (customerConflict) return c.json({ success: false, error: 'You already have a booking at this time.' }, 409)
 
-    // Create booking
+    // 3 GHS platform service fee (in pesewas)
+    const SERVICE_FEE = 300
+    const totalWithFee = (service.price || 0) + SERVICE_FEE
+
+    // Create booking (total_amount includes 3 GHS service fee)
     const result = await c.env.DB.prepare(`
-      INSERT INTO bookings (customer_id, provider_id, service_id, booking_date, booking_time, total_amount, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).bind(user.sub, provider_id, service_id, booking_date, booking_time, service.price, notes || null).run()
+      INSERT INTO bookings (customer_id, provider_id, service_id, booking_date, booking_time, total_amount, service_fee, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).bind(user.sub, provider_id, service_id, booking_date, booking_time, totalWithFee, SERVICE_FEE, notes || null).run()
 
     const bookingId = result.meta.last_row_id
+
+    // Record the service fee owed by provider (due by midnight of booking date)
+    await c.env.DB.prepare(`
+      INSERT OR IGNORE INTO service_fees (booking_id, provider_id, fee_amount, status, due_date)
+      VALUES (?, ?, ?, 'pending', ?)
+    `).bind(bookingId, provider_id, SERVICE_FEE, booking_date).run()
 
     // Get customer and provider info for notifications
     const customer = await c.env.DB.prepare(

@@ -64,6 +64,8 @@ ${baseHead('Provider Dashboard', `
         {icon:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',                                      label:'Reviews',      id:'reviews'},
         {icon:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',                                               label:'Earnings',     id:'earnings'},
         {icon:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',                                                         label:'KYC Status',   id:'kyc'},
+        {icon:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>', label:'My Gallery',   id:'gallery'},
+        {icon:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',  label:'Platform Fees', id:'fees'},
         {icon:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M2 12h2M20 12h2"/></svg>', label:'Settings',     id:'settings'},
       ].map((l,i)=>`
         <button onclick="showSection('${l.id}',this)" class="sidebar-item ${i===0?'active':''}" id="nav-${l.id}">
@@ -363,6 +365,106 @@ ${baseHead('Provider Dashboard', `
         </div>
       </div>
 
+      <!-- ── GALLERY ── -->
+      <div id="sec-gallery" class="section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div class="eyebrow">My Gallery</div>
+            <div style="font-size:12px;color:var(--t-muted);margin-top:4px;" id="gallery-count-label">Free plan: 0/5 images</div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button onclick="triggerLogoUpload()" class="btn-ghost" style="padding:10px 20px;font-size:12px;">
+              📸 Upload Logo
+            </button>
+            <button onclick="triggerGalleryUpload()" class="btn-primary" style="padding:10px 20px;font-size:12px;" id="upload-gallery-btn">
+              ➕ Add Photo
+            </button>
+          </div>
+        </div>
+
+        <!-- Pro Banner (hidden if already pro) -->
+        <div id="pro-banner" style="background:linear-gradient(135deg,rgba(193,68,178,0.12),rgba(131,58,180,0.12));border:1px solid rgba(193,68,178,0.3);border-radius:16px;padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div>
+            <div style="font-size:14px;font-weight:700;margin-bottom:4px;">🚀 Upgrade to Gallery Pro</div>
+            <div style="font-size:12px;color:var(--t-secondary);">Upload up to <strong>10 photos</strong> · GHS 10/month · Attract more customers</div>
+          </div>
+          <button onclick="upgradeGallery()" style="background:linear-gradient(135deg,#833ab4,#c144b2);color:white;border:none;padding:10px 22px;border-radius:100px;font-size:12px;font-weight:700;cursor:pointer;">
+            Upgrade Now – GHS 10/month
+          </button>
+        </div>
+
+        <!-- Logo Preview -->
+        <div style="margin-bottom:28px;">
+          <div style="font-size:12px;font-weight:600;color:var(--t-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.08em;">Business Logo</div>
+          <div id="logo-preview" style="width:120px;height:120px;border-radius:16px;background:var(--c-surface);border:2px dashed var(--i-faint);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;" onclick="triggerLogoUpload()">
+            <div style="text-align:center;color:var(--t-muted);">
+              <div style="font-size:28px;margin-bottom:6px;">📷</div>
+              <div style="font-size:10px;">Add Logo</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gallery Grid -->
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--t-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.08em;">Salon Photos</div>
+          <div id="gallery-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;">
+            <!-- Add new photo slot -->
+            <div onclick="triggerGalleryUpload()" style="aspect-ratio:1;border-radius:16px;background:var(--c-surface);border:2px dashed var(--i-faint);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--g-border)'" onmouseout="this.style.borderColor='var(--i-faint)'">
+              <div style="font-size:28px;margin-bottom:8px;">➕</div>
+              <div style="font-size:11px;color:var(--t-muted);">Add Photo</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Hidden file inputs -->
+        <input type="file" id="logo-input" accept="image/*" style="display:none" onchange="handleLogoUpload(this)">
+        <input type="file" id="gallery-input" accept="image/*" style="display:none" onchange="handleGalleryUpload(this)">
+      </div>
+
+      <!-- ── PLATFORM FEES ── -->
+      <div id="sec-fees" class="section">
+        <div style="margin-bottom:28px;">
+          <div class="eyebrow">Platform Service Fees</div>
+          <div style="font-size:12px;color:var(--t-muted);margin-top:6px;">GHS 3 is charged per booking. Fees are due by midnight of the booking day.</div>
+        </div>
+
+        <!-- Fee Summary Cards -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;">
+          <div class="kpi-card">
+            <div style="font-size:22px;margin-bottom:10px;">⏳</div>
+            <div class="font-display gold-gradient" style="font-size:28px;" id="fees-pending-amt">GHS 0</div>
+            <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-faint);">Pending Fees</div>
+          </div>
+          <div class="kpi-card">
+            <div style="font-size:22px;margin-bottom:10px;">✅</div>
+            <div class="font-display" style="font-size:28px;color:var(--s-green);" id="fees-paid-amt">GHS 0</div>
+            <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-faint);">Total Paid</div>
+          </div>
+          <div class="kpi-card">
+            <div style="font-size:22px;margin-bottom:10px;">📋</div>
+            <div class="font-display" style="font-size:28px;color:var(--t-primary);" id="fees-total-count">0</div>
+            <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-faint);">Total Bookings</div>
+          </div>
+        </div>
+
+        <!-- Warning about pending fees -->
+        <div id="fees-warning" style="display:none;background:rgba(224,112,112,0.1);border:1px solid rgba(224,112,112,0.3);border-radius:12px;padding:16px 20px;margin-bottom:24px;">
+          <div style="font-size:13px;font-weight:700;color:var(--s-red);margin-bottom:4px;">⚠️ Pending Fees Due Tonight</div>
+          <div style="font-size:12px;color:var(--t-secondary);">You have unpaid platform fees due by midnight. Please contact admin to settle your balance to avoid service interruption.</div>
+        </div>
+
+        <!-- Fee Table -->
+        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
+          <div style="padding:20px 24px;border-bottom:1px solid var(--i-faint);display:flex;justify-content:space-between;align-items:center;">
+            <div class="eyebrow">Fee History</div>
+            <span style="font-size:11px;color:var(--t-muted);">GHS 3 per booking</span>
+          </div>
+          <div id="fees-table-body" style="padding:16px;">
+            <div style="text-align:center;color:var(--t-muted);padding:32px;">Loading fee history...</div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── Other sections (clients, reviews, settings) ── -->
       <div id="sec-clients"  class="section"><div class="eyebrow">Clients</div><p style="color:var(--t-secondary);margin-top:16px;">Client management coming soon.</p></div>
       <div id="sec-reviews"  class="section"><div class="eyebrow">Reviews</div><p style="color:var(--t-secondary);margin-top:16px;">Review management coming soon.</p></div>
@@ -380,7 +482,7 @@ function showSection(id, btn) {
   var sec = document.getElementById('sec-' + id);
   if (sec) sec.classList.add('active');
   if (btn) btn.classList.add('active');
-  var titles = {overview:'Overview',appts:'Appointments',clients:'Clients',styles:'Style History',reviews:'Reviews',earnings:'Earnings',kyc:'KYC Status',settings:'Settings'};
+  var titles = {overview:'Overview',appts:'Appointments',clients:'Clients',styles:'Style History',reviews:'Reviews',earnings:'Earnings',kyc:'KYC Status',gallery:'My Gallery',fees:'Platform Fees',settings:'Settings'};
   var t = document.getElementById('sec-title');
   if (t) t.textContent = titles[id] || id;
 }
@@ -451,6 +553,20 @@ document.addEventListener('DOMContentLoaded', function() {
     var d = res.data;
     var p = d.provider;
     var stats = d.stats;
+
+    // Store provider ID globally for gallery/fees
+    providerIdGlobal = p.id;
+
+    // Update gallery count label
+    var gcl = document.getElementById('gallery-count-label');
+    if (gcl) {
+      var maxImg = p.has_pro_gallery ? 10 : 5;
+      gcl.textContent = (p.has_pro_gallery ? 'Pro plan' : 'Free plan') + ': ' + (p.gallery_count || 0) + '/' + maxImg + ' images';
+      if (p.has_pro_gallery) {
+        var proBanner = document.getElementById('pro-banner');
+        if (proBanner) proBanner.style.display = 'none';
+      }
+    }
 
     // Update sidebar name
     var nameEl = document.getElementById('sb-name');
@@ -532,5 +648,167 @@ function updateAppt(id, status) {
     .then(function() { showToast('Booking ' + status + ' ✦', 'success'); setTimeout(function() { location.reload(); }, 1000); })
     .catch(function() { showToast('Update failed', 'error'); });
 }
+
+// ── GALLERY FUNCTIONS ──
+var providerIdGlobal = null;
+
+function triggerLogoUpload() { document.getElementById('logo-input').click(); }
+function triggerGalleryUpload() { document.getElementById('gallery-input').click(); }
+
+function fileToBase64(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function(e) { resolve(e.target.result); };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function handleLogoUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  if (file.size > 10 * 1024 * 1024) { showToast('Logo too large. Max 10MB', 'error'); return; }
+  var token = localStorage.getItem('sl_token');
+  showToast('Uploading logo...', 'info');
+  fileToBase64(file).then(function(base64) {
+    return axios.post('/api/uploads/provider-logo', { image_url: base64 }, { headers: { Authorization: 'Bearer ' + token } });
+  }).then(function(r) {
+    showToast('Logo uploaded! ✦', 'success');
+    var preview = document.getElementById('logo-preview');
+    if (preview) {
+      preview.innerHTML = '<img src="' + r.data.url + '" style="width:100%;height:100%;object-fit:cover;" />';
+    }
+  }).catch(function(e) {
+    showToast(e.response ? e.response.data.error : 'Upload failed', 'error');
+  });
+}
+
+function handleGalleryUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  if (file.size > 10 * 1024 * 1024) { showToast('Image too large. Max 10MB', 'error'); return; }
+  var token = localStorage.getItem('sl_token');
+  var caption = prompt('Add a caption (optional):') || '';
+  showToast('Uploading photo...', 'info');
+  fileToBase64(file).then(function(base64) {
+    return axios.post('/api/uploads/provider-gallery', { image_url: base64, caption: caption }, { headers: { Authorization: 'Bearer ' + token } });
+  }).then(function(r) {
+    showToast('Photo added! (' + r.data.count + '/' + r.data.max + ') ✦', 'success');
+    loadGallery(token);
+  }).catch(function(e) {
+    var err = e.response ? e.response.data : {};
+    if (err.upgrade_required) {
+      showToast('Free limit reached! Upgrade to Gallery Pro for GHS 10/month', 'error');
+    } else {
+      showToast(err.error || 'Upload failed', 'error');
+    }
+  });
+}
+
+function deleteGalleryImage(id) {
+  if (!confirm('Delete this photo?')) return;
+  var token = localStorage.getItem('sl_token');
+  axios.delete('/api/uploads/provider-gallery/' + id, { headers: { Authorization: 'Bearer ' + token } })
+    .then(function() { showToast('Photo deleted', 'success'); loadGallery(token); })
+    .catch(function() { showToast('Delete failed', 'error'); });
+}
+
+function loadGallery(token) {
+  if (!providerIdGlobal) return;
+  axios.get('/api/uploads/provider-gallery/' + providerIdGlobal)
+    .then(function(r) {
+      var items = r.data.gallery || [];
+      var logo = items.find(function(i) { return i.is_logo; });
+      var photos = items.filter(function(i) { return !i.is_logo; });
+
+      // Update logo preview
+      var lp = document.getElementById('logo-preview');
+      if (lp && logo) {
+        lp.innerHTML = '<img src="' + logo.image_url + '" style="width:100%;height:100%;object-fit:cover;" onclick="triggerLogoUpload()" />';
+      }
+
+      // Update gallery grid
+      var grid = document.getElementById('gallery-grid');
+      if (!grid) return;
+      var html = photos.map(function(p) {
+        return '<div style="position:relative;aspect-ratio:1;border-radius:16px;overflow:hidden;background:var(--c-surface);">' +
+          '<img src="' + p.image_url + '" style="width:100%;height:100%;object-fit:cover;" />' +
+          (p.caption ? '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.6);padding:8px 10px;font-size:10px;color:white;">' + p.caption + '</div>' : '') +
+          '<button onclick="deleteGalleryImage(' + p.id + ')" style="position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.6);border:none;color:white;cursor:pointer;font-size:12px;">✕</button>' +
+        '</div>';
+      }).join('');
+      // Add upload slot at end
+      html += '<div onclick="triggerGalleryUpload()" style="aspect-ratio:1;border-radius:16px;background:var(--c-surface);border:2px dashed var(--i-faint);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;" onmouseover="this.style.borderColor=\'var(--g-border)\'" onmouseout="this.style.borderColor=\'var(--i-faint)\'"><div style="font-size:28px;margin-bottom:8px;">➕</div><div style="font-size:11px;color:var(--t-muted);">Add Photo</div></div>';
+      grid.innerHTML = html;
+    });
+}
+
+function upgradeGallery() {
+  var ref = 'GALLERY-' + Date.now();
+  if (!confirm('Upgrade to Gallery Pro for GHS 10/month? (Contact admin to pay via MoMo or reference: ' + ref + ')')) return;
+  var token = localStorage.getItem('sl_token');
+  axios.post('/api/uploads/subscribe-gallery', { payment_reference: ref }, { headers: { Authorization: 'Bearer ' + token } })
+    .then(function(r) {
+      showToast('Gallery Pro activated! ✦', 'success');
+      document.getElementById('pro-banner').style.display = 'none';
+    }).catch(function(e) { showToast(e.response ? e.response.data.error : 'Upgrade failed', 'error'); });
+}
+
+// ── SERVICE FEES FUNCTION ──
+function loadProviderFees() {
+  var token = localStorage.getItem('sl_token');
+  var user = JSON.parse(localStorage.getItem('sl_user') || '{}');
+  if (!user.provider_id) return;
+  axios.get('/api/admin/provider-fees/' + user.provider_id, { headers: { Authorization: 'Bearer ' + token } })
+    .then(function(r) {
+      var s = r.data.summary || {};
+      var pending = (s.pending_amount || 0) / 100;
+      var paid = (s.paid_amount || 0) / 100;
+      var total = s.total_bookings || 0;
+
+      var pe = document.getElementById('fees-pending-amt');
+      var pa = document.getElementById('fees-paid-amt');
+      var tc = document.getElementById('fees-total-count');
+      if (pe) pe.textContent = 'GHS ' + pending.toFixed(2);
+      if (pa) pa.textContent = 'GHS ' + paid.toFixed(2);
+      if (tc) tc.textContent = total;
+
+      var warn = document.getElementById('fees-warning');
+      if (warn && pending > 0) warn.style.display = 'block';
+
+      var body = document.getElementById('fees-table-body');
+      if (!body) return;
+      var fees = r.data.fees || [];
+      if (!fees.length) {
+        body.innerHTML = '<div style="text-align:center;color:var(--t-muted);padding:32px;">No bookings yet. Fees will appear here after your first booking.</div>';
+        return;
+      }
+      body.innerHTML = fees.map(function(f) {
+        var isOverdue = f.status === 'pending' && new Date(f.due_date) < new Date();
+        return '<div style="display:flex;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid var(--i-faint);">' +
+          '<div style="flex:1;">' +
+            '<div style="font-size:13px;font-weight:600;">Booking on ' + f.booking_date + '</div>' +
+            '<div style="font-size:11px;color:var(--t-muted);">Due: ' + f.due_date + ' midnight' + (isOverdue ? ' — <span style=\\"color:var(--s-red)\\">OVERDUE</span>' : '') + '</div>' +
+          '</div>' +
+          '<div style="font-size:14px;font-weight:700;color:var(--g-main);">GHS ' + ((f.fee_amount || 0) / 100).toFixed(2) + '</div>' +
+          '<span class="badge ' + (f.status === 'paid' ? 'badge-verified' : isOverdue ? '' : 'badge-pending') + '" style="' + (isOverdue ? 'background:rgba(224,112,112,0.15);color:var(--s-red);border-color:rgba(224,112,112,0.3);' : '') + '">' + (f.status === 'paid' ? '✓ Paid' : isOverdue ? '⚠ Overdue' : '⏳ Pending') + '</span>' +
+        '</div>';
+      }).join('');
+    }).catch(function() {
+      var body = document.getElementById('fees-table-body');
+      if (body) body.innerHTML = '<div style="text-align:center;color:var(--t-muted);padding:32px;">Fee data will appear once you have bookings</div>';
+    });
+}
+
+// Hook into section show to load data
+var origShowSection = showSection;
+showSection = function(id, btn) {
+  origShowSection(id, btn);
+  if (id === 'gallery') {
+    var token = localStorage.getItem('sl_token');
+    if (token && providerIdGlobal) loadGallery(token);
+  }
+  if (id === 'fees') loadProviderFees();
+};
 </script>
 </body></html>`
