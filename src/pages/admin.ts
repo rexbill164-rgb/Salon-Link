@@ -479,6 +479,7 @@ function adminSection(id, btn) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  try {
   if (window.Chart) {
     new Chart(document.getElementById('admin-revenue'), {
       type: 'bar',
@@ -518,10 +519,12 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
+  } catch(e) { console.warn('Chart init failed:', e); }
 });
 
 // Load real admin data
-(function() {
+document.addEventListener('DOMContentLoaded', function() {
+try {
   var token = localStorage.getItem('sl_token');
   var user = JSON.parse(localStorage.getItem('sl_user') || '{}');
   if (!token || user.role !== 'admin') { window.location.href = '/login'; return; }
@@ -620,7 +623,8 @@ document.addEventListener('DOMContentLoaded', function() {
       '</tr>';
     }).join('');
   }).catch(function(){});
-})();
+} catch(initErr) { console.error('Admin init error:', initErr); }
+});
 
 function toggleUser(id) {
   var token = localStorage.getItem('sl_token');
