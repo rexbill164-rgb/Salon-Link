@@ -115,6 +115,24 @@ ${baseHead('Provider Dashboard', `
 
       <!-- ── OVERVIEW ── -->
       <div id="sec-overview" class="section active">
+
+        <!-- Pending approval banner (shown only for unverified providers) -->
+        <div id="pending-approval-banner" style="display:none;background:linear-gradient(135deg,rgba(201,168,76,0.12),rgba(201,168,76,0.06));border:1px solid rgba(201,168,76,0.35);border-radius:16px;padding:20px 24px;margin-bottom:28px;display:none;">
+          <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+            <span style="font-size:28px;flex-shrink:0;">⏳</span>
+            <div style="flex:1;min-width:200px;">
+              <div style="font-size:15px;font-weight:700;color:var(--t-primary);margin-bottom:6px;">Pending Admin Approval</div>
+              <div style="font-size:13px;color:var(--t-secondary);line-height:1.7;margin-bottom:12px;">
+                Your profile is set up and ready. Customers will be able to find and book you once an admin approves your account. While you wait, you can update your services, upload photos, and set your location.
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button onclick="showSection('gallery',null)" style="padding:8px 18px;border-radius:100px;font-size:12px;font-weight:700;cursor:pointer;background:var(--g-main);color:white;border:none;">📸 Upload Photos</button>
+                <button onclick="showSection('settings',null)" style="padding:8px 18px;border-radius:100px;font-size:12px;font-weight:700;cursor:pointer;background:transparent;border:1.5px solid var(--g-border);color:var(--g-deep);">⚙️ Edit Profile</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- KPI Row -->
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:36px;">
           ${[
@@ -617,6 +635,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update sidebar name
     var nameEl = document.getElementById('sb-name');
     if (nameEl) nameEl.textContent = p.business_name;
+
+    // Show pending approval banner for unverified providers
+    var banner = document.getElementById('pending-approval-banner');
+    if (banner && !p.is_verified) {
+      banner.style.display = 'block';
+    }
 
     // Update KPI cards
     var kpis = document.querySelectorAll('.kpi-card');

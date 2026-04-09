@@ -149,9 +149,13 @@ export const onboardingPage = () => `<!DOCTYPE html>
   <div id="ob-step1" class="onboard-step active">
     <div class="eyebrow" style="margin-bottom:12px;">Step 1 of 4</div>
     <h2 class="display-md" style="margin-bottom:8px;">Verify Your <span class="gold-gradient">Identity</span></h2>
-    <p style="color:var(--t-secondary);margin-bottom:28px;font-size:14px;line-height:1.8;">
-      Upload your Ghana Card (front &amp; back) and take a live selfie. This builds trust with your clients and is required to go live.
+    <p style="color:var(--t-secondary);margin-bottom:16px;font-size:14px;line-height:1.8;">
+      Upload your Ghana Card (front &amp; back) and take a live selfie. This builds trust with your clients.
     </p>
+    <div style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:12px;padding:12px 16px;margin-bottom:22px;display:flex;align-items:flex-start;gap:10px;">
+      <span style="font-size:18px;flex-shrink:0;">💡</span>
+      <div style="font-size:13px;color:var(--t-secondary);line-height:1.6;"><strong style="color:var(--t-primary);">KYC is optional during setup.</strong> You can complete it now or later from your dashboard. Admin approval is needed before you can receive bookings.</div>
+    </div>
 
     <!-- Ghana Card Number -->
     <div style="background:#fff;border:1px solid #e5e5e5;border-radius:18px;padding:22px;margin-bottom:14px;">
@@ -242,9 +246,10 @@ export const onboardingPage = () => `<!DOCTYPE html>
       </div>
     </div>
 
-    <button onclick="validateStep1()" class="btn-primary" style="width:100%;justify-content:center;padding:16px;font-size:15px;">
-      Continue <i class="fas fa-arrow-right" style="margin-left:8px;"></i>
-    </button>
+    <div style="display:flex;gap:12px;">
+      <button onclick="skipKyc()" class="btn-ghost" style="padding:14px 22px;font-size:13px;white-space:nowrap;">Skip for now</button>
+      <button onclick="validateStep1()" class="btn-primary" style="flex:1;justify-content:center;padding:16px;font-size:15px;">Submit KYC &amp; Continue <i class="fas fa-arrow-right" style="margin-left:8px;"></i></button>
+    </div>
   </div>
 
   <!-- ══════════════ STEP 2: Business ══════════════ -->
@@ -298,17 +303,37 @@ export const onboardingPage = () => `<!DOCTYPE html>
   <!-- ══════════════ STEP 4: Complete ══════════════ -->
   <div id="ob-step4" class="onboard-step" style="text-align:center;padding-top:40px;">
     <div style="font-size:72px;margin-bottom:24px;">🎉</div>
-    <h2 class="display-md" style="margin-bottom:16px;">You're All Set!<br/><span class="gold-gradient">Welcome to SalonLink.</span></h2>
-    <p style="font-size:15px;color:var(--t-secondary);line-height:1.9;margin-bottom:40px;max-width:420px;margin-left:auto;margin-right:auto;">
-      Your profile is under review. KYC verification typically takes 1–2 hours.
-      Once approved by admin, your salon will go live to thousands of clients.
+    <h2 class="display-md" style="margin-bottom:16px;">Profile Saved!<br/><span class="gold-gradient">Welcome to SalonLink.</span></h2>
+    <p style="font-size:15px;color:var(--t-secondary);line-height:1.9;margin-bottom:28px;max-width:440px;margin-left:auto;margin-right:auto;">
+      Your salon profile and services are ready. Explore your dashboard, upload photos, and set your location while you wait for admin approval.
     </p>
-    <div style="background:#fff;border:1px solid rgba(0,200,83,0.3);border-radius:16px;padding:20px;margin-bottom:32px;display:inline-block;">
-      <i class="fas fa-clock" style="color:#00C853;margin-right:8px;"></i>
-      <span style="font-size:14px;font-weight:600;color:#00C853;">KYC documents submitted — Pending admin review</span>
+
+    <!-- What you can do now -->
+    <div style="background:#fff;border:1px solid var(--i-faint);border-radius:18px;padding:24px;margin-bottom:20px;text-align:left;max-width:400px;margin-left:auto;margin-right:auto;">
+      <div style="font-size:12px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--g-deep);margin-bottom:16px;">What you can do now</div>
+      ${[
+        {icon:'✅', text:'View and manage your services'},
+        {icon:'📸', text:'Upload your logo and gallery photos'},
+        {icon:'📍', text:'Set your exact location on the map'},
+        {icon:'⚙️', text:'Update your profile and bio'},
+      ].map(i=>`
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <span style="font-size:18px;">${i.icon}</span>
+          <span style="font-size:14px;color:var(--t-secondary);">${i.text}</span>
+        </div>
+      `).join('')}
     </div>
+
+    <!-- Pending approval notice -->
+    <div style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:14px;padding:16px 20px;margin-bottom:28px;display:inline-flex;align-items:center;gap:10px;">
+      <i class="fas fa-clock" style="color:var(--g-main);font-size:16px;"></i>
+      <span style="font-size:13px;font-weight:600;color:var(--g-deep);">Pending admin approval — customers cannot book until approved</span>
+    </div>
+
     <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;">
-      <a href="/provider/dashboard" class="btn-primary" style="padding:15px 40px;font-size:14px;">Go to Dashboard</a>
+      <a href="/provider/dashboard" class="btn-primary" style="padding:15px 40px;font-size:14px;">
+        <i class="fas fa-th-large" style="margin-right:8px;"></i>Go to My Dashboard
+      </a>
     </div>
   </div>
 
@@ -479,6 +504,11 @@ function applyCapture(target, dataUrl) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // STEP VALIDATION
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function skipKyc() {
+  showToast('KYC skipped — you can add it later from your dashboard', 'info');
+  goObStep(2);
+}
+
 function validateStep1() {
   var cardNum = document.getElementById('card-num').value.trim();
   if (!cardNum) {
@@ -493,9 +523,8 @@ function validateStep1() {
   if (!kycData.selfie) {
     showToast('Please take a live selfie for facial verification', 'error'); return;
   }
-
   document.getElementById('kyc-note').style.display = 'block';
-  showToast('All documents captured! Proceeding...', 'success');
+  showToast('KYC documents captured! Proceeding...', 'success');
   setTimeout(function(){ goObStep(2); }, 800);
 }
 
@@ -560,18 +589,21 @@ async function submitOnboarding() {
   try {
     showToast('Saving your profile...', 'info');
 
-    // Save profile + KYC data
-    await axios.put('/api/providers/me', {
+    // Save profile + KYC data (KYC fields only sent if they were filled in)
+    var kycPayload = {};
+    var cardNum = document.getElementById('card-num') && document.getElementById('card-num').value.trim();
+    if (cardNum) kycPayload.kyc_card_number = cardNum;
+    if (kycData.front)  kycPayload.kyc_front_url  = kycData.front;
+    if (kycData.back)   kycPayload.kyc_back_url   = kycData.back;
+    if (kycData.selfie) kycPayload.kyc_selfie_url = kycData.selfie;
+    if (kycData.front && kycData.back && kycData.selfie) kycPayload.kyc_status = 'submitted';
+
+    await axios.put('/api/providers/me', Object.assign({
       business_name:  document.getElementById('biz-name').value.trim(),
       bio:            document.getElementById('bio').value.trim(),
       phone:          document.getElementById('biz-phone').value.trim(),
       address:        document.getElementById('location').value.trim(),
-      kyc_status:     'submitted',
-      kyc_card_number: document.getElementById('card-num').value.trim(),
-      kyc_front_url:  kycData.front,
-      kyc_back_url:   kycData.back,
-      kyc_selfie_url: kycData.selfie
-    }, { headers: { Authorization: 'Bearer ' + token } });
+    }, kycPayload), { headers: { Authorization: 'Bearer ' + token } });
 
     // Save services
     var servicePs = Array.from(entries).map(function(e) {

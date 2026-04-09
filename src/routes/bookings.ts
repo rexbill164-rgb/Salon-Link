@@ -9,7 +9,7 @@ async function getUser(c: any) {
   try {
     const auth = c.req.header('Authorization')
     if (!auth?.startsWith('Bearer ')) return null
-    return await verify(auth.split(' ')[1], 'salonlink_jwt_secret_2026') as any
+    return await verify(auth.split(' ')[1], 'salonlink_jwt_secret_2026', 'HS256') as any
   } catch { return null }
 }
 
@@ -25,11 +25,14 @@ bookings.post('/', async (c) => {
       return c.json({ success: false, error: 'Missing required booking details' }, 400)
     }
 
-    // Check provider accepts bookings
+    // Check provider accepts bookings AND is approved by admin
     const provider = await c.env.DB.prepare(
       'SELECT * FROM providers WHERE id = ? AND is_accepting_bookings = 1'
     ).bind(provider_id).first()
-    if (!provider) return c.json({ success: false, error: 'Provider not available' }, 400)
+    if (!provider) return c.json({ success: false, error: 'Provider is not accepting bookings right now.' }, 400)
+    if (!(provider as any).is_verified) {
+      return c.json({ success: false, error: 'This provider is pending admin approval and cannot receive bookings yet.' }, 403)
+    }
 
     // Check service belongs to provider
     const service = await c.env.DB.prepare(

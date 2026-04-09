@@ -9,7 +9,7 @@ async function getUser(c: any) {
   try {
     const auth = c.req.header('Authorization')
     if (!auth?.startsWith('Bearer ')) return null
-    const payload = await verify(auth.split(' ')[1], 'salonlink_jwt_secret_2026') as any
+    const payload = await verify(auth.split(' ')[1], 'salonlink_jwt_secret_2026', 'HS256') as any
     return payload
   } catch { return null }
 }
