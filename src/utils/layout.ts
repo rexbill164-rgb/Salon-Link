@@ -1,10 +1,25 @@
 export const baseHead = (title: string, extra = '') => `
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <title>${title} | SalonLink</title>
-  <meta name="description" content="SalonLink — Ghana's most exclusive beauty booking experience."/>
-  <link rel="icon" href="/favicon.png"/>
-  <link rel="apple-touch-icon" href="/icon-192.png"/>
+  <meta name="description" content="SalonLink — Ghana's beauty booking app. Find, book and manage salon appointments."/>
+  <!-- PWA / Home Screen -->
+  <link rel="manifest" href="/manifest.json"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png"/>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="SalonLink"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="application-name" content="SalonLink"/>
+  <meta name="theme-color" content="#E1306C"/>
+  <meta name="msapplication-TileColor" content="#E1306C"/>
+  <meta name="msapplication-TileImage" content="/icon-192.png"/>
+  <!-- Open Graph -->
+  <meta property="og:title" content="SalonLink"/>
+  <meta property="og:description" content="Ghana's beauty booking app"/>
+  <meta property="og:image" content="/icon-512.png"/>
+  <meta property="og:type" content="website"/>
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-0MHMPCL5D2"></script>
   <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-0MHMPCL5D2');</script>
