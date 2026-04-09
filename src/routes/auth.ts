@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { sign, verify } from 'hono/jwt'
 
-type Bindings = { DB: D1Database; ADMIN_EMAIL?: string; SENDGRID_KEY?: string }
+type Bindings = { DB: D1Database; ADMIN_EMAIL?: string; SENDGRID_KEY?: string; ULTRAMSG_TOKEN?: string; ULTRAMSG_INSTANCE?: string }
 
 const auth = new Hono<{ Bindings: Bindings }>()
 
@@ -248,6 +248,125 @@ auth.put('/password', async (c) => {
 // POST /api/auth/logout
 auth.post('/logout', async (c) => {
   return c.json({ success: true, message: 'Logged out successfully' })
+})
+
+// ── WhatsApp OTP via UltraMsg ──────────────────────────────
+// Generates a 6-digit OTP, stores it in the sessions table (reused as otp store),
+// and sends it to the user's WhatsApp number.
+
+async function sendWhatsAppOtp(c: any, phone: string, otp: string): Promise<boolean> {
+  const token    = c.env.ULTRAMSG_TOKEN
+  const instance = c.env.ULTRAMSG_INSTANCE
+  if (!token || !instance) return false          // no credentials configured
+
+  const ghPhone = '233' + phone.replace(/^0/, '').replace(/\D/g, '')
+  const msg = `Your SalonLink verification code is: *${otp}*\n\nDo not share this code with anyone. It expires in 10 minutes.`
+
+  try {
+    const res = await fetch(`https://api.ultramsg.com/${instance}/messages/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ token, to: ghPhone, body: msg })
+    })
+    const data: any = await res.json()
+    return data.sent === 'true' || data.sent === true
+  } catch { return false }
+}
+
+// POST /api/auth/otp/send
+auth.post('/otp/send', async (c) => {
+  try {
+    const { phone } = await c.req.json()
+    if (!phone) return c.json({ success: false, error: 'Phone number required' }, 400)
+
+    const clean = phone.replace(/\D/g, '')
+    if (clean.length < 9) return c.json({ success: false, error: 'Enter a valid Ghana phone number' }, 400)
+
+    // Generate 6-digit OTP
+    const otp  = String(Math.floor(100000 + Math.random() * 900000))
+    const hash = await hashPassword(otp)  // store hashed so plaintext isn't in DB
+    const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+
+    // Upsert OTP into a small otp_codes table (created on first use)
+    await c.env.DB.prepare(`
+      CREATE TABLE IF NOT EXISTS otp_codes (
+        phone TEXT PRIMARY KEY,
+        otp_hash TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        attempts INTEGER DEFAULT 0
+      )
+    `).run()
+    await c.env.DB.prepare(
+      'INSERT INTO otp_codes (phone, otp_hash, expires_at, attempts) VALUES (?,?,?,0) ON CONFLICT(phone) DO UPDATE SET otp_hash=excluded.otp_hash, expires_at=excluded.expires_at, attempts=0'
+    ).bind(clean, hash, expires).run()
+
+    // Try to send via WhatsApp
+    const sent = await sendWhatsAppOtp(c, clean, otp)
+
+    if (sent) {
+      return c.json({ success: true, message: 'OTP sent to your WhatsApp', via: 'whatsapp' })
+    } else {
+      // No WhatsApp credentials — return OTP in response for dev/demo (remove in prod)
+      return c.json({ success: true, message: 'OTP generated (WhatsApp not configured)', otp_demo: otp, via: 'demo' })
+    }
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// POST /api/auth/otp/verify
+auth.post('/otp/verify', async (c) => {
+  try {
+    const { phone, otp } = await c.req.json()
+    if (!phone || !otp) return c.json({ success: false, error: 'Phone and OTP required' }, 400)
+
+    const clean = phone.replace(/\D/g, '')
+
+    const row = await c.env.DB.prepare(
+      'SELECT otp_hash, expires_at, attempts FROM otp_codes WHERE phone = ?'
+    ).bind(clean).first() as any
+
+    if (!row) return c.json({ success: false, error: 'No OTP found for this number. Please request a new one.' }, 400)
+    if (new Date(row.expires_at) < new Date()) return c.json({ success: false, error: 'OTP has expired. Please request a new one.' }, 400)
+    if (row.attempts >= 5) return c.json({ success: false, error: 'Too many attempts. Please request a new OTP.' }, 429)
+
+    const valid = await verifyPassword(otp, row.otp_hash)
+    if (!valid) {
+      await c.env.DB.prepare('UPDATE otp_codes SET attempts = attempts + 1 WHERE phone = ?').bind(clean).run()
+      return c.json({ success: false, error: 'Incorrect OTP. Please try again.' }, 400)
+    }
+
+    // OTP correct — delete it and find or create user
+    await c.env.DB.prepare('DELETE FROM otp_codes WHERE phone = ?').bind(clean).run()
+
+    let user = await c.env.DB.prepare(
+      'SELECT id, email, phone, first_name, last_name, role, avatar_url, is_verified FROM users WHERE phone = ?'
+    ).bind(clean).first() as any
+
+    if (!user) {
+      // Auto-create account from phone number
+      const result = await c.env.DB.prepare(
+        "INSERT INTO users (phone, first_name, last_name, role, password_hash) VALUES (?,?,?,'customer',?) RETURNING id"
+      ).bind(clean, 'User', clean.slice(-4), await hashPassword(crypto.randomUUID())).first() as any
+
+      user = await c.env.DB.prepare(
+        'SELECT id, email, phone, first_name, last_name, role, avatar_url, is_verified FROM users WHERE id = ?'
+      ).bind(result.id).first() as any
+    }
+
+    const token = await sign(
+      { sub: user.id, role: user.role, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 },
+      'salonlink_jwt_secret_2026', 'HS256'
+    )
+
+    return c.json({
+      success: true,
+      token,
+      user: { id: user.id, name: (user.first_name + ' ' + user.last_name).trim(), email: user.email, phone: user.phone, role: user.role, is_verified: user.is_verified }
+    })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
 })
 
 export default auth

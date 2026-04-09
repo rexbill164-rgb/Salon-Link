@@ -132,19 +132,49 @@ ${baseHead('Sign In', `
 
       <!-- Phone form -->
       <div id="form-phone" style="display:none;">
-        <div class="form-group">
-          <label class="form-label">Phone Number</label>
-          <div style="display:flex;gap:10px;">
-            <div style="background:var(--c-raise);border:1.5px solid var(--i-faint);border-radius:var(--r-md);padding:15px 16px;font-size:14px;color:var(--t-secondary);white-space:nowrap;display:flex;align-items:center;gap:8px;">
-              🇬🇭 <span style="color:var(--t-muted);">+233</span>
+        <!-- Step 1: enter phone -->
+        <div id="phone-step-1">
+          <div style="display:flex;align-items:center;gap:10px;background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:12px;padding:12px 14px;margin-bottom:18px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M13.507.135C6.07.135 0 6.143 0 13.505c0 2.387.634 4.624 1.737 6.558L0 24l4.073-1.67a13.4 13.4 0 0 0 6.27 1.56h.006c7.437 0 13.5-6.008 13.5-13.37 0-3.573-1.395-6.93-3.926-9.455A13.436 13.436 0 0 0 13.507.135zm0 24.453h-.005a11.13 11.13 0 0 1-5.677-1.553l-.408-.242-4.216 1.726 1.18-4.05-.264-.415A11.085 11.085 0 0 1 2.37 13.505c0-6.146 5.015-11.145 11.18-11.145 2.984 0 5.787 1.16 7.899 3.268a11.072 11.072 0 0 1 3.281 7.877c-.003 6.147-5.018 11.083-11.223 11.083z"/></svg>
+            <span style="font-size:12px;color:#128C7E;font-weight:600;">OTP will be sent to your WhatsApp</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ghana Phone Number</label>
+            <div style="display:flex;gap:10px;">
+              <div style="background:var(--c-raise);border:1.5px solid var(--i-faint);border-radius:var(--r-md);padding:15px 16px;font-size:14px;color:var(--t-secondary);white-space:nowrap;display:flex;align-items:center;gap:6px;">
+                🇬🇭 <span style="color:var(--t-muted);">+233</span>
+              </div>
+              <input type="tel" id="phone-input" class="input" placeholder="20 000 0000" style="flex:1;" maxlength="10"/>
             </div>
-            <input type="tel" id="phone" class="input" placeholder="20 000 0000" style="flex:1;"/>
+          </div>
+          <button id="send-otp-btn" onclick="sendOtp()" class="btn-primary" style="width:100%;justify-content:center;padding:16px;font-size:13px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/></svg>
+            Send OTP via WhatsApp
+          </button>
+        </div>
+
+        <!-- Step 2: enter OTP -->
+        <div id="phone-step-2" style="display:none;">
+          <div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:36px;margin-bottom:8px;">📲</div>
+            <div style="font-size:15px;font-weight:700;margin-bottom:4px;">Check your WhatsApp</div>
+            <div style="font-size:13px;color:var(--t-muted);">We sent a 6-digit code to</div>
+            <div style="font-size:14px;font-weight:700;color:var(--g-main);margin-top:4px;" id="phone-display"></div>
+          </div>
+          <!-- OTP boxes -->
+          <div style="display:flex;gap:10px;justify-content:center;margin-bottom:20px;">
+            ${[0,1,2,3,4,5].map(i=>`<input type="tel" maxlength="1" id="otp-${i}" class="input" style="width:46px;height:54px;text-align:center;font-size:22px;font-weight:700;padding:0;border-radius:12px;" oninput="otpInput(this,${i})" onkeydown="otpKey(event,${i})" inputmode="numeric"/>`).join('')}
+          </div>
+          <button id="verify-otp-btn" onclick="verifyOtp()" class="btn-primary" style="width:100%;justify-content:center;padding:16px;font-size:13px;">
+            Verify &amp; Sign In
+          </button>
+          <button onclick="backToPhone()" style="width:100%;margin-top:10px;background:none;border:none;color:var(--t-muted);font-size:12px;cursor:pointer;padding:8px;">
+            ← Change number
+          </button>
+          <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--t-muted);">
+            Didn't receive it? <button onclick="sendOtp(true)" style="background:none;border:none;color:var(--g-main);font-size:12px;cursor:pointer;font-weight:600;">Resend</button>
           </div>
         </div>
-        <button onclick="showToast('OTP sent to your number','success')" class="btn-primary" style="width:100%;justify-content:center;padding:16px;font-size:13px;">
-          <i class="fas fa-paper-plane" style="font-size:12px;"></i> Send OTP Code
-        </button>
-
       </div>
 
     </div>
@@ -186,7 +216,7 @@ async function handleLogin(e) {
     if (res.data.token) {
       localStorage.setItem('sl_token', res.data.token);
       localStorage.setItem('sl_user', JSON.stringify(res.data.user));
-      showToast('Welcome back, ' + res.data.user.name + ' ✦', 'success');
+      showToast('Welcome back, ' + res.data.user.name + ' \u2726', 'success');
       setTimeout(function() {
         var u = res.data.user;
         window.location.href = u.role==='admin' ? '/admin' : u.role==='provider' ? '/provider/dashboard' : '/discover';
@@ -196,6 +226,92 @@ async function handleLogin(e) {
     var msg = (err.response && err.response.data && err.response.data.error) || 'Invalid credentials. Please try again.';
     showToast(msg, 'error');
     btn.disabled = false; txt.style.display = 'inline'; load.style.display = 'none';
+  }
+}
+
+// ── WhatsApp OTP ──
+var _otpPhone = '';
+
+async function sendOtp(resend) {
+  var raw = document.getElementById('phone-input').value.replace(/\D/g,'');
+  if (!resend && raw.length < 9) { showToast('Enter a valid phone number', 'error'); return; }
+  if (resend) raw = _otpPhone;
+
+  var btn = document.getElementById('send-otp-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+
+  try {
+    var res = await axios.post('/api/auth/otp/send', { phone: raw });
+    _otpPhone = raw;
+
+    if (res.data.via === 'demo' && res.data.otp_demo) {
+      // No WhatsApp configured — show OTP on screen for demo
+      showToast('Demo mode: Your OTP is ' + res.data.otp_demo, 'info');
+      // Pre-fill OTP boxes
+      var digits = res.data.otp_demo.split('');
+      digits.forEach(function(d, i) {
+        var el = document.getElementById('otp-' + i);
+        if (el) el.value = d;
+      });
+    } else {
+      showToast('OTP sent to your WhatsApp \u2726', 'success');
+    }
+
+    document.getElementById('phone-display').textContent = '+233 ' + raw;
+    document.getElementById('phone-step-1').style.display = 'none';
+    document.getElementById('phone-step-2').style.display = 'block';
+    setTimeout(function(){ var el = document.getElementById('otp-0'); if(el) el.focus(); }, 100);
+  } catch(err) {
+    var msg = (err.response && err.response.data && err.response.data.error) || 'Failed to send OTP';
+    showToast(msg, 'error');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/></svg> Send OTP via WhatsApp'; }
+  }
+}
+
+async function verifyOtp() {
+  var otp = [0,1,2,3,4,5].map(function(i){ var el = document.getElementById('otp-'+i); return el ? el.value : ''; }).join('');
+  if (otp.length < 6) { showToast('Enter the complete 6-digit code', 'error'); return; }
+
+  var btn = document.getElementById('verify-otp-btn');
+  btn.disabled = true; btn.textContent = 'Verifying...';
+
+  try {
+    var res = await axios.post('/api/auth/otp/verify', { phone: _otpPhone, otp: otp });
+    if (res.data.token) {
+      localStorage.setItem('sl_token', res.data.token);
+      localStorage.setItem('sl_user', JSON.stringify(res.data.user));
+      showToast('Welcome to SalonLink \u2726', 'success');
+      setTimeout(function() {
+        var u = res.data.user;
+        window.location.href = u.role==='admin' ? '/admin' : u.role==='provider' ? '/provider/dashboard' : '/discover';
+      }, 800);
+    }
+  } catch(err) {
+    var msg = (err.response && err.response.data && err.response.data.error) || 'Incorrect OTP';
+    showToast(msg, 'error');
+    btn.disabled = false; btn.textContent = 'Verify & Sign In';
+  }
+}
+
+function backToPhone() {
+  document.getElementById('phone-step-1').style.display = 'block';
+  document.getElementById('phone-step-2').style.display = 'none';
+  var btn = document.getElementById('send-otp-btn');
+  if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right:6px;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z"/></svg> Send OTP via WhatsApp'; }
+}
+
+function otpInput(el, idx) {
+  el.value = el.value.replace(/\D/g,'').slice(-1);
+  if (el.value && idx < 5) { var next = document.getElementById('otp-'+(idx+1)); if(next) next.focus(); }
+  // Auto-verify when all filled
+  var otp = [0,1,2,3,4,5].map(function(i){ var e = document.getElementById('otp-'+i); return e ? e.value : ''; }).join('');
+  if (otp.length === 6) verifyOtp();
+}
+
+function otpKey(e, idx) {
+  if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+    var prev = document.getElementById('otp-'+(idx-1));
+    if (prev) { prev.value = ''; prev.focus(); }
   }
 }
 </script>
