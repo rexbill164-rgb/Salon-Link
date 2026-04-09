@@ -87,11 +87,13 @@ providers.get('/:id/availability', async (c) => {
 
     const bookedTimes = booked.results.map((b: any) => b.booking_time)
 
-    // Generate time slots 9am-6pm in 30min increments
+    // Generate time slots 9am-6pm in 30min increments (12hr format to match bookings)
     const slots = []
     for (let h = 9; h < 18; h++) {
       for (let m = 0; m < 60; m += 30) {
-        const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+        const period = h < 12 ? 'AM' : 'PM'
+        const h12 = h > 12 ? h - 12 : h
+        const time = `${h12}:${String(m).padStart(2, '0')} ${period}`
         slots.push({ time, available: !bookedTimes.includes(time) })
       }
     }

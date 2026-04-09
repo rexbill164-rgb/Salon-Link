@@ -16,6 +16,8 @@ ${baseHead('Provider Dashboard', `
 /* ── Section ── */
 .section { display:none; }
 .section.active { display:block; }
+/* Override global reveal inside dashboard sections - elements already visible */
+.pdash .reveal { opacity:1 !important; transform:none !important; }
 /* ── Cards ── */
 .kpi-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:20px; }
 .kpi-card { background:#fff; border:1px solid var(--i-faint); border-radius:16px; padding:16px; position:relative; overflow:hidden; }
