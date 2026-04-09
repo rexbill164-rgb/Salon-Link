@@ -18,6 +18,8 @@ ${baseHead('Provider Profile', `
   .time-slot.disabled { opacity:0.3; cursor:not-allowed; background:var(--c-dark); }
   .portfolio-item { aspect-ratio:1; border-radius:14px; overflow:hidden; background:var(--c-raise); cursor:pointer; transition:all 0.35s var(--ease-luxury); display:flex; align-items:center; justify-content:center; font-size:36px; border:1px solid var(--i-faint); }
   .portfolio-item:hover { transform:scale(1.04); border-color:var(--g-border); }
+  /* Override global reveal — make all cards immediately visible on this page */
+  .reveal { opacity:1 !important; transform:none !important; }
 </style>
 `)}
 </head>
@@ -240,10 +242,10 @@ ${globalScripts()}
     if (catLocEl) catLocEl.textContent = catLabel + (p.city ? ' · ' + p.city : '');
 
     var ratingEl = document.getElementById('profile-rating');
-    if (ratingEl) ratingEl.textContent = p.rating ? parseFloat(p.rating).toFixed(1) : '5.0';
+    if (ratingEl) ratingEl.textContent = p.total_reviews > 0 && p.rating > 0 ? parseFloat(p.rating).toFixed(1) : '—';
 
     var rcEl = document.getElementById('profile-review-count');
-    if (rcEl) rcEl.textContent = '(' + (p.total_reviews || 0) + ' reviews)';
+    if (rcEl) rcEl.textContent = p.total_reviews > 0 ? '(' + p.total_reviews + ' reviews)' : '';
 
     // Status badge
     var statusBadge = document.getElementById('profile-status-badge');
@@ -262,12 +264,12 @@ ${globalScripts()}
     var verifiedBadge = document.getElementById('profile-verified-badge');
     if (verifiedBadge) {
       verifiedBadge.style.display = 'inline-flex';
-      if (p.is_verified) {
+      if (p.is_verified && p.kyc_status === 'approved') {
         verifiedBadge.className = 'badge badge-verified';
         verifiedBadge.innerHTML = '<svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Verified';
       } else {
         verifiedBadge.className = 'badge badge-pending';
-        verifiedBadge.textContent = 'New Provider';
+        verifiedBadge.textContent = 'New';
       }
     }
 

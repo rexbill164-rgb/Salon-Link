@@ -291,9 +291,8 @@ ${navbar('')}
             <div style="display:flex;align-items:center;gap:14px;padding-bottom:22px;border-bottom:1px solid var(--i-faint);margin-bottom:22px;">
               <div style="width:50px;height:50px;border-radius:16px;background:var(--g-dim);border:1px solid var(--g-border);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">💇‍♀️</div>
               <div>
-                <div class="font-display" style="font-size:16px;font-weight:500;">Glam Studio GH</div>
-                <div style="font-size:12px;color:var(--t-muted);">East Legon, Accra</div>
-                <div class="stars" style="font-size:12px;margin-top:2px;">★★★★★ <span style="color:var(--t-muted);font-family:'DM Sans',sans-serif;">4.9</span></div>
+                <div id="sum-provider-name" class="font-display" style="font-size:16px;font-weight:500;">Loading...</div>
+                <div id="sum-provider-loc" style="font-size:12px;color:var(--t-muted);">Accra</div>
               </div>
             </div>
 
@@ -351,15 +350,93 @@ ${navbar('')}
   </div>
 </div>
 
+<!-- ══ PAYMENT MODAL ══ -->
+<div id="payment-modal" style="display:none;position:fixed;inset:0;background:rgba(26,18,9,0.6);backdrop-filter:blur(12px);z-index:9000;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:24px;padding:32px;max-width:420px;width:100%;box-shadow:0 32px 80px rgba(0,0,0,0.25);">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="font-size:48px;margin-bottom:12px;">💳</div>
+      <h3 style="font-size:20px;font-weight:700;margin-bottom:6px;">How would you like to pay?</h3>
+      <div style="font-size:13px;color:#666;margin-bottom:4px;">Booking #<span id="pm-ref"></span></div>
+      <div style="font-size:13px;color:#666;"><span id="pm-provider"></span> · <span id="pm-service"></span></div>
+      <div style="font-size:22px;font-weight:800;color:#C9A84C;margin-top:8px;" id="pm-total"></div>
+    </div>
+    <!-- MoMo option -->
+    <div style="background:#FFF8E6;border:1.5px solid #C9A84C;border-radius:16px;padding:20px;margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:12px;">📱 Mobile Money</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div style="background:#f5f5f5;border:1px solid #ddd;border-radius:10px;padding:11px 14px;font-size:13px;color:#555;white-space:nowrap;">🇬🇭 +233</div>
+        <input type="tel" id="pm-momo-num" class="input" placeholder="24 000 0000" style="flex:1;font-size:14px;"/>
+      </div>
+      <div style="font-size:11px;color:#888;margin-top:8px;">MTN MoMo · Vodafone Cash · AirtelTigo Money</div>
+      <button id="pm-momo-btn" onclick="payWithMomo()" style="width:100%;margin-top:14px;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;">Send MoMo Prompt</button>
+    </div>
+    <!-- Cash option -->
+    <button onclick="payWithCash()" style="width:100%;background:#f5f5f5;border:1.5px solid #ddd;border-radius:16px;padding:16px;font-size:14px;font-weight:600;cursor:pointer;color:#333;">
+      💵 Pay Cash On Arrival
+    </button>
+    <button onclick="closePaymentModal()" style="width:100%;margin-top:10px;background:none;border:none;color:#999;font-size:12px;cursor:pointer;padding:8px;">Cancel</button>
+  </div>
+</div>
+
+<!-- ══ RECEIPT MODAL ══ -->
+<div id="receipt-modal" style="display:none;position:fixed;inset:0;background:rgba(26,18,9,0.6);backdrop-filter:blur(12px);z-index:9001;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:24px;padding:0;max-width:400px;width:100%;box-shadow:0 32px 80px rgba(0,0,0,0.25);overflow:hidden;">
+    <!-- Receipt header -->
+    <div style="background:linear-gradient(135deg,#C9A84C,#8B6914);padding:28px;text-align:center;color:#fff;">
+      <div style="font-size:40px;margin-bottom:8px;">🧾</div>
+      <div style="font-size:18px;font-weight:800;letter-spacing:0.02em;">Booking Confirmed!</div>
+      <div style="font-size:12px;opacity:0.85;margin-top:4px;">SalonLink · Official Receipt</div>
+    </div>
+    <!-- Receipt body -->
+    <div style="padding:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0;">
+        <span style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.05em;">Reference</span>
+        <span style="font-size:13px;font-weight:700;" id="rc-ref"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0;">
+        <span style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.05em;">Provider</span>
+        <span style="font-size:13px;font-weight:600;" id="rc-provider"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0;">
+        <span style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.05em;">Service</span>
+        <span style="font-size:13px;font-weight:600;" id="rc-service"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0;">
+        <span style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.05em;">Date</span>
+        <span style="font-size:13px;font-weight:600;" id="rc-date"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0;">
+        <span style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.05em;">Time</span>
+        <span style="font-size:13px;font-weight:600;" id="rc-time"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f0f0;">
+        <span style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.05em;">Payment</span>
+        <span style="font-size:13px;font-weight:600;" id="rc-method"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:2px solid #C9A84C;margin-bottom:12px;">
+        <span style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Total Paid</span>
+        <span style="font-size:18px;font-weight:800;color:#C9A84C;" id="rc-total"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <span style="font-size:11px;color:#aaa;" id="rc-issued"></span>
+        <span style="font-size:12px;font-weight:700;" id="rc-status"></span>
+      </div>
+      <button onclick="goToDashboard()" style="width:100%;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;border:none;border-radius:14px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;">Go to My Dashboard</button>
+    </div>
+  </div>
+</div>
+
 ${mobileNav('')}
 ${globalScripts()}
 
 <script>
 var currentStep = 1;
-var selectedService = {name:'Natural Twist', price:'GHS 80', dur:'90 min'};
+var selectedService = null;
 var selectedDate = null;
-var selectedTime = '9:00 AM';
+var selectedTime = null;
 var payWhen = 'now';
+var _selectedDateDisplay = '';
+window._providerId = window.location.pathname.split('/').pop().split('?')[0];
 
 // ── Calendar
 var calYear = 2026, calMonth = 3; // April = 3 (0-indexed)
@@ -394,8 +471,13 @@ function nextMonth() { calMonth++; if(calMonth>11){calMonth=0;calYear++;} render
 function selectDay(el, day) {
   document.querySelectorAll('.cal-day.selected').forEach(e=>e.classList.remove('selected'));
   el.classList.add('selected');
-  selectedDate = day + ' ' + document.getElementById('cal-month-label').textContent;
-  document.getElementById('sum-date').textContent = selectedDate;
+  // Store as YYYY-MM-DD for API + display label
+  var isoDate = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  selectedDate = isoDate; // used for API
+  var displayDate = day + ' ' + months[calMonth] + ' ' + calYear;
+  document.getElementById('sum-date').textContent = displayDate;
+  _selectedDateDisplay = displayDate;
 }
 
 function selectTime(el, time) {
@@ -460,32 +542,111 @@ function goStep(n) {
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-async function confirmBooking() {
+var _bookingId = null;
+var _providerName = 'Provider';
+var _bookingRef = '';
+
+function confirmBooking() {
+  var token = getToken();
+  if (!token) { showToast('Please log in to book', 'error'); window.location.href = '/login'; return; }
+  if (!selectedService || !selectedService.id) { showToast('Please select a service', 'error'); return; }
+  if (!selectedTime) { showToast('Please select a time slot', 'error'); return; }
+
   var btn  = document.getElementById('confirm-btn');
   var txt  = document.getElementById('confirm-text');
   var load = document.getElementById('confirm-loader');
-  btn.disabled=true; txt.style.display='none'; load.style.display='inline-flex';
+  btn.disabled = true; txt.style.display = 'none'; load.style.display = 'inline-flex';
 
-  try {
-    var token = getToken();
-    var res = await axios.post('/api/bookings', {
-      providerId: parseInt(id),
-      service_id: selectedService ? selectedService.id : null,
-      booking_date: selectedDate || new Date().toISOString().split('T')[0],
-      booking_time: selectedTime,
-      notes: document.getElementById('b-notes')?.value || ''
-    }, { headers: { Authorization: 'Bearer ' + token } });
+  // selectedDate is stored as YYYY-MM-DD from selectDay()
+  var bookingDate = selectedDate || new Date().toISOString().split('T')[0];
 
-    showToast('Booking confirmed! ✦ Check your dashboard for details.', 'success');
-    if (payWhen === 'now' && res.data.booking_id) {
-      var token2 = localStorage.getItem('sl_token');
-      await axios.post('/api/payments/mock-success', { booking_id: res.data.booking_id }, { headers: { Authorization: 'Bearer ' + token2 } });
-    }
-    setTimeout(() => { window.location.href = '/dashboard'; }, 1500);
-  } catch(err) {
-    var msg = err.response?.data?.error || 'Booking failed. Please try again.';
+  axios.post('/api/bookings', {
+    provider_id: parseInt(window._providerId),
+    service_id: selectedService.id,
+    booking_date: bookingDate,
+    booking_time: selectedTime,
+    notes: document.getElementById('b-notes') ? document.getElementById('b-notes').value : ''
+  }, { headers: { Authorization: 'Bearer ' + token } })
+  .then(function(res) {
+    _bookingId = res.data.booking_id;
+    _bookingRef = 'SL-' + String(_bookingId).padStart(5,'0');
+    btn.disabled = false; txt.style.display = ''; load.style.display = 'none';
+    // Show payment choice modal
+    showPaymentModal();
+  })
+  .catch(function(err) {
+    var msg = (err.response && err.response.data && err.response.data.error) || 'Booking failed. Please try again.';
     showToast(msg, 'error');
+    btn.disabled = false; txt.style.display = ''; load.style.display = 'none';
+  });
+}
+
+function showPaymentModal() {
+  var svcName = selectedService ? selectedService.name : 'Service';
+  var totalGhs = selectedService ? Math.round(selectedService.pricePs / 100) + 3 : 3;
+  var modal = document.getElementById('payment-modal');
+  if (!modal) return;
+  document.getElementById('pm-service').textContent = svcName;
+  document.getElementById('pm-total').textContent = 'GHS ' + totalGhs;
+  document.getElementById('pm-provider').textContent = _providerName;
+  document.getElementById('pm-ref').textContent = _bookingRef;
+  modal.style.display = 'flex';
+}
+
+function closePaymentModal() {
+  var modal = document.getElementById('payment-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function payWithMomo() {
+  var num = document.getElementById('pm-momo-num').value.trim();
+  if (!num || num.replace(/\D/g,'').length < 9) {
+    showToast('Please enter a valid MoMo number', 'error'); return;
   }
+  var btn = document.getElementById('pm-momo-btn');
+  btn.disabled = true; btn.textContent = 'Processing...';
+  // Simulate MoMo prompt (real integration would call Paystack/Hubtel here)
+  setTimeout(function() {
+    closePaymentModal();
+    showReceipt('momo', '+233 ' + num);
+  }, 1800);
+}
+
+function payWithCash() {
+  closePaymentModal();
+  showReceipt('cash', '');
+}
+
+function showReceipt(method, momoNum) {
+  var token = getToken();
+  // Mark payment recorded
+  if (token && _bookingId && method === 'momo') {
+    axios.post('/api/payments/mock-success', { booking_id: _bookingId }, { headers: { Authorization: 'Bearer ' + token } }).catch(function(){});
+  }
+
+  var svcName = selectedService ? selectedService.name : 'Service';
+  var totalGhs = selectedService ? Math.round(selectedService.pricePs / 100) + 3 : 3;
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('en-GH', { day:'numeric', month:'long', year:'numeric' });
+  var timeStr = now.toLocaleTimeString('en-GH', { hour:'2-digit', minute:'2-digit' });
+
+  var receipt = document.getElementById('receipt-modal');
+  document.getElementById('rc-ref').textContent = _bookingRef;
+  document.getElementById('rc-provider').textContent = _providerName;
+  document.getElementById('rc-service').textContent = svcName;
+  document.getElementById('rc-date').textContent = _selectedDateDisplay || dateStr;
+  document.getElementById('rc-time').textContent = selectedTime;
+  document.getElementById('rc-total').textContent = 'GHS ' + totalGhs;
+  document.getElementById('rc-method').textContent = method === 'momo' ? '📱 MoMo (' + momoNum + ')' : '💵 Cash on arrival';
+  document.getElementById('rc-issued').textContent = dateStr + ' at ' + timeStr;
+  document.getElementById('rc-status').textContent = method === 'momo' ? 'PAID' : 'PENDING (Cash)';
+  document.getElementById('rc-status').style.color = method === 'momo' ? '#00C853' : '#C9A84C';
+
+  receipt.style.display = 'flex';
+}
+
+function goToDashboard() {
+  window.location.href = '/dashboard';
 }
 
 // Select a dynamically loaded service (price in pesewas from API)
@@ -514,9 +675,16 @@ function selectSvc(el) {
     var p = res.data.provider;
     var services = res.data.services || [];
     if (!p) return;
-    // Update provider name in header
+    // Store provider name globally for receipt
+    _providerName = p.business_name || 'Provider';
+    // Update provider name in header and summary
     var nameEl = document.querySelector('.font-display[style*="32px"]');
     if (nameEl) nameEl.textContent = p.business_name;
+    // Update summary sidebar provider name
+    var sumProvEl = document.getElementById('sum-provider-name');
+    if (sumProvEl) sumProvEl.textContent = p.business_name || 'Provider';
+    var sumLocEl = document.getElementById('sum-provider-loc');
+    if (sumLocEl) sumLocEl.textContent = p.city || 'Accra';
     // Update services list
     var svcContainer = document.getElementById('services-select');
     if (svcContainer && services.length) {
