@@ -128,18 +128,26 @@ ${baseHead('Admin Panel', `
       <div id="admin-overview" class="admin-section active">
         <!-- KPIs -->
         <div class="admin-kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;">
-          ${[
-            {val:'12,480',label:'Total Users',     sub:'↑ 23% this month',  accent:'var(--g-main)'},
-            {val:'2,406', label:'Active Providers',sub:'↑ 18% verified',    accent:'var(--s-green)'},
-            {val:'48,290',label:'Total Bookings',  sub:'↑ 31% this quarter',accent:'var(--s-blue)'},
-            {val:'GHS 2.4M',label:'Gross Revenue', sub:'↑ 44% YTD',        accent:'var(--g-deep)'},
-          ].map(k=>`
-            <div class="kpi" style="--accent:${k.accent}">
-              <div class="font-display gold-gradient" style="font-size:28px;margin-bottom:4px;">${k.val}</div>
-              <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-faint);margin-bottom:6px;">${k.label}</div>
-              <div style="font-size:11px;color:var(--s-green);">${k.sub}</div>
-            </div>
-          `).join('')}
+          <div class="kpi" style="--accent:var(--g-main)">
+            <div class="font-display gold-gradient" style="font-size:28px;margin-bottom:4px;" id="kpi-users">—</div>
+            <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-faint);margin-bottom:6px;">Total Users</div>
+            <div style="font-size:11px;color:var(--t-muted);" id="kpi-users-sub">Loading...</div>
+          </div>
+          <div class="kpi" style="--accent:var(--s-green)">
+            <div class="font-display gold-gradient" style="font-size:28px;margin-bottom:4px;" id="kpi-providers">—</div>
+            <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-faint);margin-bottom:6px;">Active Providers</div>
+            <div style="font-size:11px;color:var(--t-muted);" id="kpi-providers-sub">Loading...</div>
+          </div>
+          <div class="kpi" style="--accent:var(--s-blue)">
+            <div class="font-display gold-gradient" style="font-size:28px;margin-bottom:4px;" id="kpi-bookings">—</div>
+            <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-faint);margin-bottom:6px;">Total Bookings</div>
+            <div style="font-size:11px;color:var(--t-muted);" id="kpi-bookings-sub">Loading...</div>
+          </div>
+          <div class="kpi" style="--accent:var(--g-deep)">
+            <div class="font-display gold-gradient" style="font-size:28px;margin-bottom:4px;" id="kpi-revenue">—</div>
+            <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-faint);margin-bottom:6px;">Gross Revenue</div>
+            <div style="font-size:11px;color:var(--t-muted);" id="kpi-revenue-sub">Loading...</div>
+          </div>
         </div>
 
         <!-- Charts -->
@@ -148,8 +156,8 @@ ${baseHead('Admin Panel', `
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
               <div>
                 <div class="eyebrow" style="margin-bottom:6px;">Platform Revenue</div>
-                <div class="font-display gold-gradient" style="font-size:24px;">GHS 2.4M</div>
-                <div style="font-size:11px;color:var(--s-green);">▲ 44% year to date</div>
+                <div class="font-display gold-gradient" style="font-size:24px;" id="chart-revenue-label">GHS 0</div>
+                <div style="font-size:11px;color:var(--t-muted);" id="chart-revenue-sub">Year to date</div>
               </div>
             </div>
             <canvas id="admin-revenue" height="120"></canvas>
@@ -178,10 +186,10 @@ ${baseHead('Admin Panel', `
           <div class="eyebrow" style="margin-bottom:20px;">Quick Actions</div>
           <div class="admin-actions-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
             ${[
-              {icon:'🔍',label:'Review KYC Queue',sub:'3 pending',action:'kyc'},
-              {icon:'⚠️',label:'Fraud Alerts',    sub:'2 flagged', action:'security'},
-              {icon:'📊',label:'Download Reports',sub:'CSV / PDF',  action:'reports'},
-              {icon:'📢',label:'Send Broadcast',  sub:'Push to all',action:'overview'},
+              {icon:'🔍',label:'Review KYC Queue',sub:'Check queue',  action:'kyc'},
+              {icon:'⚠️',label:'Fraud Alerts',    sub:'Security log', action:'security'},
+              {icon:'📊',label:'View Reports',    sub:'Analytics',    action:'reports'},
+              {icon:'👥',label:'Manage Users',    sub:'All accounts', action:'users'},
             ].map(a=>`
               <button onclick="adminSection('${a.action}',document.getElementById('admin-nav-${a.action}'))" style="padding:20px;border-radius:var(--r-lg);background:var(--c-raise);border:1px solid var(--i-faint);text-align:left;cursor:pointer;transition:all 0.3s;width:100%;" onmouseover="this.style.borderColor='var(--g-border)'" onmouseout="this.style.borderColor='var(--i-faint)'">
                 <div style="font-size:24px;margin-bottom:10px;">${a.icon}</div>
@@ -403,7 +411,7 @@ document.addEventListener('DOMContentLoaded', function() {
       data: {
         labels: ['Oct','Nov','Dec','Jan','Feb','Mar','Apr'],
         datasets: [{
-          data: [280000,320000,480000,390000,520000,610000,740000],
+          data: [0,0,0,0,0,0,0],
           backgroundColor: 'rgba(201,168,76,0.25)',
           borderColor: '#C9A84C',
           borderWidth: 2,
@@ -448,13 +456,23 @@ document.addEventListener('DOMContentLoaded', function() {
   // Load stats
   axios.get('/api/admin/stats', { headers: h }).then(function(res) {
     var s = res.data.stats;
-    var kpis = document.querySelectorAll('.kpi');
-    var vals = [s.total_users, s.total_providers, s.total_bookings, 'GHS ' + Math.round(s.total_revenue/100), s.pending_kyc, s.today_bookings];
-    kpis.forEach(function(k, i) {
-      var v = k.querySelector('.font-display');
-      if (v && vals[i] !== undefined) v.textContent = vals[i];
+    var set = function(id, v) { var el = document.getElementById(id); if(el) el.textContent = v; };
+    set('kpi-users',     s.total_users || 0);
+    set('kpi-providers', s.total_providers || 0);
+    set('kpi-bookings',  s.total_bookings || 0);
+    var rev = 'GHS ' + Math.round((s.total_revenue||0)/100).toLocaleString();
+    set('kpi-revenue', rev);
+    set('chart-revenue-label', rev);
+    set('kpi-users-sub',    s.total_users > 0 ? 'registered accounts' : 'No users yet');
+    set('kpi-providers-sub',s.total_providers > 0 ? (s.total_providers + ' on platform') : 'No providers yet');
+    set('kpi-bookings-sub', s.total_bookings > 0 ? 'all time' : 'No bookings yet');
+    set('kpi-revenue-sub',  (s.total_revenue||0) > 0 ? 'total earned' : 'No revenue yet');
+    set('chart-revenue-sub',(s.total_revenue||0) > 0 ? 'total earned' : 'No revenue yet');
+  }).catch(function(){
+    ['kpi-users','kpi-providers','kpi-bookings','kpi-revenue'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.textContent = '—';
     });
-  }).catch(function(){});
+  });
 
   // Load users table
   axios.get('/api/admin/users', { headers: h }).then(function(res) {
