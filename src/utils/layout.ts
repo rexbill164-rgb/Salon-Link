@@ -70,7 +70,7 @@ export const baseHead = (title: string, extra = '') => `
       --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     }
 
-    html { scroll-behavior: smooth; font-size: 16px; }
+    html { scroll-behavior: smooth; font-size: 16px; overflow-x: hidden; }
 
     body {
       font-family: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -78,6 +78,8 @@ export const baseHead = (title: string, extra = '') => `
       color: var(--t-primary);
       min-height: 100vh;
       overflow-x: hidden;
+      width: 100%;
+      max-width: 100vw;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       font-size: 15px;
@@ -277,9 +279,10 @@ export const baseHead = (title: string, extra = '') => `
     .badge-error    { background: rgba(192,72,72,0.08); color: #B03030; border: 1px solid rgba(192,72,72,0.2); }
 
     /* ── LAYOUT HELPERS ── */
-    .container    { max-width: 1280px; margin: 0 auto; padding: 0 40px; }
-    .container-sm { max-width: 960px;  margin: 0 auto; padding: 0 32px; }
-    .container-xs { max-width: 680px;  margin: 0 auto; padding: 0 24px; }
+    * { max-width: 100vw; }
+    .container    { max-width: 1280px; margin: 0 auto; padding: 0 40px; width: 100%; }
+    .container-sm { max-width: 960px;  margin: 0 auto; padding: 0 32px; width: 100%; }
+    .container-xs { max-width: 680px;  margin: 0 auto; padding: 0 24px; width: 100%; }
     @media(max-width:768px) { .container,.container-sm,.container-xs { padding: 0 20px; } }
 
     /* ── GRID ── */
@@ -491,15 +494,12 @@ export const baseHead = (title: string, extra = '') => `
    NAVBAR  — white/gold light theme
 ───────────────────────────────────────────────────────────── */
 export const navbar = (active = '') => `
-<nav id="nav-main" style="position:fixed;top:0;left:0;right:0;z-index:800;background:rgba(255,255,255,0.96);border-bottom:1px solid var(--i-faint);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:all 0.4s ease;box-shadow:0 2px 20px rgba(58,47,30,0.06);">
-  <div style="padding:0 40px;height:70px;display:flex;align-items:center;justify-content:space-between;max-width:1440px;margin:0 auto;">
+<nav id="nav-main" style="position:fixed;top:0;left:0;right:0;z-index:800;background:rgba(255,255,255,0.96);border-bottom:1px solid var(--i-faint);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);transition:all 0.4s ease;box-shadow:0 2px 20px rgba(58,47,30,0.06);width:100%;max-width:100vw;overflow-x:hidden;">
+  <div style="padding:0 20px;height:70px;display:flex;align-items:center;justify-content:space-between;max-width:1440px;margin:0 auto;width:100%;">
 
     <!-- Logo -->
-    <a href="/" style="display:flex;align-items:center;gap:13px;text-decoration:none;flex-shrink:0;">
-      <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--g-deep),var(--g-main));display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(160,120,48,0.3);transition:transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#FFFFFF"/></svg>
-      </div>
-      <img src="/salonlink-logo.png" alt="SalonLink" style="height:32px;"/>
+    <a href="/" style="display:flex;align-items:center;text-decoration:none;flex-shrink:0;">
+      <img src="/salonlink-logo.png" alt="SalonLink" style="height:36px;"/>
     </a>
 
     <!-- Center links -->
