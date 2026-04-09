@@ -625,69 +625,111 @@ function toggleUser(id) {
     .catch(function() { showToast('Action failed', 'error'); });
 }
 
-// View full KYC documents in a modal (called from both Providers and KYC tabs)
+// Close the KYC modal
+function closeKycModal() {
+  var m = document.getElementById('kyc-modal-overlay');
+  if (m) m.remove();
+}
+
+// Add a clickable image row to the KYC modal content area using DOM (no innerHTML with quotes)
+function addKycImgSection(parent, label, src, isCircle) {
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'margin-bottom:20px;';
+  var lbl = document.createElement('div');
+  lbl.style.cssText = 'font-size:11px;color:#888;margin-bottom:8px;text-align:left;letter-spacing:0.05em;';
+  lbl.textContent = label;
+  wrap.appendChild(lbl);
+  var img = document.createElement('img');
+  img.src = src;
+  img.title = 'Click to enlarge';
+  if (isCircle) {
+    img.style.cssText = 'width:160px;height:160px;object-fit:cover;border-radius:50%;cursor:pointer;border:3px solid rgba(201,168,76,0.4);display:block;margin:0 auto;';
+  } else {
+    img.style.cssText = 'width:100%;max-height:240px;object-fit:contain;border-radius:12px;background:#111;cursor:pointer;border:1px solid rgba(255,255,255,0.08);';
+  }
+  img.addEventListener('click', function(){ viewImg(img.src, label); });
+  wrap.appendChild(img);
+  parent.appendChild(wrap);
+}
+
+// View full KYC documents in a modal — built entirely with DOM, zero innerHTML with quotes
 function viewProviderKyc(providerId) {
   var token = localStorage.getItem('sl_token');
-  // Create modal overlay
+  closeKycModal(); // remove any existing modal
+
+  // Overlay
   var overlay = document.createElement('div');
   overlay.id = 'kyc-modal-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;';
-  overlay.innerHTML = '<div style="background:#1a1a2e;border-radius:20px;padding:28px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;position:relative;">' +
-    '<button onclick="document.getElementById(\'kyc-modal-overlay\').remove()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.1);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;">✕</button>' +
-    '<div style="font-size:16px;font-weight:700;color:#c9a84c;margin-bottom:20px;">\uD83E\uDEAA KYC Documents</div>' +
-    '<div id="kyc-modal-content" style="text-align:center;color:#888;padding:20px;">Loading documents...</div>' +
-  '</div>';
-  document.body.appendChild(overlay);
-  // Close on backdrop click
   overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
 
+  // Card
+  var card = document.createElement('div');
+  card.style.cssText = 'background:#1a1a2e;border-radius:20px;padding:28px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;position:relative;';
+
+  // Close button — uses named function, no inline quote issues
+  var closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = 'position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.1);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;';
+  closeBtn.addEventListener('click', closeKycModal);
+  card.appendChild(closeBtn);
+
+  // Title
+  var title = document.createElement('div');
+  title.style.cssText = 'font-size:16px;font-weight:700;color:#c9a84c;margin-bottom:20px;';
+  title.textContent = '🪪 KYC Documents';
+  card.appendChild(title);
+
+  // Content area
+  var content = document.createElement('div');
+  content.id = 'kyc-modal-content';
+  content.style.cssText = 'text-align:center;color:#888;padding:20px;';
+  content.textContent = 'Loading documents...';
+  card.appendChild(content);
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+
+  // Fetch images
   axios.get('/api/admin/providers/' + providerId + '/kyc-images', { headers: { Authorization: 'Bearer ' + token } })
     .then(function(r) {
       var imgs = r.data.images || {};
+      var ct = document.getElementById('kyc-modal-content');
+      if (!ct) return;
+      ct.innerHTML = '';
+      ct.style.textAlign = 'left';
+      ct.style.padding = '0';
+
       var hasAny = imgs.kyc_front_url || imgs.kyc_back_url || imgs.kyc_selfie_url;
-      var content = document.getElementById('kyc-modal-content');
-      if (!content) return;
-      if (!hasAny) {
-        content.innerHTML = '<div style="padding:32px;color:#888;font-size:14px;">\uD83D\uDCCB No documents uploaded yet by this provider.</div>';
+      if (!hasAny && !imgs.kyc_card_number) {
+        ct.style.textAlign = 'center'; ct.style.padding = '32px';
+        ct.textContent = '📋 No documents uploaded yet by this provider.';
         return;
       }
-      var sections = '';
       if (imgs.kyc_card_number) {
-        sections += '<div style="margin-bottom:20px;padding:12px 16px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-radius:12px;text-align:left;">' +
-          '<div style="font-size:11px;color:#888;margin-bottom:4px;">GHANA CARD NUMBER</div>' +
-          '<div style="font-size:15px;font-weight:700;color:#c9a84c;letter-spacing:0.05em;">' + imgs.kyc_card_number + '</div>' +
-        '</div>';
+        var cardBox = document.createElement('div');
+        cardBox.style.cssText = 'margin-bottom:20px;padding:12px 16px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-radius:12px;';
+        var cardLbl = document.createElement('div');
+        cardLbl.style.cssText = 'font-size:11px;color:#888;margin-bottom:4px;';
+        cardLbl.textContent = 'GHANA CARD NUMBER';
+        var cardVal = document.createElement('div');
+        cardVal.style.cssText = 'font-size:15px;font-weight:700;color:#c9a84c;letter-spacing:0.05em;';
+        cardVal.textContent = imgs.kyc_card_number;
+        cardBox.appendChild(cardLbl); cardBox.appendChild(cardVal);
+        ct.appendChild(cardBox);
       }
-      if (imgs.kyc_front_url) {
-        sections += '<div style="margin-bottom:20px;">' +
-          '<div style="font-size:11px;color:#888;margin-bottom:8px;text-align:left;">GHANA CARD — FRONT</div>' +
-          '<img src="' + imgs.kyc_front_url + '" style="width:100%;max-height:240px;object-fit:contain;border-radius:12px;background:#000;cursor:pointer;border:1px solid rgba(255,255,255,0.08);" onclick="viewImg(this.src,\'Ghana Card Front\')" title="Click to enlarge"/>' +
-        '</div>';
-      }
-      if (imgs.kyc_back_url) {
-        sections += '<div style="margin-bottom:20px;">' +
-          '<div style="font-size:11px;color:#888;margin-bottom:8px;text-align:left;">GHANA CARD — BACK</div>' +
-          '<img src="' + imgs.kyc_back_url + '" style="width:100%;max-height:240px;object-fit:contain;border-radius:12px;background:#000;cursor:pointer;border:1px solid rgba(255,255,255,0.08);" onclick="viewImg(this.src,\'Ghana Card Back\')" title="Click to enlarge"/>' +
-        '</div>';
-      }
-      if (imgs.kyc_selfie_url) {
-        sections += '<div style="margin-bottom:20px;">' +
-          '<div style="font-size:11px;color:#888;margin-bottom:8px;text-align:left;">LIVE SELFIE</div>' +
-          '<img src="' + imgs.kyc_selfie_url + '" style="width:160px;height:160px;object-fit:cover;border-radius:50%;cursor:pointer;border:3px solid rgba(201,168,76,0.4);" onclick="viewImg(this.src,\'Selfie\')" title="Click to enlarge"/>' +
-        '</div>';
-      }
-      content.innerHTML = sections;
+      if (imgs.kyc_front_url)  addKycImgSection(ct, 'GHANA CARD — FRONT', imgs.kyc_front_url, false);
+      if (imgs.kyc_back_url)   addKycImgSection(ct, 'GHANA CARD — BACK',  imgs.kyc_back_url,  false);
+      if (imgs.kyc_selfie_url) addKycImgSection(ct, 'LIVE SELFIE',         imgs.kyc_selfie_url, true);
     })
     .catch(function(e) {
-      var content = document.getElementById('kyc-modal-content');
-      if (content) content.innerHTML = '<div style="color:var(--s-red);padding:20px;">Failed to load documents. ' + (e.response && e.response.status === 403 ? 'Session expired.' : '') + '</div>';
+      var ct = document.getElementById('kyc-modal-content');
+      if (ct) { ct.style.color='var(--s-red)'; ct.textContent = 'Failed to load documents.' + (e.response && e.response.status===403 ? ' Session expired.' : ''); }
     });
 }
 
-// Legacy: Load KYC images inline (kept for backwards compat)
-function loadKycImages(providerId) {
-  viewProviderKyc(providerId);
-}
+// Legacy alias
+function loadKycImages(providerId) { viewProviderKyc(providerId); }
 
 // View KYC image in lightbox
 function viewImgBtn(el) {

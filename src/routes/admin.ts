@@ -78,7 +78,7 @@ admin.get('/providers', async (c) => {
     let query = `
       SELECT p.id, p.user_id, p.business_name, p.service_category, p.city, p.address,
         p.bio, p.rating, p.total_reviews, p.total_bookings, p.is_verified, p.is_accepting_bookings,
-        p.kyc_status, p.kyc_card_number, p.momo_number, p.momo_name,
+        p.kyc_status, p.kyc_card_number,
         p.gallery_count, p.created_at, p.updated_at,
         u.email, u.first_name, u.last_name, u.phone
       FROM providers p JOIN users u ON p.user_id = u.id WHERE 1=1
