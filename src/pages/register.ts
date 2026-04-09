@@ -234,16 +234,32 @@ async function handleRegister(e) {
   var load = document.getElementById('reg-loader');
   btn.disabled=true; txt.style.display='none'; load.style.display='inline-flex';
   var role = document.getElementById('role').value;
+  var firstName = document.getElementById('firstName').value.trim();
+  var lastName  = document.getElementById('lastName').value.trim();
+  var email     = document.getElementById('email').value.trim();
+  var phone     = document.getElementById('phone').value.replace(/\s/g,'');
+  var password  = document.getElementById('password').value;
+
+  if(!firstName || !lastName) { showToast('Please enter your first and last name', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
+  if(!email)    { showToast('Please enter your email address', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
+  if(!phone)    { showToast('Please enter your phone number', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
+  if(password.length < 8) { showToast('Password must be at least 8 characters', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
+
   var payload = {
-    name: document.getElementById('firstName').value.trim() + ' ' + document.getElementById('lastName').value.trim(),
-    email: document.getElementById('email').value,
-    phone: '+233' + document.getElementById('phone').value.replace(/\s/g,''),
-    password: document.getElementById('password').value,
-    role: role
+    first_name: firstName,
+    last_name:  lastName,
+    email:      email,
+    phone:      '+233' + phone,
+    password:   password,
+    role:       role
   };
   if(role==='provider'){
-    payload.businessName = document.getElementById('bizName').value;
-    payload.serviceType  = document.getElementById('serviceType').value;
+    var bizName = document.getElementById('bizName') ? document.getElementById('bizName').value.trim() : '';
+    var svcType = document.getElementById('serviceType') ? document.getElementById('serviceType').value : '';
+    if(!bizName) { showToast('Please enter your business name', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
+    if(!svcType) { showToast('Please select your service category', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
+    payload.business_name    = bizName;
+    payload.service_category = svcType;
   }
   try {
     var res = await axios.post('/api/auth/register', payload);

@@ -122,29 +122,7 @@ ${baseHead('Sign In', `
           </div>
         </div>
 
-        <!-- Demo accounts -->
-        <div style="background:var(--c-raise);border:1px solid var(--i-faint);border-radius:14px;padding:16px;margin-bottom:24px;">
-          <div class="eyebrow" style="margin-bottom:12px;"><i class="fas fa-bolt" style="margin-right:6px;"></i>Quick Demo Access</div>
-          <div style="display:flex;flex-direction:column;gap:7px;">
-            ${[
-              {role:'Customer', email:'ama@example.com',       color:'#1E8050', icon:'fas fa-user',       bg:'rgba(46,158,94,0.08)'},
-              {role:'Provider', email:'glam@example.com',      color:'var(--g-deep)', icon:'fas fa-cut',  bg:'var(--g-dim)'},
-              {role:'Admin',    email:'admin@salonlink.com',   color:'#3A72C0', icon:'fas fa-shield-alt', bg:'rgba(58,114,192,0.08)'},
-            ].map(d=>`
-              <button type="button" onclick="fillDemo('${d.email}')" class="demo-chip">
-                <div style="width:30px;height:30px;border-radius:9px;background:${d.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                  <i class="${d.icon}" style="color:${d.color};font-size:12px;"></i>
-                </div>
-                <div style="flex:1;">
-                  <div style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:${d.color};">${d.role}</div>
-                  <div style="font-size:12px;color:var(--t-muted);">${d.email}</div>
-                </div>
-                <i class="fas fa-arrow-right" style="color:var(--t-faint);font-size:10px;"></i>
-              </button>
-            `).join('')}
-          </div>
-          <div style="font-size:11px;color:var(--t-faint);margin-top:10px;text-align:center;">Password: <span style="color:var(--t-secondary);font-weight:600;">Demo@123</span></div>
-        </div>
+
 
         <button type="submit" id="login-btn" class="btn-primary" style="width:100%;justify-content:center;padding:16px;font-size:13px;">
           <span id="login-text"><i class="fas fa-sign-in-alt" style="margin-right:8px;font-size:12px;"></i>Sign In</span>
@@ -166,7 +144,7 @@ ${baseHead('Sign In', `
         <button onclick="showToast('OTP sent to your number','success')" class="btn-primary" style="width:100%;justify-content:center;padding:16px;font-size:13px;">
           <i class="fas fa-paper-plane" style="font-size:12px;"></i> Send OTP Code
         </button>
-        <p style="font-size:12px;color:var(--t-faint);text-align:center;margin-top:16px;">Demo: Use Email tab for full demo access</p>
+
       </div>
 
     </div>
@@ -192,12 +170,6 @@ function togglePwd() {
     inp.type = 'password';
     icon.className = 'fas fa-eye';
   }
-}
-
-function fillDemo(email) {
-  document.getElementById('email').value = email;
-  document.getElementById('password').value = 'Demo@123';
-  showToast('Demo credentials filled ✦', 'info');
 }
 
 async function handleLogin(e) {
