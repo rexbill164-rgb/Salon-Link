@@ -198,7 +198,7 @@ providers.put('/me', async (c) => {
     const {
       bio, address, city, price_from, price_to, is_accepting_bookings, business_name, phone,
       kyc_status, kyc_card_number, kyc_front_url, kyc_back_url, kyc_selfie_url,
-      location_lat, location_lng
+      location_lat, location_lng, cover_url, logo_url
     } = body
 
     await c.env.DB.prepare(`
@@ -217,6 +217,8 @@ providers.put('/me', async (c) => {
         kyc_selfie_url = COALESCE(?, kyc_selfie_url),
         location_lat = COALESCE(?, location_lat),
         location_lng = COALESCE(?, location_lng),
+        cover_url = COALESCE(?, cover_url),
+        logo_url = COALESCE(?, logo_url),
         updated_at = CURRENT_TIMESTAMP
       WHERE user_id = ?
     `).bind(
@@ -227,6 +229,7 @@ providers.put('/me', async (c) => {
       kyc_front_url||null, kyc_back_url||null, kyc_selfie_url||null,
       location_lat !== undefined ? location_lat : null,
       location_lng !== undefined ? location_lng : null,
+      cover_url||null, logo_url||null,
       user.sub
     ).run()
 

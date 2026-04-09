@@ -291,6 +291,14 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
             <button onclick="upgradeGallery()" style="background:linear-gradient(135deg,#833ab4,#c144b2);color:white;border:none;padding:8px 18px;border-radius:100px;font-size:11px;font-weight:700;cursor:pointer;">Upgrade</button>
           </div>
 
+          <!-- Cover image -->
+          <div style="margin-bottom:20px;">
+            <div style="font-size:11px;font-weight:700;color:var(--t-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em;">Cover / Background Photo <span style="font-weight:400;font-size:9px;">(shown on your public profile)</span></div>
+            <div id="cover-preview" onclick="triggerCoverUpload()" style="width:100%;height:120px;border-radius:14px;background:linear-gradient(135deg,var(--g-dim),rgba(131,58,180,0.08));border:2px dashed var(--i-faint);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;">
+              <div style="text-align:center;color:var(--t-muted);z-index:1;"><div style="font-size:28px;">🖼️</div><div style="font-size:10px;margin-top:4px;font-weight:600;">Add Cover Photo</div><div style="font-size:9px;">Appears on your profile page</div></div>
+            </div>
+          </div>
+
           <!-- Logo preview -->
           <div style="margin-bottom:20px;">
             <div style="font-size:11px;font-weight:700;color:var(--t-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em;">Business Logo</div>
@@ -308,6 +316,7 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
           <!-- Hidden inputs -->
           <input type="file" id="gallery-file-input" accept="image/*" style="display:none;" onchange="uploadGalleryImage(this)"/>
           <input type="file" id="logo-file-input" accept="image/*" style="display:none;" onchange="uploadLogoImage(this)"/>
+          <input type="file" id="cover-file-input" accept="image/*" style="display:none;" onchange="uploadCoverImage(this)"/>
         </div>
       </div>
 
@@ -477,6 +486,22 @@ function viewPublicProfile() {
       } else {
         var gcl = document.getElementById('gallery-count-label');
         if(gcl) gcl.textContent = 'Free plan: '+(p.gallery_count||0)+'/5 images';
+      }
+
+      // Load existing logo
+      if (p.logo_url) {
+        var lp = document.getElementById('logo-preview');
+        if (lp) lp.innerHTML = '<img src="'+p.logo_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>';
+      }
+      // Load existing cover
+      if (p.cover_url) {
+        var cp = document.getElementById('cover-preview');
+        if (cp) {
+          cp.style.backgroundImage = 'url('+p.cover_url+')';
+          cp.style.backgroundSize = 'cover';
+          cp.style.backgroundPosition = 'center';
+          cp.innerHTML = '<div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.5);color:white;font-size:9px;padding:4px 8px;border-radius:100px;font-weight:600;">Change Cover</div>';
+        }
       }
 
       // KPIs
@@ -654,30 +679,61 @@ function loadMyServices(token) {
 /* ── Gallery ── */
 function triggerGalleryUpload() { document.getElementById('gallery-file-input').click(); }
 function triggerLogoUpload() { document.getElementById('logo-file-input').click(); }
+function triggerCoverUpload() { document.getElementById('cover-file-input').click(); }
+
+function fileToBase64(file, cb) {
+  var reader = new FileReader();
+  reader.onload = function(e) { cb(e.target.result); };
+  reader.readAsDataURL(file);
+}
 
 function uploadGalleryImage(input) {
   if (!input.files||!input.files[0]) return;
   var token = localStorage.getItem('sl_token');
-  var fd = new FormData(); fd.append('file', input.files[0]); fd.append('type','gallery');
+  var file = input.files[0];
+  if (file.size > 10*1024*1024) { showToast('Image too large (max 10MB)', 'error'); input.value=''; return; }
   showToast('Uploading photo...', 'info');
-  axios.post('/api/uploads/provider-gallery', fd, { headers:{ Authorization:'Bearer '+token, 'Content-Type':'multipart/form-data' } })
-    .then(function(){ showToast('Photo added! ✦', 'success'); loadGallery(token); })
-    .catch(function(e){ showToast(e.response?e.response.data.error:'Upload failed', 'error'); });
+  fileToBase64(file, function(b64) {
+    axios.post('/api/uploads/provider-gallery', { image_url: b64, caption: '' }, { headers:{ Authorization:'Bearer '+token } })
+      .then(function(){ showToast('Photo added! ✦', 'success'); loadGallery(token); })
+      .catch(function(e){ showToast(e.response?e.response.data.error:'Upload failed', 'error'); });
+  });
   input.value='';
 }
 
 function uploadLogoImage(input) {
   if (!input.files||!input.files[0]) return;
   var token = localStorage.getItem('sl_token');
-  var fd = new FormData(); fd.append('file', input.files[0]); fd.append('type','logo');
+  var file = input.files[0];
+  if (file.size > 10*1024*1024) { showToast('Logo too large (max 10MB)', 'error'); input.value=''; return; }
   showToast('Uploading logo...', 'info');
-  axios.post('/api/uploads/provider-logo', fd, { headers:{ Authorization:'Bearer '+token, 'Content-Type':'multipart/form-data' } })
-    .then(function(r){
-      showToast('Logo updated! ✦', 'success');
-      var lp = document.getElementById('logo-preview');
-      if (lp && r.data.url) lp.innerHTML='<img src="'+r.data.url+'" style="width:100%;height:100%;object-fit:cover;"/>';
-    })
-    .catch(function(e){ showToast(e.response?e.response.data.error:'Upload failed', 'error'); });
+  fileToBase64(file, function(b64) {
+    axios.post('/api/uploads/provider-logo', { image_url: b64 }, { headers:{ Authorization:'Bearer '+token } })
+      .then(function(r){
+        showToast('Logo updated! ✦', 'success');
+        var lp = document.getElementById('logo-preview');
+        if (lp && r.data.url) lp.innerHTML='<img src="'+r.data.url+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>';
+      })
+      .catch(function(e){ showToast(e.response?e.response.data.error:'Upload failed', 'error'); });
+  });
+  input.value='';
+}
+
+function uploadCoverImage(input) {
+  if (!input.files||!input.files[0]) return;
+  var token = localStorage.getItem('sl_token');
+  var file = input.files[0];
+  if (file.size > 10*1024*1024) { showToast('Image too large (max 10MB)', 'error'); input.value=''; return; }
+  showToast('Uploading cover...', 'info');
+  fileToBase64(file, function(b64) {
+    axios.put('/api/providers/me', { cover_url: b64 }, { headers:{ Authorization:'Bearer '+token } })
+      .then(function(){
+        showToast('Cover photo updated! ✦', 'success');
+        var cp = document.getElementById('cover-preview');
+        if (cp) { cp.style.backgroundImage='url('+b64+')'; cp.style.backgroundSize='cover'; cp.style.backgroundPosition='center'; }
+      })
+      .catch(function(e){ showToast(e.response?e.response.data.error:'Upload failed', 'error'); });
+  });
   input.value='';
 }
 
