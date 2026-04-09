@@ -358,8 +358,8 @@ function loadMore() { showToast('All providers loaded', 'info'); document.getEle
 function buildProviderCard(p) {
   var catLabel = (p.service_category || '').replace(/_/g, ' ').replace(/\b\w/g, function(l){ return l.toUpperCase(); });
   var priceFrom = p.price_from ? 'GHS ' + Math.round(p.price_from/100) : 'GHS 40';
-  // Use logo if available, else use category image
-  var img = p.logo_url || getProviderImage(p.service_category, p.id);
+  // Use cover (background) first, then logo, then category placeholder
+  var img = p.cover_url || p.logo_url || getProviderImage(p.service_category, p.id);
   var stars = Math.round(parseFloat(p.rating) || 4);
   // Provider is bookable if they accept bookings (verification is optional for booking)
   var isAccepting = !!p.is_accepting_bookings;
