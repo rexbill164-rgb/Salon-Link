@@ -499,7 +499,7 @@ export const navbar = (active = '') => `
       <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--g-deep),var(--g-main));display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(160,120,48,0.3);transition:transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="#FFFFFF"/></svg>
       </div>
-      <span style="font-family:'Playfair Display',serif;font-size:19px;font-weight:600;letter-spacing:0.08em;color:var(--t-primary);line-height:1;">SALONLINK</span>
+      <img src="/salonlink-logo.png" alt="SalonLink" style="height:32px;"/>
     </a>
 
     <!-- Center links -->
