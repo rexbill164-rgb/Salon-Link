@@ -576,59 +576,86 @@ function addService() {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // SUBMIT ONBOARDING
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-async function submitOnboarding() {
+function submitOnboarding() {
   var token = localStorage.getItem('sl_token');
   if (!token) { window.location.href = '/login'; return; }
 
   var entries = document.querySelectorAll('.service-entry');
   if (entries.length === 0) { showToast('Please add at least one service', 'error'); return; }
 
-  var btn = event && event.target ? event.target : document.querySelector('#ob-step3 .btn-primary');
+  // Validate at least one service has a name and price
+  var hasValidService = false;
+  Array.from(entries).forEach(function(e) {
+    var nameEl  = e.querySelector('.svc-name');
+    var priceEl = e.querySelector('.svc-price');
+    if (nameEl && nameEl.value.trim() && priceEl && parseInt(priceEl.value) > 0) {
+      hasValidService = true;
+    }
+  });
+  if (!hasValidService) {
+    showToast('Please fill in at least one service with a name and price', 'error');
+    return;
+  }
+
+  var btn = document.querySelector('#ob-step3 .btn-primary');
   if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
 
-  try {
-    showToast('Saving your profile...', 'info');
+  showToast('Saving your profile...', 'info');
 
-    // Save profile + KYC data (KYC fields only sent if they were filled in)
-    var kycPayload = {};
-    var cardNum = document.getElementById('card-num') && document.getElementById('card-num').value.trim();
-    if (cardNum) kycPayload.kyc_card_number = cardNum;
-    if (kycData.front)  kycPayload.kyc_front_url  = kycData.front;
-    if (kycData.back)   kycPayload.kyc_back_url   = kycData.back;
-    if (kycData.selfie) kycPayload.kyc_selfie_url = kycData.selfie;
-    if (kycData.front && kycData.back && kycData.selfie) kycPayload.kyc_status = 'submitted';
+  // Build profile payload
+  var profilePayload = {
+    business_name: (document.getElementById('biz-name') ? document.getElementById('biz-name').value.trim() : ''),
+    bio:           (document.getElementById('bio')      ? document.getElementById('bio').value.trim()      : ''),
+    phone:         (document.getElementById('biz-phone')? document.getElementById('biz-phone').value.trim(): ''),
+    address:       (document.getElementById('location') ? document.getElementById('location').value.trim() : ''),
+  };
 
-    await axios.put('/api/providers/me', Object.assign({
-      business_name:  document.getElementById('biz-name').value.trim(),
-      bio:            document.getElementById('bio').value.trim(),
-      phone:          document.getElementById('biz-phone').value.trim(),
-      address:        document.getElementById('location').value.trim(),
-    }, kycPayload), { headers: { Authorization: 'Bearer ' + token } });
+  // Add KYC fields only if provided
+  var cardNumEl = document.getElementById('card-num');
+  if (cardNumEl && cardNumEl.value.trim()) profilePayload.kyc_card_number = cardNumEl.value.trim();
+  if (kycData && kycData.front)  profilePayload.kyc_front_url  = kycData.front;
+  if (kycData && kycData.back)   profilePayload.kyc_back_url   = kycData.back;
+  if (kycData && kycData.selfie) profilePayload.kyc_selfie_url = kycData.selfie;
+  if (kycData && kycData.front && kycData.back && kycData.selfie) profilePayload.kyc_status = 'submitted';
 
-    // Save services
-    var servicePs = Array.from(entries).map(function(e) {
-      var nameEl     = e.querySelector('.svc-name')     || e.querySelectorAll('input')[0];
-      var priceEl    = e.querySelector('.svc-price')    || e.querySelectorAll('input')[1];
-      var durationEl = e.querySelector('.svc-duration') || e.querySelectorAll('input')[2];
-      var name  = nameEl && nameEl.value.trim();
-      var price = priceEl && parseInt(priceEl.value);
-      var dur   = durationEl && parseInt(durationEl.value);
-      if (!name || !price) return Promise.resolve();
-      return axios.post('/api/providers/me/services', {
-        name: name, price: price * 100, duration: dur || 60
-      }, { headers: { Authorization: 'Bearer ' + token } }).catch(function(err){
-        console.error('Service save error', err);
+  var headers = { Authorization: 'Bearer ' + token };
+
+  // Step 1: save profile
+  axios.put('/api/providers/me', profilePayload, { headers: headers })
+    .then(function() {
+      // Step 2: save each valid service in sequence
+      var serviceList = Array.from(entries).filter(function(e) {
+        var n = e.querySelector('.svc-name');
+        var p = e.querySelector('.svc-price');
+        return n && n.value.trim() && p && parseInt(p.value) > 0;
       });
-    });
-    await Promise.all(servicePs);
 
-    goObStep(4);
-    showToast('Profile saved! Pending admin review.', 'success');
-  } catch(e) {
-    var msg = (e.response && e.response.data && e.response.data.error) || 'Could not save. Please try again.';
-    showToast(msg, 'error');
-    if (btn) { btn.disabled = false; btn.textContent = 'Finish Setup'; }
-  }
+      var chain = Promise.resolve();
+      serviceList.forEach(function(e) {
+        var name  = e.querySelector('.svc-name').value.trim();
+        var price = parseInt(e.querySelector('.svc-price').value);
+        var durEl = e.querySelector('.svc-duration');
+        var dur   = durEl ? (parseInt(durEl.value) || 60) : 60;
+        chain = chain.then(function() {
+          return axios.post('/api/providers/me/services',
+            { name: name, price: price * 100, duration: dur },
+            { headers: headers }
+          ).catch(function(err) {
+            console.warn('Service save warning:', name, err && err.response && err.response.data);
+          });
+        });
+      });
+      return chain;
+    })
+    .then(function() {
+      goObStep(4);
+      showToast('Profile & services saved! 🎉', 'success');
+    })
+    .catch(function(err) {
+      var msg = (err.response && err.response.data && err.response.data.error) || 'Could not save. Please try again.';
+      showToast(msg, 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Finish Setup'; }
+    });
 }
 </script>
 </body></html>`
