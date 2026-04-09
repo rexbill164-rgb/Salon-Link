@@ -105,7 +105,7 @@ bookings.get('/my', async (c) => {
     if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
 
     const result = await c.env.DB.prepare(`
-      SELECT b.*, p.business_name, p.avatar_url as provider_avatar,
+      SELECT b.*, p.business_name, p.avatar_url as provider_avatar, p.service_category as category,
         s.name as service_name, s.duration_minutes,
         u.first_name as provider_first_name, u.last_name as provider_last_name
       FROM bookings b

@@ -184,6 +184,7 @@ function renderBookings(list) {
       '</div>' +
       '<div class="booking-actions">' +
         '<a href="/provider/'+b.provider_id+'" class="action-btn">View Provider</a>' +
+        (b.payment_status==='unpaid'&&(b.status==='pending'||b.status==='confirmed')?'<a href="/payment/pay?booking_id='+b.id+'" class="action-btn primary" style="background:linear-gradient(135deg,var(--g-deep),var(--g-main));color:white;text-decoration:none;">💳 Pay Now</a>':'') +
         (canCancel?'<button onclick="cancelBooking('+b.id+')" class="action-btn danger">Cancel</button>':'') +
         (canRate?'<button onclick="openReview('+b.id+')" class="action-btn primary">⭐ Rate</button>':'') +
       '</div>' +

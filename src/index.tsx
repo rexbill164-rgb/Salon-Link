@@ -27,6 +27,7 @@ import { onboardingPage } from './pages/onboarding'
 import { hairstyleHistoryPage } from './pages/hairstyleHistory'
 import { settingsPage } from './pages/settings'
 import { notificationsPage } from './pages/notifications'
+import { paymentPage, paymentSuccessPage } from './pages/paymentPage'
 
 type Bindings = {
   DB: D1Database
@@ -69,6 +70,8 @@ app.get('/admin', (c) => c.html(adminPanelPage()))
 app.get('/hairstyle-history', (c) => c.html(hairstyleHistoryPage()))
 app.get('/settings', (c) => c.html(settingsPage()))
 app.get('/notifications', (c) => c.html(notificationsPage()))
+app.get('/payment/pay', (c) => c.html(paymentPage()))
+app.get('/payment/success', (c) => c.html(paymentSuccessPage()))
 
 // Health check
 app.get('/api/health', (c) => c.json({

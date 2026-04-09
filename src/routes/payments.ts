@@ -5,6 +5,10 @@ type Bindings = { DB: D1Database; PAYSTACK_SECRET_KEY: string }
 
 const payments = new Hono<{ Bindings: Bindings }>()
 
+const PLATFORM_FEE_PESEWAS = 300 // GHS 3 in pesewas
+const PAYSTACK_SECRET = 'sk_test_03a2349f55a00878b9f1abca4a2569fa10cbd913'
+const PAYSTACK_PUBLIC = 'pk_test_5a2c08ecb6b5701fe66f455b9fb705a7f7b0a448'
+
 async function getUser(c: any) {
   try {
     const auth = c.req.header('Authorization')
@@ -14,19 +18,36 @@ async function getUser(c: any) {
 }
 
 function generateRef(): string {
-  return 'SL-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase()
+  return 'SL-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 7).toUpperCase()
 }
 
-// POST /api/payments/initialize — start Paystack payment
+// ── Verify Paystack webhook HMAC-SHA512 signature ──
+async function verifyPaystackSignature(body: string, signature: string, secret: string): Promise<boolean> {
+  try {
+    const encoder = new TextEncoder()
+    const keyData = encoder.encode(secret)
+    const msgData = encoder.encode(body)
+    const cryptoKey = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-512' }, false, ['sign'])
+    const hashBuffer = await crypto.subtle.sign('HMAC', cryptoKey, msgData)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+    return hashHex === signature
+  } catch { return false }
+}
+
+// ── POST /api/payments/initialize — customer initiates Paystack payment ──
 payments.post('/initialize', async (c) => {
   try {
     const user = await getUser(c)
     if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
 
     const { booking_id } = await c.req.json()
+    if (!booking_id) return c.json({ success: false, error: 'booking_id required' }, 400)
 
+    // Load booking with full details
     const booking = await c.env.DB.prepare(`
-      SELECT b.*, p.business_name, s.name as service_name,
+      SELECT b.*, p.business_name, p.id as pid,
+        s.name as service_name, s.id as sid,
         u.email as customer_email, u.first_name, u.last_name
       FROM bookings b
       JOIN providers p ON b.provider_id = p.id
@@ -37,10 +58,13 @@ payments.post('/initialize', async (c) => {
 
     if (!booking) return c.json({ success: false, error: 'Booking not found or already paid' }, 404)
 
+    // Total = service amount + platform fee (3 GHS)
+    const serviceAmount = booking.total_amount  // pesewas
+    const totalCharge = serviceAmount + PLATFORM_FEE_PESEWAS
     const reference = generateRef()
-    const paystackKey = c.env.PAYSTACK_SECRET_KEY || 'sk_test_placeholder'
+    const paystackKey = c.env.PAYSTACK_SECRET_KEY || PAYSTACK_SECRET
 
-    // Initialize Paystack transaction
+    // Initialize with Paystack
     const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: {
@@ -49,120 +73,503 @@ payments.post('/initialize', async (c) => {
       },
       body: JSON.stringify({
         email: booking.customer_email,
-        amount: booking.total_amount, // already in kobo/pesewas
+        amount: totalCharge,
         reference,
         currency: 'GHS',
         metadata: {
           booking_id: booking.id,
-          service_name: booking.service_name,
+          provider_id: booking.provider_id,
+          service_id: booking.service_id,
+          platform_fee: PLATFORM_FEE_PESEWAS,
+          service_amount: serviceAmount,
+          customer_name: `${booking.first_name} ${booking.last_name}`,
           business_name: booking.business_name,
-          customer_name: `${booking.first_name} ${booking.last_name}`
+          service_name: booking.service_name
         },
-        callback_url: `${c.req.header('origin') || 'https://webapp.pages.dev'}/api/payments/callback`
+        callback_url: `https://project-ba6e9ce4.pages.dev/payment/success?ref=${reference}`
       })
     })
 
-    const paystackData = await paystackRes.json() as any
+    const psData = await paystackRes.json() as any
 
-    if (!paystackData.status) {
-      // If Paystack fails (test mode/no key), return a mock response
-      const mockRef = generateRef()
-      await c.env.DB.prepare(
-        'INSERT INTO payments (booking_id, customer_id, provider_id, amount, reference, status) VALUES (?, ?, ?, ?, ?, ?)'
-      ).bind(booking.id, user.sub, booking.provider_id, booking.total_amount, mockRef, 'pending').run()
-
-      return c.json({
-        success: true,
-        authorization_url: `${c.req.header('origin') || ''}/payment/mock?ref=${mockRef}&booking=${booking_id}`,
-        reference: mockRef,
-        mock: true
-      })
+    if (!psData.status) {
+      return c.json({ success: false, error: psData.message || 'Paystack initialization failed' }, 502)
     }
 
-    // Save payment record
+    // Save pending payment record
     await c.env.DB.prepare(
-      'INSERT INTO payments (booking_id, customer_id, provider_id, amount, reference, status, paystack_data) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    ).bind(booking.id, user.sub, booking.provider_id, booking.total_amount, reference, 'pending', JSON.stringify(paystackData.data)).run()
+      `INSERT INTO payments (booking_id, customer_id, provider_id, amount, reference, status, paystack_data)
+       VALUES (?, ?, ?, ?, ?, 'pending', ?)`
+    ).bind(booking.id, user.sub, booking.provider_id, totalCharge, reference, JSON.stringify(psData.data)).run()
 
     return c.json({
       success: true,
-      authorization_url: paystackData.data.authorization_url,
-      reference
+      authorization_url: psData.data.authorization_url,
+      access_code: psData.data.access_code,
+      reference,
+      amount: totalCharge,
+      service_amount: serviceAmount,
+      platform_fee: PLATFORM_FEE_PESEWAS,
+      public_key: PAYSTACK_PUBLIC
     })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
 })
 
-// GET /api/payments/verify/:reference — verify payment after callback
+// ── GET /api/payments/verify/:reference — verify after redirect ──
 payments.get('/verify/:reference', async (c) => {
   try {
     const reference = c.req.param('reference')
-    const paystackKey = c.env.PAYSTACK_SECRET_KEY || 'sk_test_placeholder'
+    const paystackKey = c.env.PAYSTACK_SECRET_KEY || PAYSTACK_SECRET
 
-    // Verify with Paystack
-    const res = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+    const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
       headers: { 'Authorization': `Bearer ${paystackKey}` }
     })
     const data = await res.json() as any
 
-    const payment = await c.env.DB.prepare(
-      'SELECT * FROM payments WHERE reference = ?'
-    ).bind(reference).first() as any
-
-    if (!payment) return c.json({ success: false, error: 'Payment not found' }, 404)
-
-    if (data.status && data.data?.status === 'success') {
-      // Mark payment success
-      await c.env.DB.prepare(
-        "UPDATE payments SET status = 'success', updated_at = CURRENT_TIMESTAMP WHERE reference = ?"
-      ).bind(reference).run()
-
-      // Update booking payment status
-      await c.env.DB.prepare(
-        "UPDATE bookings SET payment_status = 'paid', payment_reference = ?, status = 'confirmed', updated_at = CURRENT_TIMESTAMP WHERE id = ?"
-      ).bind(reference, payment.booking_id).run()
-
-      // Notify customer
-      await c.env.DB.prepare(`
-        INSERT INTO notifications (user_id, title, message, type, action_url)
-        VALUES (?, 'Payment Successful!', 'Your payment has been confirmed. Your booking is now confirmed!', 'payment', '/dashboard')
-      `).bind(payment.customer_id).run()
-
-      return c.json({ success: true, status: 'success', message: 'Payment verified' })
+    if (!data.status || data.data?.status !== 'success') {
+      return c.json({ success: false, status: 'failed', message: 'Payment not successful' })
     }
 
-    return c.json({ success: false, status: 'failed', message: 'Payment not successful' })
+    const txData = data.data
+    const meta = txData.metadata || {}
+    const amountPaid = txData.amount // pesewas
+    const providerEarning = amountPaid - PLATFORM_FEE_PESEWAS
+
+    // Check if already processed (idempotency)
+    const existing = await c.env.DB.prepare(
+      'SELECT id FROM transactions WHERE payment_reference = ?'
+    ).bind(reference).first()
+
+    if (!existing) {
+      const payment = await c.env.DB.prepare(
+        'SELECT * FROM payments WHERE reference = ?'
+      ).bind(reference).first() as any
+
+      if (payment) {
+        // Create transaction record
+        await c.env.DB.prepare(
+          `INSERT INTO transactions (booking_id, provider_id, customer_id, amount_paid, platform_fee, provider_earning, payout_status, payment_reference, paystack_event_id)
+           VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
+        ).bind(
+          payment.booking_id, payment.provider_id, payment.customer_id,
+          amountPaid, PLATFORM_FEE_PESEWAS, providerEarning,
+          reference, txData.id
+        ).run()
+
+        // Mark payment success
+        await c.env.DB.prepare(
+          "UPDATE payments SET status='success', updated_at=CURRENT_TIMESTAMP WHERE reference=?"
+        ).bind(reference).run()
+
+        // Update booking
+        await c.env.DB.prepare(
+          "UPDATE bookings SET payment_status='paid', payment_reference=?, status='confirmed', updated_at=CURRENT_TIMESTAMP WHERE id=?"
+        ).bind(reference, payment.booking_id).run()
+
+        // Notify customer
+        await c.env.DB.prepare(
+          `INSERT INTO notifications (user_id, title, message, type, action_url)
+           VALUES (?, 'Payment Confirmed! ✅', 'Your booking is confirmed. Provider earning: GHS ${(providerEarning/100).toFixed(2)}', 'payment', '/dashboard')`
+        ).bind(payment.customer_id).run()
+      }
+    }
+
+    return c.json({ success: true, status: 'success', reference, amount: amountPaid })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
 })
 
-// POST /api/payments/mock-success — simulate payment success (dev/testing)
+// ── POST /api/payments/webhook — Paystack webhook (secure) ──
+payments.post('/webhook', async (c) => {
+  try {
+    const rawBody = await c.req.text()
+    const signature = c.req.header('x-paystack-signature') || ''
+    const paystackKey = c.env.PAYSTACK_SECRET_KEY || PAYSTACK_SECRET
+
+    // 1. Verify HMAC-SHA512 signature
+    const isValid = await verifyPaystackSignature(rawBody, signature, paystackKey)
+    if (!isValid) {
+      return c.json({ error: 'Invalid signature' }, 401)
+    }
+
+    const event = JSON.parse(rawBody) as any
+
+    // 2. Only process charge.success
+    if (event.event !== 'charge.success') {
+      return c.json({ received: true, processed: false })
+    }
+
+    const txData = event.data
+    const reference = txData.reference
+    const amountPaid = txData.amount // pesewas
+    const meta = txData.metadata || {}
+    const bookingId = meta.booking_id
+    const providerId = meta.provider_id
+    const platformFee = PLATFORM_FEE_PESEWAS
+    const providerEarning = amountPaid - platformFee
+
+    // 3. Idempotency — skip if already processed
+    const existing = await c.env.DB.prepare(
+      'SELECT id FROM transactions WHERE payment_reference = ? OR paystack_event_id = ?'
+    ).bind(reference, String(txData.id)).first()
+
+    if (existing) {
+      return c.json({ received: true, processed: false, reason: 'duplicate' })
+    }
+
+    // 4. Look up payment record
+    const payment = await c.env.DB.prepare(
+      'SELECT * FROM payments WHERE reference = ?'
+    ).bind(reference).first() as any
+
+    if (!payment) {
+      // Auto-create if webhook arrives before verify (race condition)
+      const booking = bookingId ? await c.env.DB.prepare(
+        'SELECT * FROM bookings WHERE id = ?'
+      ).bind(bookingId).first() as any : null
+
+      if (booking) {
+        await c.env.DB.prepare(
+          `INSERT OR IGNORE INTO payments (booking_id, customer_id, provider_id, amount, reference, status)
+           VALUES (?, ?, ?, ?, ?, 'success')`
+        ).bind(booking.id, booking.customer_id, booking.provider_id, amountPaid, reference).run()
+
+        await c.env.DB.prepare(
+          `INSERT INTO transactions (booking_id, provider_id, customer_id, amount_paid, platform_fee, provider_earning, payout_status, payment_reference, paystack_event_id)
+           VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
+        ).bind(booking.id, booking.provider_id, booking.customer_id, amountPaid, platformFee, providerEarning, reference, String(txData.id)).run()
+
+        await c.env.DB.prepare(
+          "UPDATE bookings SET payment_status='paid', payment_reference=?, status='confirmed', updated_at=CURRENT_TIMESTAMP WHERE id=?"
+        ).bind(reference, booking.id).run()
+      }
+
+      return c.json({ received: true, processed: true })
+    }
+
+    // 5. Create canonical transaction record
+    await c.env.DB.prepare(
+      `INSERT INTO transactions (booking_id, provider_id, customer_id, amount_paid, platform_fee, provider_earning, payout_status, payment_reference, paystack_event_id)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
+    ).bind(payment.booking_id, payment.provider_id, payment.customer_id, amountPaid, platformFee, providerEarning, reference, String(txData.id)).run()
+
+    // 6. Update payment + booking status
+    await c.env.DB.prepare(
+      "UPDATE payments SET status='success', updated_at=CURRENT_TIMESTAMP WHERE reference=?"
+    ).bind(reference).run()
+
+    await c.env.DB.prepare(
+      "UPDATE bookings SET payment_status='paid', payment_reference=?, status='confirmed', updated_at=CURRENT_TIMESTAMP WHERE id=?"
+    ).bind(reference, payment.booking_id).run()
+
+    // 7. Notify customer
+    await c.env.DB.prepare(
+      `INSERT INTO notifications (user_id, title, message, type, action_url)
+       VALUES (?, '💳 Payment Confirmed!', 'GHS ${(amountPaid/100).toFixed(2)} received. Your booking is confirmed!', 'payment', '/dashboard')`
+    ).bind(payment.customer_id).run()
+
+    return c.json({ received: true, processed: true, provider_earning: providerEarning, platform_fee: platformFee })
+  } catch (e: any) {
+    console.error('Webhook error:', e)
+    return c.json({ error: 'Internal error' }, 500)
+  }
+})
+
+// ── GET /api/payments/public-key — return public key safely ──
+payments.get('/public-key', (c) => {
+  return c.json({ public_key: PAYSTACK_PUBLIC })
+})
+
+// ── GET /api/payments/my — customer's own payment history ──
+payments.get('/my', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
+
+    const txns = await c.env.DB.prepare(`
+      SELECT t.*, p.business_name, s.name as service_name, b.booking_date, b.booking_time
+      FROM transactions t
+      JOIN providers p ON t.provider_id = p.id
+      JOIN bookings b ON t.booking_id = b.id
+      JOIN services s ON b.service_id = s.id
+      WHERE t.customer_id = ?
+      ORDER BY t.created_at DESC
+    `).bind(user.sub).all()
+
+    return c.json({ success: true, transactions: txns.results })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// ── GET /api/payments/admin/summary — admin earnings overview ──
+payments.get('/admin/summary', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user || user.role !== 'admin') return c.json({ success: false, error: 'Unauthorized' }, 401)
+
+    const [totals, byProvider, recent] = await Promise.all([
+      c.env.DB.prepare(`
+        SELECT
+          COUNT(*) as total_transactions,
+          SUM(amount_paid) as total_gross,
+          SUM(platform_fee) as total_platform_revenue,
+          SUM(provider_earning) as total_provider_earnings,
+          SUM(CASE WHEN payout_status='pending' THEN provider_earning ELSE 0 END) as pending_payouts,
+          SUM(CASE WHEN payout_status='paid' THEN provider_earning ELSE 0 END) as paid_out
+        FROM transactions
+      `).first(),
+
+      c.env.DB.prepare(`
+        SELECT
+          p.id as provider_id, p.business_name, p.momo_number, p.momo_name,
+          COUNT(t.id) as transaction_count,
+          SUM(t.amount_paid) as gross_received,
+          SUM(t.provider_earning) as total_earnings,
+          SUM(CASE WHEN t.payout_status='pending' THEN t.provider_earning ELSE 0 END) as pending_amount,
+          SUM(CASE WHEN t.payout_status='paid' THEN t.provider_earning ELSE 0 END) as paid_amount
+        FROM transactions t
+        JOIN providers p ON t.provider_id = p.id
+        GROUP BY p.id, p.business_name, p.momo_number, p.momo_name
+        ORDER BY pending_amount DESC
+      `).all(),
+
+      c.env.DB.prepare(`
+        SELECT t.*, p.business_name, u.first_name, u.last_name, u.email,
+          b.booking_date, b.booking_time, s.name as service_name
+        FROM transactions t
+        JOIN providers p ON t.provider_id = p.id
+        JOIN users u ON t.customer_id = u.id
+        JOIN bookings b ON t.booking_id = b.id
+        JOIN services s ON b.service_id = s.id
+        ORDER BY t.created_at DESC
+        LIMIT 50
+      `).all()
+    ])
+
+    return c.json({
+      success: true,
+      summary: totals,
+      by_provider: byProvider.results,
+      recent_transactions: recent.results
+    })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// ── GET /api/payments/admin/transactions — paginated transactions with filter ──
+payments.get('/admin/transactions', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user || user.role !== 'admin') return c.json({ success: false, error: 'Unauthorized' }, 401)
+
+    const { provider_id, payout_status, limit = '50', offset = '0' } = c.req.query()
+
+    let query = `
+      SELECT t.*, p.business_name, p.momo_number, p.momo_name,
+        u.first_name, u.last_name, u.email as customer_email,
+        b.booking_date, b.booking_time, s.name as service_name
+      FROM transactions t
+      JOIN providers p ON t.provider_id = p.id
+      JOIN users u ON t.customer_id = u.id
+      JOIN bookings b ON t.booking_id = b.id
+      JOIN services s ON b.service_id = s.id
+      WHERE 1=1
+    `
+    const params: any[] = []
+
+    if (provider_id) { query += ' AND t.provider_id = ?'; params.push(parseInt(provider_id)) }
+    if (payout_status) { query += ' AND t.payout_status = ?'; params.push(payout_status) }
+
+    query += ' ORDER BY t.created_at DESC LIMIT ? OFFSET ?'
+    params.push(parseInt(limit), parseInt(offset))
+
+    const result = await c.env.DB.prepare(query).bind(...params).all()
+    return c.json({ success: true, transactions: result.results })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// ── POST /api/payments/admin/payout — mark transaction(s) as paid out ──
+payments.post('/admin/payout', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user || user.role !== 'admin') return c.json({ success: false, error: 'Unauthorized' }, 401)
+
+    const { transaction_ids, provider_id, notes } = await c.req.json()
+
+    // Can mark individual transactions OR all pending for a provider
+    if (transaction_ids && Array.isArray(transaction_ids) && transaction_ids.length > 0) {
+      const placeholders = transaction_ids.map(() => '?').join(',')
+      await c.env.DB.prepare(
+        `UPDATE transactions SET payout_status='paid', paid_out_at=CURRENT_TIMESTAMP, paid_out_by=?, notes=?, updated_at=CURRENT_TIMESTAMP
+         WHERE id IN (${placeholders}) AND payout_status='pending'`
+      ).bind(user.sub, notes || null, ...transaction_ids).run()
+
+      return c.json({ success: true, message: `${transaction_ids.length} transaction(s) marked as paid` })
+    }
+
+    if (provider_id) {
+      // Mark ALL pending for this provider
+      const result = await c.env.DB.prepare(
+        `UPDATE transactions SET payout_status='paid', paid_out_at=CURRENT_TIMESTAMP, paid_out_by=?, notes=?, updated_at=CURRENT_TIMESTAMP
+         WHERE provider_id=? AND payout_status='pending'`
+      ).bind(user.sub, notes || null, provider_id).run()
+
+      // Notify provider
+      const prov = await c.env.DB.prepare(
+        'SELECT user_id, business_name FROM providers WHERE id=?'
+      ).bind(provider_id).first() as any
+
+      if (prov) {
+        await c.env.DB.prepare(
+          `INSERT INTO notifications (user_id, title, message, type, action_url)
+           VALUES (?, '💰 Payout Sent!', 'Your pending earnings have been paid to your MoMo account.', 'payment', '/provider/dashboard')`
+        ).bind(prov.user_id).run()
+      }
+
+      return c.json({ success: true, message: `All pending transactions for provider marked as paid`, rows: result.meta.changes })
+    }
+
+    return c.json({ success: false, error: 'Provide transaction_ids or provider_id' }, 400)
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// ── GET /api/payments/admin/payout-list — providers with amounts owed ──
+payments.get('/admin/payout-list', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user || user.role !== 'admin') return c.json({ success: false, error: 'Unauthorized' }, 401)
+
+    const result = await c.env.DB.prepare(`
+      SELECT
+        p.id, p.business_name, p.momo_number, p.momo_name,
+        u.phone, u.email,
+        COUNT(t.id) as pending_count,
+        SUM(t.provider_earning) as total_owed,
+        MIN(t.created_at) as oldest_pending
+      FROM transactions t
+      JOIN providers p ON t.provider_id = p.id
+      JOIN users u ON p.user_id = u.id
+      WHERE t.payout_status = 'pending'
+      GROUP BY p.id, p.business_name, p.momo_number, p.momo_name, u.phone, u.email
+      ORDER BY total_owed DESC
+    `).all()
+
+    return c.json({ success: true, payouts: result.results })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// ── PUT /api/payments/provider/momo — provider updates MoMo details ──
+payments.put('/provider/momo', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user || user.role !== 'provider') return c.json({ success: false, error: 'Unauthorized' }, 401)
+
+    const { momo_number, momo_name } = await c.req.json()
+    if (!momo_number) return c.json({ success: false, error: 'MoMo number required' }, 400)
+
+    await c.env.DB.prepare(
+      'UPDATE providers SET momo_number=?, momo_name=?, updated_at=CURRENT_TIMESTAMP WHERE user_id=?'
+    ).bind(momo_number.trim(), momo_name?.trim() || null, user.sub).run()
+
+    return c.json({ success: true, message: 'MoMo details updated' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// ── GET /api/payments/provider/earnings — provider's own earnings ──
+payments.get('/provider/earnings', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user || user.role !== 'provider') return c.json({ success: false, error: 'Unauthorized' }, 401)
+
+    const provider = await c.env.DB.prepare(
+      'SELECT id, momo_number, momo_name FROM providers WHERE user_id=?'
+    ).bind(user.sub).first() as any
+    if (!provider) return c.json({ success: false, error: 'Provider not found' }, 404)
+
+    const [summary, recent] = await Promise.all([
+      c.env.DB.prepare(`
+        SELECT
+          COUNT(*) as total_bookings_paid,
+          SUM(amount_paid) as gross_received,
+          SUM(provider_earning) as total_earned,
+          SUM(CASE WHEN payout_status='pending' THEN provider_earning ELSE 0 END) as pending_payout,
+          SUM(CASE WHEN payout_status='paid' THEN provider_earning ELSE 0 END) as total_paid_out
+        FROM transactions WHERE provider_id=?
+      `).bind(provider.id).first(),
+
+      c.env.DB.prepare(`
+        SELECT t.*, b.booking_date, s.name as service_name, u.first_name, u.last_name
+        FROM transactions t
+        JOIN bookings b ON t.booking_id = b.id
+        JOIN services s ON b.service_id = s.id
+        JOIN users u ON t.customer_id = u.id
+        WHERE t.provider_id = ?
+        ORDER BY t.created_at DESC LIMIT 20
+      `).bind(provider.id).all()
+    ])
+
+    return c.json({
+      success: true,
+      momo_number: provider.momo_number,
+      momo_name: provider.momo_name,
+      summary,
+      transactions: recent.results
+    })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// ── POST /api/payments/mock-success — dev/test only ──
 payments.post('/mock-success', async (c) => {
   try {
     const user = await getUser(c)
     if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
 
     const { booking_id } = await c.req.json()
-
     const booking = await c.env.DB.prepare(
-      "SELECT * FROM bookings WHERE id = ? AND customer_id = ? AND payment_status = 'unpaid'"
+      "SELECT * FROM bookings WHERE id=? AND customer_id=? AND payment_status='unpaid'"
     ).bind(booking_id, user.sub).first() as any
 
     if (!booking) return c.json({ success: false, error: 'Booking not found' }, 404)
 
+    const amountPaid = (booking.total_amount || 0) + PLATFORM_FEE_PESEWAS
+    const providerEarning = amountPaid - PLATFORM_FEE_PESEWAS
     const reference = 'MOCK-' + Date.now()
+
     await c.env.DB.prepare(
-      "UPDATE bookings SET payment_status = 'paid', payment_reference = ?, status = 'confirmed', updated_at = CURRENT_TIMESTAMP WHERE id = ?"
-    ).bind(reference, booking_id).run()
+      `INSERT OR IGNORE INTO payments (booking_id, customer_id, provider_id, amount, reference, status)
+       VALUES (?, ?, ?, ?, ?, 'success')`
+    ).bind(booking.id, user.sub, booking.provider_id, amountPaid, reference).run()
 
-    await c.env.DB.prepare(`
-      INSERT INTO notifications (user_id, title, message, type, action_url)
-      VALUES (?, 'Payment Confirmed!', 'Your booking has been paid and confirmed!', 'payment', '/dashboard')
-    `).bind(user.sub).run()
+    await c.env.DB.prepare(
+      `INSERT OR IGNORE INTO transactions (booking_id, provider_id, customer_id, amount_paid, platform_fee, provider_earning, payout_status, payment_reference, paystack_event_id)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, 'mock')`
+    ).bind(booking.id, booking.provider_id, user.sub, amountPaid, PLATFORM_FEE_PESEWAS, providerEarning, reference).run()
 
-    return c.json({ success: true, message: 'Mock payment successful', reference })
+    await c.env.DB.prepare(
+      "UPDATE bookings SET payment_status='paid', payment_reference=?, status='confirmed', updated_at=CURRENT_TIMESTAMP WHERE id=?"
+    ).bind(reference, booking.id).run()
+
+    return c.json({
+      success: true, reference,
+      amount_paid: amountPaid,
+      platform_fee: PLATFORM_FEE_PESEWAS,
+      provider_earning: providerEarning
+    })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }

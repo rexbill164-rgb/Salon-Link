@@ -345,16 +345,42 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
 
       <!-- ══ EARNINGS ══ -->
       <div id="sec-earnings" class="section">
-        <div class="kpi-grid">
+        <!-- Paystack Earnings KPIs -->
+        <div class="kpi-grid" style="margin-bottom:16px;">
           <div class="kpi-card"><div style="font-size:20px;margin-bottom:8px;">💵</div><div class="kpi-val" id="earn-total">GHS 0</div><div class="kpi-lbl">Total Earned</div></div>
           <div class="kpi-card"><div style="font-size:20px;margin-bottom:8px;">📅</div><div class="kpi-val" id="earn-month">GHS 0</div><div class="kpi-lbl">This Month</div></div>
-          <div class="kpi-card"><div style="font-size:20px;margin-bottom:8px;">⏳</div><div class="kpi-val" id="fees-pending-amt">GHS 0</div><div class="kpi-lbl">Pending Fees</div></div>
-          <div class="kpi-card"><div style="font-size:20px;margin-bottom:8px;">✅</div><div class="kpi-val" id="fees-paid-amt">GHS 0</div><div class="kpi-lbl">Fees Paid</div></div>
+          <div class="kpi-card" style="background:linear-gradient(135deg,rgba(224,112,112,0.06),transparent);border-color:rgba(224,112,112,0.2);">
+            <div style="font-size:20px;margin-bottom:8px;">⏳</div>
+            <div class="kpi-val" id="earn-pending" style="color:#E07070;">GHS 0</div>
+            <div class="kpi-lbl">Pending Payout</div>
+          </div>
+          <div class="kpi-card" style="background:linear-gradient(135deg,rgba(93,201,138,0.06),transparent);border-color:rgba(93,201,138,0.2);">
+            <div style="font-size:20px;margin-bottom:8px;">✅</div>
+            <div class="kpi-val" id="earn-paidout" style="color:#5DC98A;">GHS 0</div>
+            <div class="kpi-lbl">Paid Out</div>
+          </div>
         </div>
+
+        <!-- MoMo Payout Setup -->
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">💳 Payout Details (MoMo)</div>
+          <div style="font-size:12px;color:var(--t-muted);margin-bottom:14px;">Admin will send earnings to this MoMo number.</div>
+          <div id="momo-display" style="margin-bottom:14px;"></div>
+          <div id="momo-form">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+              <div><label style="font-size:11px;font-weight:600;color:var(--t-muted);display:block;margin-bottom:4px;">MoMo Number</label>
+                <input type="tel" id="momo-number-input" class="input" placeholder="0XX XXX XXXX" style="font-size:13px;width:100%;"/></div>
+              <div><label style="font-size:11px;font-weight:600;color:var(--t-muted);display:block;margin-bottom:4px;">Account Name</label>
+                <input type="text" id="momo-name-input" class="input" placeholder="Name on MoMo" style="font-size:13px;width:100%;"/></div>
+            </div>
+            <button onclick="saveMomoDetails()" style="padding:10px 20px;border-radius:100px;font-size:12px;font-weight:700;background:var(--g-main);color:white;border:none;cursor:pointer;">Save Payout Details</button>
+          </div>
+        </div>
+
+        <!-- Transaction History -->
         <div class="card">
-          <div class="card-title">Fee History <span style="font-size:10px;font-weight:400;color:var(--t-muted);">GHS 3 per booking</span></div>
-          <div id="fees-warning" style="display:none;background:rgba(224,112,112,0.08);border:1px solid rgba(224,112,112,0.25);border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:var(--s-red);">⚠️ You have pending fees. Contact admin to settle your balance.</div>
-          <div id="fees-table-body"><div style="text-align:center;color:var(--t-muted);padding:24px;font-size:12px;">No fee history yet. Fees appear after your first booking.</div></div>
+          <div class="card-title">Transaction History <span style="font-size:10px;font-weight:400;color:var(--t-muted);">via Paystack</span></div>
+          <div id="earn-txn-body"><div style="text-align:center;color:var(--t-muted);padding:24px;font-size:12px;">Loading transactions...</div></div>
         </div>
       </div>
 
@@ -438,7 +464,7 @@ function showSection(id, btn) {
   // Load section data
   var token = localStorage.getItem('sl_token');
   if (id==='gallery' && providerIdGlobal && token) loadGallery(token);
-  if (id==='earnings') loadFees();
+  if (id==='earnings') { loadFees(); loadProviderEarnings(); }
   if (id==='appts') loadAllAppts(token);
   if (id==='reviews') loadReviews(token);
   if (id==='location') { setTimeout(function(){ initLocationMap(pickedLat, pickedLng); }, 200); }
@@ -892,6 +918,70 @@ function loadFees() {
         '</div>';
       }).join('');
     }).catch(function(){});
+}
+
+/* ── Paystack Earnings ── */
+function loadProviderEarnings() {
+  var token = localStorage.getItem('sl_token');
+  if (!token) return;
+  axios.get('/api/payments/provider/earnings', { headers:{ Authorization:'Bearer '+token }})
+    .then(function(r) {
+      var s = r.data.summary || {};
+      var setEl = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
+      setEl('earn-total', 'GHS '+((s.total_earned||0)/100).toFixed(2));
+      setEl('earn-month', 'GHS '+((s.gross_received||0)/100).toFixed(2));
+      setEl('earn-pending', 'GHS '+((s.pending_payout||0)/100).toFixed(2));
+      setEl('earn-paidout', 'GHS '+((s.total_paid_out||0)/100).toFixed(2));
+
+      // Show MoMo info
+      var disp = document.getElementById('momo-display');
+      if (disp) {
+        if (r.data.momo_number) {
+          disp.innerHTML = '<div style="display:flex;align-items:center;gap:12px;padding:12px;background:rgba(93,201,138,0.08);border:1px solid rgba(93,201,138,0.2);border-radius:10px;">' +
+            '<span style="font-size:20px;">📱</span>' +
+            '<div><div style="font-weight:700;font-size:14px;">'+r.data.momo_number+'</div>' +
+            '<div style="font-size:11px;color:var(--t-muted);">'+(r.data.momo_name||'')+'</div></div>' +
+            '<span style="margin-left:auto;background:rgba(93,201,138,0.15);color:#5DC98A;padding:3px 10px;border-radius:100px;font-size:10px;font-weight:700;">Active</span>' +
+          '</div>';
+          document.getElementById('momo-number-input').value = r.data.momo_number;
+          if (document.getElementById('momo-name-input')) document.getElementById('momo-name-input').value = r.data.momo_name||'';
+        } else {
+          disp.innerHTML = '<div style="background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.2);border-radius:10px;padding:12px;font-size:12px;color:#E07070;">⚠️ No MoMo number set. Admin cannot pay you without this!</div>';
+        }
+      }
+
+      // Render transactions
+      var txns = r.data.transactions || [];
+      var body = document.getElementById('earn-txn-body');
+      if (!body) return;
+      if (!txns.length) { body.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:24px;font-size:12px;">No transactions yet. Earnings appear after customers pay via Paystack.</div>'; return; }
+      body.innerHTML = txns.map(function(t) {
+        var isPaid = t.payout_status === 'paid';
+        return '<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--i-faint);">' +
+          '<div style="flex:1;">' +
+            '<div style="font-size:13px;font-weight:600;">'+t.service_name+'</div>' +
+            '<div style="font-size:10px;color:var(--t-muted);">'+t.booking_date+' · '+t.first_name+' '+t.last_name+'</div>' +
+            '<div style="font-size:9px;color:var(--t-faint);font-family:monospace;margin-top:2px;">'+t.payment_reference+'</div>' +
+          '</div>' +
+          '<div style="text-align:right;">' +
+            '<div style="font-size:14px;font-weight:700;color:#5DC98A;">GHS '+((t.provider_earning||0)/100).toFixed(2)+'</div>' +
+            '<div style="font-size:9px;color:var(--t-muted);">after GHS 3.00 fee</div>' +
+            '<span style="padding:2px 8px;border-radius:100px;font-size:9px;font-weight:700;background:'+(isPaid?'rgba(93,201,138,0.12)':'rgba(224,112,112,0.1)')+';color:'+(isPaid?'#5DC98A':'#E07070')+';">'+(isPaid?'Paid':'Pending')+'</span>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    })
+    .catch(function(){ /* no earnings yet */ });
+}
+
+function saveMomoDetails() {
+  var token = localStorage.getItem('sl_token');
+  var num = document.getElementById('momo-number-input').value.trim();
+  var name = document.getElementById('momo-name-input').value.trim();
+  if (!num) { showToast('Enter your MoMo number','error'); return; }
+  axios.put('/api/payments/provider/momo', { momo_number:num, momo_name:name }, { headers:{ Authorization:'Bearer '+token }})
+    .then(function() { showToast('MoMo details saved! ✦','success'); loadProviderEarnings(); })
+    .catch(function(e) { showToast(e.response?.data?.error||'Failed to save','error'); });
 }
 
 /* ── KYC ── */

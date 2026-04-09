@@ -274,7 +274,80 @@ ${baseHead('Admin Panel', `
           </table>
         </div>
       </div>
-      <div id="admin-payments"  class="admin-section"><div class="eyebrow">Payments</div><p style="color:var(--t-secondary);margin-top:16px;">Payment management panel loading...</p></div>
+      <!-- ══ PAYMENTS / PAYSTACK SECTION ══ -->
+      <div id="admin-payments" class="admin-section">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+          <div class="eyebrow">Paystack Payments & Payouts</div>
+          <button onclick="loadPaymentSummary()" style="padding:8px 18px;border-radius:100px;font-size:11px;font-weight:700;background:var(--g-main);color:white;border:none;cursor:pointer;">🔄 Refresh</button>
+        </div>
+
+        <!-- KPI Cards -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;" id="pay-kpi-grid">
+          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:18px;text-align:center;">
+            <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-muted);margin-bottom:6px;">Total Gross</div>
+            <div id="pay-kpi-gross" class="font-display" style="font-size:22px;font-weight:700;color:var(--t-primary);">—</div>
+          </div>
+          <div style="background:linear-gradient(135deg,rgba(201,168,76,0.08),rgba(131,58,180,0.05));border:1px solid var(--g-border);border-radius:var(--r-lg);padding:18px;text-align:center;">
+            <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-muted);margin-bottom:6px;">Platform Revenue</div>
+            <div id="pay-kpi-platform" class="font-display gold-gradient" style="font-size:22px;font-weight:700;">—</div>
+            <div style="font-size:9px;color:var(--t-muted);margin-top:3px;">GHS 3 × bookings</div>
+          </div>
+          <div style="background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.2);border-radius:var(--r-lg);padding:18px;text-align:center;">
+            <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-muted);margin-bottom:6px;">Pending Payouts</div>
+            <div id="pay-kpi-pending" class="font-display" style="font-size:22px;font-weight:700;color:#E07070;">—</div>
+          </div>
+          <div style="background:rgba(93,201,138,0.06);border:1px solid rgba(93,201,138,0.2);border-radius:var(--r-lg);padding:18px;text-align:center;">
+            <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-muted);margin-bottom:6px;">Paid Out</div>
+            <div id="pay-kpi-paidout" class="font-display" style="font-size:22px;font-weight:700;color:#5DC98A;">—</div>
+          </div>
+        </div>
+
+        <!-- Provider Payout Table -->
+        <div style="margin-bottom:24px;">
+          <div style="font-size:12px;font-weight:700;color:var(--t-secondary);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.08em;">Providers Owed Payment</div>
+          <div class="table-scroll">
+            <table class="admin-table">
+              <thead><tr><th>Provider</th><th>MoMo Number</th><th>Pending Count</th><th>Amount Owed</th><th>Action</th></tr></thead>
+              <tbody id="payout-list-tbody"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--t-muted);">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:700;color:var(--t-secondary);text-transform:uppercase;letter-spacing:0.08em;">All Transactions</div>
+          <select id="pay-filter-provider" onchange="filterTransactions()" style="padding:6px 12px;border-radius:8px;border:1px solid var(--i-faint);font-size:12px;background:var(--c-surface);color:var(--t-primary);">
+            <option value="">All Providers</option>
+          </select>
+          <select id="pay-filter-status" onchange="filterTransactions()" style="padding:6px 12px;border-radius:8px;border:1px solid var(--i-faint);font-size:12px;background:var(--c-surface);color:var(--t-primary);">
+            <option value="">All Status</option>
+            <option value="pending">Pending Payout</option>
+            <option value="paid">Paid Out</option>
+          </select>
+          <button onclick="exportTransactions()" style="padding:6px 14px;border-radius:8px;border:1px solid var(--i-faint);font-size:11px;font-weight:600;background:var(--c-surface);color:var(--t-secondary);cursor:pointer;">⬇ Export CSV</button>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="table-scroll">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="select-all-txn" onchange="toggleAllTxn(this)"></th>
+                <th>Date</th><th>Customer</th><th>Provider</th><th>Service</th>
+                <th>Gross (GHS)</th><th>Platform Fee</th><th>Provider Earns</th>
+                <th>Payout</th><th>Reference</th>
+              </tr>
+            </thead>
+            <tbody id="transactions-tbody"><tr><td colspan="10" style="text-align:center;padding:32px;color:var(--t-muted);">Loading...</td></tr></tbody>
+          </table>
+        </div>
+
+        <!-- Bulk Action -->
+        <div style="margin-top:12px;display:flex;align-items:center;gap:10px;">
+          <span id="selected-count" style="font-size:12px;color:var(--t-muted);">0 selected</span>
+          <button onclick="bulkMarkPaid()" style="padding:8px 18px;border-radius:100px;font-size:11px;font-weight:700;background:#5DC98A;color:white;border:none;cursor:pointer;">✅ Mark Selected as Paid</button>
+        </div>
+      </div>
       <div id="admin-reports"   class="admin-section"><div class="eyebrow">Reports</div><p style="color:var(--t-secondary);margin-top:16px;">Reports & analytics panel loading...</p></div>
 
       <!-- ── PLATFORM FEES SECTION ── -->
@@ -398,6 +471,7 @@ function adminSection(id, btn) {
   closeAdminSidebar();
   if (id === 'fees') { loadFeeSummary(); loadFees('pending'); }
   if (id === 'registrants') loadRegistrants(30);
+  if (id === 'payments') loadPaymentSummary();
   if (id === 'reconcile') {
     var dateInput = document.getElementById('reconcile-date');
     if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
@@ -697,6 +771,152 @@ function loadReconcile() {
       '</tr>';
     }).join('');
   }).catch(function(e) { showToast('Failed to load reconciliation', 'error'); });
+}
+
+// ══════════════════════════════════════════════════════════════
+// PAYMENT DASHBOARD FUNCTIONS
+// ══════════════════════════════════════════════════════════════
+var _allTransactions = [];
+var _selectedTxnIds = new Set();
+
+function ghs(pesewas) {
+  return 'GHS ' + ((pesewas||0)/100).toFixed(2);
+}
+
+function loadPaymentSummary() {
+  var token = localStorage.getItem('sl_token');
+  // Load summary KPIs
+  axios.get('/api/payments/admin/summary', { headers:{ Authorization:'Bearer '+token }})
+    .then(function(r) {
+      var s = r.data.summary || {};
+      document.getElementById('pay-kpi-gross').textContent    = ghs(s.total_gross);
+      document.getElementById('pay-kpi-platform').textContent = ghs(s.total_platform_revenue);
+      document.getElementById('pay-kpi-pending').textContent  = ghs(s.pending_payouts);
+      document.getElementById('pay-kpi-paidout').textContent  = ghs(s.paid_out);
+
+      // Payout list
+      var provs = r.data.by_provider || [];
+      var sel = document.getElementById('pay-filter-provider');
+      sel.innerHTML = '<option value="">All Providers</option>';
+      provs.forEach(function(p) {
+        sel.innerHTML += '<option value="'+p.provider_id+'">'+p.business_name+'</option>';
+      });
+      renderPayoutList(provs);
+
+      // Recent transactions
+      _allTransactions = r.data.recent_transactions || [];
+      renderTransactions(_allTransactions);
+    })
+    .catch(function(e) { showToast('Failed to load payment data','error'); });
+}
+
+function renderPayoutList(provs) {
+  var tb = document.getElementById('payout-list-tbody');
+  var pending = provs.filter(function(p) { return (p.pending_amount||0) > 0; });
+  if (!pending.length) {
+    tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--t-muted);">No pending payouts 🎉</td></tr>';
+    return;
+  }
+  tb.innerHTML = pending.map(function(p) {
+    return '<tr>' +
+      '<td><strong>'+p.business_name+'</strong></td>' +
+      '<td>'+(p.momo_number ? '<span style="font-family:monospace;">'+p.momo_number+'</span><br><small style="color:var(--t-muted);">'+(p.momo_name||'')+'</small>' : '<span style="color:#E07070;font-size:11px;">⚠ No MoMo set</span>')+'</td>' +
+      '<td style="text-align:center;"><span style="background:rgba(224,112,112,0.1);color:#E07070;padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700;">'+p.pending_count+' txns</span></td>' +
+      '<td><strong style="color:#E07070;">'+ghs(p.pending_amount)+'</strong></td>' +
+      '<td><button onclick="markProviderPaid('+p.provider_id+',\''+p.business_name+'\')" style="padding:6px 14px;border-radius:100px;font-size:11px;font-weight:700;background:#5DC98A;color:white;border:none;cursor:pointer;">✅ Pay All</button></td>' +
+    '</tr>';
+  }).join('');
+}
+
+function renderTransactions(txns) {
+  _selectedTxnIds.clear();
+  document.getElementById('selected-count').textContent = '0 selected';
+  var tb = document.getElementById('transactions-tbody');
+  if (!txns.length) {
+    tb.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--t-muted);">No transactions found</td></tr>';
+    return;
+  }
+  tb.innerHTML = txns.map(function(t) {
+    var isPaid = t.payout_status === 'paid';
+    var dt = new Date(t.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    return '<tr>' +
+      '<td><input type="checkbox" class="txn-check" data-id="'+t.id+'" '+(isPaid?'disabled':'')+' onchange="toggleTxn(this)"></td>' +
+      '<td style="white-space:nowrap;font-size:11px;">'+dt+'</td>' +
+      '<td>'+t.first_name+' '+t.last_name+'<br><small style="color:var(--t-muted);">'+t.customer_email+'</small></td>' +
+      '<td><strong>'+t.business_name+'</strong>'+(t.momo_number?'<br><small style="color:var(--t-muted);font-family:monospace;">'+t.momo_number+'</small>':'')+'</td>' +
+      '<td style="font-size:12px;">'+t.service_name+'<br><small style="color:var(--t-muted);">'+t.booking_date+'</small></td>' +
+      '<td style="font-weight:700;">'+ghs(t.amount_paid)+'</td>' +
+      '<td style="color:var(--g-main);font-weight:600;">'+ghs(t.platform_fee)+'</td>' +
+      '<td style="color:#5DC98A;font-weight:600;">'+ghs(t.provider_earning)+'</td>' +
+      '<td><span style="padding:4px 10px;border-radius:100px;font-size:10px;font-weight:700;background:'+(isPaid?'rgba(93,201,138,0.12)':'rgba(224,112,112,0.1)')+';color:'+(isPaid?'#5DC98A':'#E07070')+';">'+(isPaid?'✅ Paid':'⏳ Pending')+'</span></td>' +
+      '<td style="font-size:10px;font-family:monospace;color:var(--t-muted);">'+t.payment_reference+'</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function filterTransactions() {
+  var provId = document.getElementById('pay-filter-provider').value;
+  var status = document.getElementById('pay-filter-status').value;
+  var token = localStorage.getItem('sl_token');
+  var params = new URLSearchParams();
+  if (provId) params.set('provider_id', provId);
+  if (status) params.set('payout_status', status);
+  axios.get('/api/payments/admin/transactions?'+params.toString(), { headers:{ Authorization:'Bearer '+token }})
+    .then(function(r) { _allTransactions = r.data.transactions||[]; renderTransactions(_allTransactions); })
+    .catch(function() { showToast('Filter failed','error'); });
+}
+
+function toggleTxn(checkbox) {
+  var id = parseInt(checkbox.getAttribute('data-id'));
+  if (checkbox.checked) _selectedTxnIds.add(id);
+  else _selectedTxnIds.delete(id);
+  document.getElementById('selected-count').textContent = _selectedTxnIds.size + ' selected';
+}
+
+function toggleAllTxn(master) {
+  document.querySelectorAll('.txn-check:not(:disabled)').forEach(function(cb) {
+    cb.checked = master.checked;
+    var id = parseInt(cb.getAttribute('data-id'));
+    if (master.checked) _selectedTxnIds.add(id);
+    else _selectedTxnIds.delete(id);
+  });
+  document.getElementById('selected-count').textContent = _selectedTxnIds.size + ' selected';
+}
+
+function bulkMarkPaid() {
+  if (_selectedTxnIds.size === 0) { showToast('Select at least one transaction','error'); return; }
+  if (!confirm('Mark '+_selectedTxnIds.size+' transaction(s) as paid out?')) return;
+  var token = localStorage.getItem('sl_token');
+  axios.post('/api/payments/admin/payout', { transaction_ids: Array.from(_selectedTxnIds) }, { headers:{ Authorization:'Bearer '+token }})
+    .then(function(r) { showToast(r.data.message || 'Marked as paid','success'); loadPaymentSummary(); })
+    .catch(function(e) { showToast(e.response?.data?.error||'Failed','error'); });
+}
+
+function markProviderPaid(providerId, name) {
+  if (!confirm('Mark ALL pending transactions for '+name+' as paid out?')) return;
+  var token = localStorage.getItem('sl_token');
+  axios.post('/api/payments/admin/payout', { provider_id: providerId, notes:'Bulk payout by admin' }, { headers:{ Authorization:'Bearer '+token }})
+    .then(function(r) { showToast('All paid for '+name,'success'); loadPaymentSummary(); })
+    .catch(function(e) { showToast(e.response?.data?.error||'Failed','error'); });
+}
+
+function exportTransactions() {
+  var headers = ['Date','Customer','Customer Email','Provider','MoMo','Service','Booking Date','Gross GHS','Platform Fee GHS','Provider Earning GHS','Payout Status','Reference'];
+  var rows = _allTransactions.map(function(t) {
+    return [
+      t.created_at, t.first_name+' '+t.last_name, t.customer_email,
+      t.business_name, t.momo_number||'', t.service_name, t.booking_date,
+      (t.amount_paid/100).toFixed(2), (t.platform_fee/100).toFixed(2),
+      (t.provider_earning/100).toFixed(2), t.payout_status, t.payment_reference
+    ].join(',');
+  });
+  var csv = [headers.join(',')].concat(rows).join('\\n');
+  var blob = new Blob([csv], {type:'text/csv'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'salonlink-transactions-'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+  showToast('CSV exported','success');
 }
 </script>
 </body></html>`
