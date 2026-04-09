@@ -493,15 +493,22 @@ function viewPublicProfile() {
         var lp = document.getElementById('logo-preview');
         if (lp) lp.innerHTML = '<img src="'+p.logo_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>';
       }
-      // Load existing cover
-      if (p.cover_url) {
-        var cp = document.getElementById('cover-preview');
-        if (cp) {
-          cp.style.backgroundImage = 'url('+p.cover_url+')';
-          cp.style.backgroundSize = 'cover';
-          cp.style.backgroundPosition = 'center';
-          cp.innerHTML = '<div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.5);color:white;font-size:9px;padding:4px 8px;border-radius:100px;font-weight:600;">Change Cover</div>';
-        }
+      // Load existing cover from gallery (cover stored in provider_gallery with is_logo=2)
+      if (providerIdGlobal) {
+        axios.get('/api/uploads/provider-gallery/'+providerIdGlobal)
+          .then(function(gr) {
+            var photos = gr.data.photos || gr.data.gallery || [];
+            var coverPhoto = photos.find(function(ph) { return ph.is_logo === 2; });
+            if (coverPhoto) {
+              var cp = document.getElementById('cover-preview');
+              if (cp) {
+                cp.style.backgroundImage = 'url('+coverPhoto.image_url+')';
+                cp.style.backgroundSize = 'cover';
+                cp.style.backgroundPosition = 'center';
+                cp.innerHTML = '<div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.5);color:white;font-size:9px;padding:4px 8px;border-radius:100px;font-weight:600;">Change Cover</div>';
+              }
+            }
+          }).catch(function() {});
       }
 
       // KPIs
@@ -726,11 +733,16 @@ function uploadCoverImage(input) {
   if (file.size > 10*1024*1024) { showToast('Image too large (max 10MB)', 'error'); input.value=''; return; }
   showToast('Uploading cover...', 'info');
   fileToBase64(file, function(b64) {
-    axios.put('/api/providers/me', { cover_url: b64 }, { headers:{ Authorization:'Bearer '+token } })
+    axios.post('/api/uploads/provider-cover', { image_url: b64 }, { headers:{ Authorization:'Bearer '+token } })
       .then(function(){
-        showToast('Cover photo updated! ✦', 'success');
+        showToast('Cover photo updated! Customers will see it on your profile ✦', 'success');
         var cp = document.getElementById('cover-preview');
-        if (cp) { cp.style.backgroundImage='url('+b64+')'; cp.style.backgroundSize='cover'; cp.style.backgroundPosition='center'; }
+        if (cp) {
+          cp.style.backgroundImage='url('+b64+')';
+          cp.style.backgroundSize='cover';
+          cp.style.backgroundPosition='center';
+          cp.innerHTML='';
+        }
       })
       .catch(function(e){ showToast(e.response?e.response.data.error:'Upload failed', 'error'); });
   });
@@ -741,7 +753,9 @@ function loadGallery(token) {
   if (!providerIdGlobal) return;
   axios.get('/api/uploads/provider-gallery/'+providerIdGlobal, { headers:{ Authorization:'Bearer '+token } })
     .then(function(r) {
-      var photos = r.data.photos||r.data.gallery||[];
+      var allPhotos = r.data.photos||r.data.gallery||[];
+      // Exclude logo (is_logo=1) and cover (is_logo=2) from work photos grid
+      var photos = allPhotos.filter(function(ph) { return !ph.is_logo; });
       var grid = document.getElementById('gallery-grid'); if(!grid) return;
       var maxImg = r.data.is_pro ? 10 : 5;
       var gcl = document.getElementById('gallery-count-label');

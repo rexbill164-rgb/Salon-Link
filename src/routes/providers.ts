@@ -20,10 +20,16 @@ providers.get('/', async (c) => {
     const { category, city, min_rating, max_price, search, limit = '20', offset = '0' } = c.req.query()
 
     let query = `
-      SELECT p.*, u.first_name, u.last_name, u.avatar_url as user_avatar,
+      SELECT p.id, p.user_id, p.business_name, p.service_category, p.bio, p.address, p.city,
+        p.location_lat, p.location_lng, p.price_from, p.price_to, p.rating, p.total_reviews,
+        p.total_bookings, p.is_verified, p.is_accepting_bookings, p.kyc_status, p.logo_url,
+        p.has_pro_gallery, p.created_at,
+        COALESCE(cov.image_url, p.logo_url) as cover_url,
+        u.first_name, u.last_name, u.avatar_url as user_avatar,
         (SELECT COUNT(*) FROM services s WHERE s.provider_id = p.id AND s.is_active = 1) as service_count
       FROM providers p
       JOIN users u ON p.user_id = u.id
+      LEFT JOIN provider_gallery cov ON cov.provider_id = p.id AND cov.is_logo = 2
       WHERE 1=1
     `
     const params: any[] = []
@@ -297,9 +303,14 @@ providers.get('/nearby', async (c) => {
     const { lat, lng, limit = '20' } = c.req.query()
     // Fetch all providers and compute distance in JS (D1 has no geo functions)
     const result = await c.env.DB.prepare(`
-      SELECT p.*, u.first_name, u.last_name,
+      SELECT p.id, p.user_id, p.business_name, p.service_category, p.bio, p.city,
+        p.location_lat, p.location_lng, p.price_from, p.price_to, p.rating, p.total_reviews,
+        p.is_verified, p.is_accepting_bookings, p.logo_url,
+        COALESCE(cov.image_url, p.logo_url) as cover_url,
+        u.first_name, u.last_name,
         (SELECT COUNT(*) FROM services s WHERE s.provider_id = p.id AND s.is_active = 1) as service_count
       FROM providers p JOIN users u ON p.user_id = u.id
+      LEFT JOIN provider_gallery cov ON cov.provider_id = p.id AND cov.is_logo = 2
     `).all()
 
     let providersList = result.results as any[]
@@ -337,8 +348,14 @@ providers.get('/:id', async (c) => {
     const id = c.req.param('id')
 
     const provider = await c.env.DB.prepare(`
-      SELECT p.*, u.first_name, u.last_name, u.email, u.phone
+      SELECT p.id, p.user_id, p.business_name, p.service_category, p.bio, p.address, p.city,
+        p.location_lat, p.location_lng, p.price_from, p.price_to, p.rating, p.total_reviews,
+        p.total_bookings, p.is_verified, p.is_accepting_bookings, p.kyc_status, p.logo_url,
+        p.has_pro_gallery, p.working_hours, p.kyc_card_number, p.created_at,
+        COALESCE(cov.image_url, p.logo_url) as cover_url,
+        u.first_name, u.last_name, u.email, u.phone
       FROM providers p JOIN users u ON p.user_id = u.id
+      LEFT JOIN provider_gallery cov ON cov.provider_id = p.id AND cov.is_logo = 2
       WHERE p.id = ?
     `).bind(id).first()
 

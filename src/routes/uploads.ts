@@ -119,6 +119,48 @@ uploads.post('/provider-gallery', async (c) => {
   }
 })
 
+// POST /api/uploads/provider-cover — upload provider cover/background photo
+uploads.post('/provider-cover', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
+    if (user.role !== 'provider') return c.json({ success: false, error: 'Only providers can upload cover' }, 403)
+
+    const provider = await c.env.DB.prepare(
+      'SELECT id FROM providers WHERE user_id = ?'
+    ).bind(user.sub).first() as any
+    if (!provider) return c.json({ success: false, error: 'Provider profile not found' }, 404)
+
+    const body = await c.req.json()
+    const { image_url } = body
+    if (!image_url) return c.json({ success: false, error: 'Image required' }, 400)
+
+    if (image_url.startsWith('data:')) {
+      const size = getImageSize(image_url)
+      if (size > 10 * 1024 * 1024) return c.json({ success: false, error: 'Image too large. Max 10MB' }, 400)
+    }
+
+    // Remove old cover entry from gallery (is_logo=2)
+    await c.env.DB.prepare(
+      'DELETE FROM provider_gallery WHERE provider_id = ? AND is_logo = 2'
+    ).bind(provider.id).run()
+
+    // Insert new cover into gallery with is_logo=2 marker
+    await c.env.DB.prepare(
+      'INSERT INTO provider_gallery (provider_id, image_url, caption, is_logo) VALUES (?, ?, ?, 2)'
+    ).bind(provider.id, image_url, 'Cover Photo').run()
+
+    // Mark providers.cover_url as 'gallery' (the actual image is in provider_gallery)
+    await c.env.DB.prepare(
+      'UPDATE providers SET cover_url = ? WHERE id = ?'
+    ).bind('gallery', provider.id).run()
+
+    return c.json({ success: true, message: 'Cover photo updated' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
 // GET /api/uploads/provider-gallery/:provider_id — get provider gallery
 uploads.get('/provider-gallery/:provider_id', async (c) => {
   try {
