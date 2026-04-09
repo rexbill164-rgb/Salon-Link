@@ -87,11 +87,11 @@ auth.post('/register', async (c) => {
 
     const userId = result.meta.last_row_id
 
-    // If provider, create provider profile
-    if (userRole === 'provider' && business_name) {
+    // If provider, always create provider profile (business_name can be set later in onboarding)
+    if (userRole === 'provider') {
       await c.env.DB.prepare(
         'INSERT INTO providers (user_id, business_name, service_category) VALUES (?, ?, ?)'
-      ).bind(userId, business_name, service_category || 'hair_salon').run()
+      ).bind(userId, business_name || (first_name + ' Salon'), service_category || 'hair_salon').run()
     }
 
     // Generate JWT
@@ -102,7 +102,13 @@ auth.post('/register', async (c) => {
 
     const user = await c.env.DB.prepare(
       'SELECT id, email, phone, first_name, last_name, role, avatar_url, is_verified FROM users WHERE id = ?'
-    ).bind(userId).first()
+    ).bind(userId).first() as any
+
+    // Attach provider_id if provider
+    if (userRole === 'provider') {
+      const prow = await c.env.DB.prepare('SELECT id FROM providers WHERE user_id = ?').bind(userId).first() as any
+      if (prow && user) (user as any).provider_id = prow.id
+    }
 
     // Notify admin of new registration
     const roleLabel = userRole === 'provider' ? '🔴 SERVICE PROVIDER' : '🟢 CUSTOMER'

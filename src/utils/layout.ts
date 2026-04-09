@@ -502,8 +502,21 @@ export const navbar = (active = '') => `
   <div style="padding:0 20px;height:70px;display:flex;align-items:center;justify-content:space-between;max-width:1440px;margin:0 auto;width:100%;">
 
     <!-- Logo -->
-    <a href="/" style="display:flex;align-items:center;text-decoration:none;flex-shrink:0;">
-      <img src="/salonlink-logo.png" alt="SalonLink" style="height:40px;width:auto;display:block;object-fit:contain;"/>
+    <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;">
+      <!-- SalonLink App Icon: woman silhouette + location pin -->
+      <div style="width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#833AB4 0%,#E1306C 55%,#FCAF45 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(225,48,108,0.4);flex-shrink:0;">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Woman head silhouette -->
+          <ellipse cx="16" cy="10" rx="5.5" ry="6" fill="rgba(255,255,255,0.95)"/>
+          <path d="M8 26c0-5 3.6-8 8-8s8 3 8 8" fill="rgba(255,255,255,0.95)"/>
+          <!-- Hair flowing -->
+          <path d="M10.5 8 Q9 4 13 3 Q16 2 19 3 Q23 4 21.5 8" fill="rgba(255,255,255,0.7)" stroke="none"/>
+          <!-- Location pin overlay -->
+          <circle cx="23" cy="22" r="6" fill="rgba(255,255,255,0.25)"/>
+          <path d="M23 16.5c-2.2 0-4 1.8-4 4 0 3 4 7.5 4 7.5s4-4.5 4-7.5c0-2.2-1.8-4-4-4zm0 5.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z" fill="white"/>
+        </svg>
+      </div>
+      <span style="font-family:'Poppins',sans-serif;font-size:19px;font-weight:800;letter-spacing:-0.03em;background:linear-gradient(135deg,#833AB4,#E1306C,#FCAF45);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;">Salon<span style="font-weight:500;font-style:italic;letter-spacing:0.01em;">Link</span></span>
     </a>
 
     <!-- Center links -->
@@ -556,7 +569,7 @@ export const mobileNav = (active = '') => `
   ${[
     {href:'/',icon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',label:'Home',id:'home'},
     {href:'/discover',icon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',label:'Discover',id:'discover'},
-    {href:'/book/1',icon:'plus',label:'Book',id:'book'},
+    {href:'/discover',icon:'plus',label:'Book',id:'book'},
     {href:'/dashboard',icon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',label:'Bookings',id:'dashboard'},
     {href:'/settings',icon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',label:'Profile',id:'settings'},
   ].map(l => `

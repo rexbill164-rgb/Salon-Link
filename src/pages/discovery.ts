@@ -5,8 +5,9 @@ export const discoveryPage = () => `<!DOCTYPE html>
 <head>
 ${baseHead('Discover Services', `
 <style>
-  .filter-row { display:flex; gap:10px; align-items:center; }
-  @media(max-width:640px){ .filter-row { flex-wrap:wrap; } }
+  .filter-row { display:flex; gap:8px; align-items:center; overflow-x:auto; padding-bottom:4px; }
+  .filter-row::-webkit-scrollbar { display:none; }
+  @media(max-width:640px){ .filter-row { flex-wrap:nowrap; } }
   .cat-chip {
     flex-shrink:0; padding:9px 20px; border-radius:100px;
     font-size:12px; font-weight:600; letter-spacing:0.05em;
@@ -44,7 +45,7 @@ ${baseHead('Discover Services', `
 <body>
 ${navbar('discover')}
 
-<div style="min-height:calc(100vh - 70px);padding:48px 0 120px;background:var(--c-deep);">
+<div style="min-height:calc(100vh - 70px);padding:20px 0 120px;background:var(--c-deep);">
   <div class="container">
 
     <!-- ── PAGE HEADER ── -->

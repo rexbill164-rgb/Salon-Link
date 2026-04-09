@@ -295,6 +295,12 @@ providers.get('/me/dashboard', async (c) => {
       WHERE b.provider_id = ? AND b.status = 'pending' ORDER BY b.booking_date ASC, b.booking_time ASC LIMIT 10
     `).bind(provider.id).all()
 
+    const recentReviews = await c.env.DB.prepare(`
+      SELECT r.rating, r.comment, u.first_name, u.last_name
+      FROM reviews r JOIN bookings b ON r.booking_id = b.id JOIN users u ON b.customer_id = u.id
+      WHERE b.provider_id = ? ORDER BY r.created_at DESC LIMIT 5
+    `).bind(provider.id).all()
+
     return c.json({
       success: true,
       provider,
@@ -306,7 +312,8 @@ providers.get('/me/dashboard', async (c) => {
         total_reviews: provider.total_reviews
       },
       today_appointments: todayBookings.results,
-      pending_bookings: pendingBookings.results
+      pending_bookings: pendingBookings.results,
+      recent_reviews: recentReviews.results
     })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
