@@ -127,7 +127,15 @@ uploads.get('/provider-gallery/:provider_id', async (c) => {
       'SELECT id, image_url, caption, is_logo, created_at FROM provider_gallery WHERE provider_id = ? ORDER BY is_logo DESC, created_at DESC'
     ).bind(providerId).all()
 
-    return c.json({ success: true, gallery: gallery.results })
+    // Get pro status
+    const provider = await c.env.DB.prepare(
+      'SELECT has_pro_gallery, gallery_count FROM providers WHERE id = ?'
+    ).bind(providerId).first() as any
+
+    const is_pro = !!(provider?.has_pro_gallery)
+    const photos = gallery.results
+
+    return c.json({ success: true, photos, gallery: photos, is_pro, photo_count: photos.length })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }

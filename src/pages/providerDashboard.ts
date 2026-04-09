@@ -645,7 +645,7 @@ function uploadGalleryImage(input) {
   var token = localStorage.getItem('sl_token');
   var fd = new FormData(); fd.append('file', input.files[0]); fd.append('type','gallery');
   showToast('Uploading photo...', 'info');
-  axios.post('/api/uploads/gallery', fd, { headers:{ Authorization:'Bearer '+token, 'Content-Type':'multipart/form-data' } })
+  axios.post('/api/uploads/provider-gallery', fd, { headers:{ Authorization:'Bearer '+token, 'Content-Type':'multipart/form-data' } })
     .then(function(){ showToast('Photo added! ✦', 'success'); loadGallery(token); })
     .catch(function(e){ showToast(e.response?e.response.data.error:'Upload failed', 'error'); });
   input.value='';
@@ -656,7 +656,7 @@ function uploadLogoImage(input) {
   var token = localStorage.getItem('sl_token');
   var fd = new FormData(); fd.append('file', input.files[0]); fd.append('type','logo');
   showToast('Uploading logo...', 'info');
-  axios.post('/api/uploads/logo', fd, { headers:{ Authorization:'Bearer '+token, 'Content-Type':'multipart/form-data' } })
+  axios.post('/api/uploads/provider-logo', fd, { headers:{ Authorization:'Bearer '+token, 'Content-Type':'multipart/form-data' } })
     .then(function(r){
       showToast('Logo updated! ✦', 'success');
       var lp = document.getElementById('logo-preview');
@@ -670,7 +670,7 @@ function loadGallery(token) {
   if (!providerIdGlobal) return;
   axios.get('/api/uploads/provider-gallery/'+providerIdGlobal, { headers:{ Authorization:'Bearer '+token } })
     .then(function(r) {
-      var photos = r.data.photos||[];
+      var photos = r.data.photos||r.data.gallery||[];
       var grid = document.getElementById('gallery-grid'); if(!grid) return;
       var maxImg = r.data.is_pro ? 10 : 5;
       var gcl = document.getElementById('gallery-count-label');
@@ -690,7 +690,7 @@ function loadGallery(token) {
 function deleteGalleryImage(id) {
   if (!confirm('Delete this photo?')) return;
   var token = localStorage.getItem('sl_token');
-  axios.delete('/api/uploads/gallery/'+id, { headers:{ Authorization:'Bearer '+token } })
+  axios.delete('/api/uploads/provider-gallery/'+id, { headers:{ Authorization:'Bearer '+token } })
     .then(function(){ showToast('Photo deleted', 'info'); loadGallery(token); })
     .catch(function(){ showToast('Delete failed', 'error'); });
 }
