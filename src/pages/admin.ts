@@ -215,8 +215,8 @@ ${baseHead('Admin Panel', `
         <div class="eyebrow" style="margin-bottom:24px;">KYC Verification Queue</div>
         <div class="table-scroll">
           <table class="admin-table">
-            <thead><tr><th>Business / Provider</th><th>Email</th><th>Category</th><th>Ghana Card</th><th>Selfie</th><th>Actions</th></tr></thead>
-            <tbody id="kyc-tbody"><tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">Select KYC tab to load queue</td></tr></tbody>
+            <thead><tr><th>Business / Provider</th><th>Email</th><th>Category</th><th>Documents</th><th>Actions</th></tr></thead>
+            <tbody id="kyc-tbody"><tr><td colspan="5" style="text-align:center;padding:32px;color:var(--t-muted);">Select KYC tab to load queue</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -250,8 +250,8 @@ ${baseHead('Admin Panel', `
         <div class="eyebrow" style="margin-bottom:20px;">Manage Providers</div>
         <div class="table-scroll">
           <table class="admin-table">
-            <thead><tr><th>Business</th><th>Email</th><th>Category</th><th>Rating</th><th>KYC</th><th>Actions</th></tr></thead>
-            <tbody id="providers-tbody"><tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">Loading...</td></tr></tbody>
+            <thead><tr><th>Business</th><th>Email</th><th>Category</th><th>Rating</th><th>KYC</th><th>City</th><th>Actions</th></tr></thead>
+            <tbody id="providers-tbody"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t-muted);">Select Providers tab to load</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -534,52 +534,66 @@ function loadUsers() {
 
 function loadProviders() {
   var h = adminHeaders();
-  if (!h) return;
+  if (!h) { window.location.href='/login'; return; }
   var tbody = document.getElementById('providers-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--t-muted);">Loading...</td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t-muted);">Loading...</td></tr>';
   axios.get('/api/admin/providers', { headers: h }).then(function(res) {
     if (!tbody) return;
     var rows = (res.data.providers || []);
     tbody.innerHTML = rows.length ? rows.map(function(p) {
+      var kycBadge = p.kyc_status==='approved' ? 'badge-verified' : p.kyc_status==='rejected' ? 'badge-error' : 'badge-pending';
       return '<tr>' +
-        '<td style="font-weight:600;">' + (p.business_name||'—') + '</td>' +
-        '<td style="font-size:12px;">' + (p.email||'') + '</td>' +
+        '<td style="font-weight:600;">' + (p.business_name||'—') + '<div style="font-size:10px;color:#888;">' + (p.first_name||'') + ' ' + (p.last_name||'') + '</div></td>' +
+        '<td style="font-size:12px;">' + (p.email||'') + '<div style="font-size:10px;color:#888;">' + (p.phone||'') + '</div></td>' +
         '<td>' + (p.service_category||'').replace(/_/g,' ') + '</td>' +
-        '<td>' + (p.rating||0) + ' ★</td>' +
-        '<td><span class="badge ' + (p.kyc_status==='approved'?'badge-verified':'badge-pending') + '">' + (p.kyc_status||'pending') + '</span></td>' +
+        '<td>' + (p.rating||0).toFixed(1) + ' ★<div style="font-size:10px;color:#888;">' + (p.total_reviews||0) + ' reviews</div></td>' +
+        '<td><span class="badge ' + kycBadge + '">' + (p.kyc_status||'pending') + '</span></td>' +
+        '<td style="font-size:11px;">' + (p.city||'') + '</td>' +
         '<td>' +
-          '<button onclick="approveKyc(' + p.id + ')" class="btn-primary" style="padding:5px 12px;font-size:10px;margin-right:4px;">Approve</button>' +
-          '<button onclick="rejectKyc(' + p.id + ')" style="padding:5px 12px;font-size:10px;background:none;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);border-radius:8px;cursor:pointer;">Reject</button>' +
+          '<button onclick="viewProviderKyc(' + p.id + ')" style="padding:5px 10px;font-size:10px;background:rgba(160,120,48,0.1);border:1px solid rgba(160,120,48,0.3);color:#a0793c;border-radius:8px;cursor:pointer;margin-bottom:4px;display:block;width:100%;">🪪 View KYC</button>' +
+          '<button onclick="approveKyc(' + p.id + ')" class="btn-primary" style="padding:5px 10px;font-size:10px;margin-bottom:4px;display:block;width:100%;">✓ Approve</button>' +
+          '<button onclick="rejectKyc(' + p.id + ')" style="padding:5px 10px;font-size:10px;background:none;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);border-radius:8px;cursor:pointer;display:block;width:100%;">✗ Reject</button>' +
         '</td>' +
       '</tr>';
-    }).join('') : '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">No providers found</td></tr>';
-  }).catch(function(e) { if(tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--s-red);">Failed to load providers</td></tr>'; });
+    }).join('') : '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t-muted);">No providers found</td></tr>';
+  }).catch(function(e) {
+    var msg = e.response && e.response.status === 403 ? 'Session expired — please log in again' : (e.response && e.response.data && e.response.data.error) || 'Failed to load providers';
+    if(tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--s-red);">' + msg + '</td></tr>';
+    if (e.response && e.response.status === 403) setTimeout(function(){ window.location.href='/login'; }, 2000);
+  });
 }
 
 function loadKyc() {
   var h = adminHeaders();
-  if (!h) return;
+  if (!h) { window.location.href='/login'; return; }
   var kyctbody = document.getElementById('kyc-tbody');
-  if (kyctbody) kyctbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--t-muted);">Loading KYC queue...</td></tr>';
+  if (kyctbody) kyctbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--t-muted);">Loading KYC queue...</td></tr>';
   axios.get('/api/admin/providers', { headers: h }).then(function(res) {
     if (!kyctbody) return;
     var rows = (res.data.providers || []);
-    var pending = rows.filter(function(p) { return p.kyc_status === 'pending' || p.kyc_status === 'submitted'; });
+    /* Show all providers that are NOT yet approved or rejected */
+    var pending = rows.filter(function(p) { return p.kyc_status !== 'approved' && p.kyc_status !== 'rejected'; });
     kyctbody.innerHTML = pending.length ? pending.map(function(p) {
-      var cardNum = p.kyc_card_number ? '<div style="font-size:10px;font-weight:700;color:#a0793c;margin-top:4px;">' + p.kyc_card_number + '</div>' : '';
+      var cardNum = p.kyc_card_number ? '<div style="font-size:10px;font-weight:700;color:#a0793c;margin-top:2px;">Card: ' + p.kyc_card_number + '</div>' : '<div style="font-size:10px;color:#bbb;margin-top:2px;">No card # submitted</div>';
+      var statusBadge = p.kyc_status === 'submitted' ? '<span class="badge badge-verified" style="font-size:9px;">Submitted</span>' : '<span class="badge badge-pending" style="font-size:9px;">Pending</span>';
       return '<tr id="kyc-row-' + p.id + '">' +
-        '<td><div style="font-weight:700;">' + (p.business_name||'—') + '</div><div style="font-size:11px;color:#888;">' + (p.first_name||'') + ' ' + (p.last_name||'') + '</div>' + cardNum + '</td>' +
-        '<td style="font-size:12px;">' + (p.email||'') + '</td>' +
+        '<td><div style="font-weight:700;font-size:13px;">' + (p.business_name||'—') + '</div><div style="font-size:11px;color:#888;">' + (p.first_name||'') + ' ' + (p.last_name||'') + '</div>' + cardNum + '<div style="margin-top:4px;">' + statusBadge + '</div></td>' +
+        '<td style="font-size:12px;">' + (p.email||'') + '<div style="font-size:10px;color:#888;">' + (p.phone||'') + '</div></td>' +
         '<td>' + (p.service_category||'').replace(/_/g,' ') + '</td>' +
-        '<td id="kyc-imgs-' + p.id + '"><button onclick="loadKycImages(' + p.id + ')" style="padding:5px 12px;font-size:11px;background:rgba(160,120,48,0.1);border:1px solid rgba(160,120,48,0.3);color:#a0793c;border-radius:8px;cursor:pointer;">🪪 View Docs</button></td>' +
-        '<td id="kyc-selfie-' + p.id + '">—</td>' +
+        '<td>' +
+          '<button onclick="viewProviderKyc(' + p.id + ')" style="padding:7px 14px;font-size:11px;background:rgba(160,120,48,0.12);border:1px solid rgba(160,120,48,0.35);color:#a0793c;border-radius:8px;cursor:pointer;font-weight:600;">🪪 View Documents</button>' +
+        '</td>' +
         '<td>' +
           '<button onclick="approveKyc(' + p.id + ')" class="btn-primary" style="padding:6px 14px;font-size:11px;margin-bottom:4px;display:block;width:100%;">✓ Approve</button>' +
           '<button onclick="rejectKyc(' + p.id + ')" style="padding:6px 14px;font-size:11px;background:none;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);border-radius:8px;cursor:pointer;display:block;width:100%;">✗ Reject</button>' +
         '</td>' +
       '</tr>';
-    }).join('') : '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">No pending KYC submissions ✦</td></tr>';
-  }).catch(function(e) { if(kyctbody) kyctbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--s-red);">Failed to load KYC data</td></tr>'; });
+    }).join('') : '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--t-muted);">✦ All providers are reviewed — no pending KYC</td></tr>';
+  }).catch(function(e) {
+    var msg = e.response && e.response.status === 403 ? 'Session expired — please log in again' : 'Failed to load KYC data';
+    if(kyctbody) kyctbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--s-red);">' + msg + '</td></tr>';
+    if (e.response && e.response.status === 403) setTimeout(function(){ window.location.href='/login'; }, 2000);
+  });
 }
 
 function loadBookings() {
@@ -611,22 +625,68 @@ function toggleUser(id) {
     .catch(function() { showToast('Action failed', 'error'); });
 }
 
-// Load KYC images on demand (avoids freezing page with huge base64 payloads)
-function loadKycImages(providerId) {
+// View full KYC documents in a modal (called from both Providers and KYC tabs)
+function viewProviderKyc(providerId) {
   var token = localStorage.getItem('sl_token');
-  var cell = document.getElementById('kyc-imgs-' + providerId);
-  var selfieCell = document.getElementById('kyc-selfie-' + providerId);
-  if (cell) cell.textContent = 'Loading...';
+  // Create modal overlay
+  var overlay = document.createElement('div');
+  overlay.id = 'kyc-modal-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  overlay.innerHTML = '<div style="background:#1a1a2e;border-radius:20px;padding:28px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;position:relative;">' +
+    '<button onclick="document.getElementById(\'kyc-modal-overlay\').remove()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.1);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;">✕</button>' +
+    '<div style="font-size:16px;font-weight:700;color:#c9a84c;margin-bottom:20px;">\uD83E\uDEAA KYC Documents</div>' +
+    '<div id="kyc-modal-content" style="text-align:center;color:#888;padding:20px;">Loading documents...</div>' +
+  '</div>';
+  document.body.appendChild(overlay);
+  // Close on backdrop click
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.remove(); });
+
   axios.get('/api/admin/providers/' + providerId + '/kyc-images', { headers: { Authorization: 'Bearer ' + token } })
     .then(function(r) {
       var imgs = r.data.images || {};
-      var front = imgs.kyc_front_url ? '<img src="' + imgs.kyc_front_url + '" style="width:70px;height:45px;object-fit:cover;border-radius:6px;cursor:pointer;" data-caption="Ghana Card Front" onclick="viewImgBtn(this)" title="Click to enlarge"/>' : '<span style="color:#bbb;font-size:11px;">Not uploaded</span>';
-      var back  = imgs.kyc_back_url  ? '<img src="' + imgs.kyc_back_url  + '" style="width:70px;height:45px;object-fit:cover;border-radius:6px;cursor:pointer;" data-caption="Ghana Card Back"  onclick="viewImgBtn(this)" title="Click to enlarge"/>' : '<span style="color:#bbb;font-size:11px;">Not uploaded</span>';
-      var selfie= imgs.kyc_selfie_url? '<img src="' + imgs.kyc_selfie_url + '" style="width:45px;height:45px;object-fit:cover;border-radius:50%;cursor:pointer;" data-caption="Selfie" onclick="viewImgBtn(this)" title="Click to enlarge"/>' : '<span style="color:#bbb;font-size:11px;">Not taken</span>';
-      if (cell) cell.innerHTML = '<div style="display:flex;gap:6px;align-items:center;">' + front + back + '</div>';
-      if (selfieCell) selfieCell.innerHTML = selfie;
+      var hasAny = imgs.kyc_front_url || imgs.kyc_back_url || imgs.kyc_selfie_url;
+      var content = document.getElementById('kyc-modal-content');
+      if (!content) return;
+      if (!hasAny) {
+        content.innerHTML = '<div style="padding:32px;color:#888;font-size:14px;">\uD83D\uDCCB No documents uploaded yet by this provider.</div>';
+        return;
+      }
+      var sections = '';
+      if (imgs.kyc_card_number) {
+        sections += '<div style="margin-bottom:20px;padding:12px 16px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-radius:12px;text-align:left;">' +
+          '<div style="font-size:11px;color:#888;margin-bottom:4px;">GHANA CARD NUMBER</div>' +
+          '<div style="font-size:15px;font-weight:700;color:#c9a84c;letter-spacing:0.05em;">' + imgs.kyc_card_number + '</div>' +
+        '</div>';
+      }
+      if (imgs.kyc_front_url) {
+        sections += '<div style="margin-bottom:20px;">' +
+          '<div style="font-size:11px;color:#888;margin-bottom:8px;text-align:left;">GHANA CARD — FRONT</div>' +
+          '<img src="' + imgs.kyc_front_url + '" style="width:100%;max-height:240px;object-fit:contain;border-radius:12px;background:#000;cursor:pointer;border:1px solid rgba(255,255,255,0.08);" onclick="viewImg(this.src,\'Ghana Card Front\')" title="Click to enlarge"/>' +
+        '</div>';
+      }
+      if (imgs.kyc_back_url) {
+        sections += '<div style="margin-bottom:20px;">' +
+          '<div style="font-size:11px;color:#888;margin-bottom:8px;text-align:left;">GHANA CARD — BACK</div>' +
+          '<img src="' + imgs.kyc_back_url + '" style="width:100%;max-height:240px;object-fit:contain;border-radius:12px;background:#000;cursor:pointer;border:1px solid rgba(255,255,255,0.08);" onclick="viewImg(this.src,\'Ghana Card Back\')" title="Click to enlarge"/>' +
+        '</div>';
+      }
+      if (imgs.kyc_selfie_url) {
+        sections += '<div style="margin-bottom:20px;">' +
+          '<div style="font-size:11px;color:#888;margin-bottom:8px;text-align:left;">LIVE SELFIE</div>' +
+          '<img src="' + imgs.kyc_selfie_url + '" style="width:160px;height:160px;object-fit:cover;border-radius:50%;cursor:pointer;border:3px solid rgba(201,168,76,0.4);" onclick="viewImg(this.src,\'Selfie\')" title="Click to enlarge"/>' +
+        '</div>';
+      }
+      content.innerHTML = sections;
     })
-    .catch(function() { if (cell) cell.textContent = 'Failed to load'; });
+    .catch(function(e) {
+      var content = document.getElementById('kyc-modal-content');
+      if (content) content.innerHTML = '<div style="color:var(--s-red);padding:20px;">Failed to load documents. ' + (e.response && e.response.status === 403 ? 'Session expired.' : '') + '</div>';
+    });
+}
+
+// Legacy: Load KYC images inline (kept for backwards compat)
+function loadKycImages(providerId) {
+  viewProviderKyc(providerId);
 }
 
 // View KYC image in lightbox
