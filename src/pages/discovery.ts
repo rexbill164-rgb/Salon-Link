@@ -93,7 +93,7 @@ ${navbar('discover')}
     <!-- ── FILTER PANEL ── -->
     <div id="filter-panel" style="display:none;">
       <div class="filter-panel">
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:36px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:24px;">
           ${[
             {label:'Price Range',    key:'price',  opts:[['Any Price','all'],['Under GHS 50','0-50'],['GHS 50–100','50-100'],['GHS 100–200','100-200'],['GHS 200+','200+']]},
             {label:'Minimum Rating', key:'rating', opts:[['Any Rating','0'],['4.8+ Stars','4.8'],['4.5+ Stars','4.5'],['4.0+ Stars','4.0']]},

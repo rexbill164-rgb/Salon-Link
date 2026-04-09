@@ -122,6 +122,34 @@ bookings.get('/my', async (c) => {
   }
 })
 
+// GET /api/bookings/provider — provider's own bookings list
+bookings.get('/provider', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
+
+    const provider = await c.env.DB.prepare(
+      'SELECT id FROM providers WHERE user_id = ?'
+    ).bind(user.sub).first() as any
+    if (!provider) return c.json({ success: false, error: 'Not a provider' }, 403)
+
+    const result = await c.env.DB.prepare(`
+      SELECT b.*, s.name as service_name, s.duration_minutes,
+        u.first_name, u.last_name, u.phone as customer_phone,
+        b.customer_id
+      FROM bookings b
+      JOIN services s ON b.service_id = s.id
+      JOIN users u ON b.customer_id = u.id
+      WHERE b.provider_id = ?
+      ORDER BY b.booking_date DESC, b.booking_time DESC
+    `).bind(provider.id).all()
+
+    return c.json({ success: true, bookings: result.results })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
 // GET /api/bookings/:id — single booking details
 bookings.get('/:id', async (c) => {
   try {
