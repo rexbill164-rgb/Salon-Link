@@ -609,14 +609,22 @@ function confirmBooking() {
   }, { headers: { Authorization: 'Bearer ' + token } })
   .then(function(res) {
     _bookingId = res.data.booking_id;
-    _bookingRef = 'SL-' + String(_bookingId).padStart(5,'0');
-    btn.disabled = false; txt.style.display = ''; load.style.display = 'none';
-    showPaymentModal();
+    // Immediately initialize Paystack and redirect
+    txt.textContent = 'Redirecting to payment...';
+    return axios.post('/api/payments/initialize', { booking_id: _bookingId }, { headers: { Authorization: 'Bearer ' + token } });
+  })
+  .then(function(payRes) {
+    if (payRes.data.authorization_url) {
+      window.location.href = payRes.data.authorization_url;
+    } else {
+      showToast('Could not start payment. Try from your dashboard.', 'error');
+      btn.disabled = false; txt.style.display = ''; txt.textContent = 'Confirm & Book'; load.style.display = 'none';
+    }
   })
   .catch(function(err) {
     var msg = (err.response && err.response.data && err.response.data.error) || 'Booking failed. Please try again.';
     showToast(msg, 'error');
-    btn.disabled = false; txt.style.display = ''; load.style.display = 'none';
+    btn.disabled = false; txt.style.display = ''; txt.textContent = 'Confirm & Book'; load.style.display = 'none';
   });
 }
 
