@@ -7,93 +7,128 @@ export const onboardingPage = () => `<!DOCTYPE html>
   .onboard-step { display:none; animation:fadeUp 0.5s var(--ease-luxury) both; }
   .onboard-step.active { display:block; }
 
+  /* ── Upload Zone ── */
   .upload-zone {
-    border:2px dashed var(--i-faint);
-    border-radius:var(--r-xl);
-    padding:40px 24px;
-    text-align:center;
-    cursor:pointer;
-    transition:all 0.3s;
-    position:relative;
-    overflow:hidden;
+    border: 2px dashed #c9a44a;
+    border-radius: 16px;
+    padding: 28px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: #fffdf7;
+    position: relative;
   }
-  .upload-zone:hover { border-color:var(--g-main); background:var(--g-dim); }
-  .upload-zone.uploaded { border-color:#00C853; background:rgba(0,200,83,0.06); }
+  .upload-zone:hover  { border-color:#a0793c; background:#fff8ec; }
+  .upload-zone.done   { border-color:#00C853; background:rgba(0,200,83,0.05); }
   .upload-zone img.preview {
-    width:100%; max-height:160px; object-fit:cover;
-    border-radius:12px; display:block; margin:0 auto 8px;
+    width:100%; max-height:140px; object-fit:cover;
+    border-radius:10px; display:none; margin:0 auto 8px;
   }
+  .upload-zone.done img.preview { display:block; }
 
-  #camera-modal {
-    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92);
+  /* ── Camera Modal ── */
+  #cam-modal {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95);
     z-index:9999; flex-direction:column; align-items:center; justify-content:center;
   }
-  #camera-modal.open { display:flex; }
-  #camera-video { width:100%; max-width:400px; border-radius:16px; background:#000; }
-  #camera-canvas { display:none; }
+  #cam-modal.open { display:flex; }
+  #cam-video { width:100%; max-width:420px; border-radius:16px; background:#111; display:block; }
+  #cam-canvas { display:none; }
 
+  /* oval guide for selfie */
   .face-oval {
     position:absolute; top:50%; left:50%;
     transform:translate(-50%,-55%);
-    width:200px; height:260px;
-    border:3px solid #fff;
-    border-radius:50%;
-    box-shadow:0 0 0 9999px rgba(0,0,0,0.55);
+    width:190px; height:250px;
+    border:3px solid #fff; border-radius:50%;
+    box-shadow:0 0 0 9999px rgba(0,0,0,0.5);
     pointer-events:none;
     animation:pulse-oval 2s ease-in-out infinite;
   }
   @keyframes pulse-oval {
-    0%,100%{border-color:rgba(255,255,255,0.6);}
+    0%,100%{border-color:rgba(255,255,255,0.5);}
     50%{border-color:#00C853;}
   }
-  #selfie-preview {
-    display:none; width:140px; height:140px;
+
+  /* selfie round preview */
+  #selfie-round {
+    display:none; width:120px; height:120px;
     border-radius:50%; object-fit:cover;
     border:3px solid #00C853; margin:0 auto 12px;
   }
+
+  /* Action choice sheet */
+  #action-sheet {
+    display:none; position:fixed; inset:0; z-index:9990;
+    background:rgba(0,0,0,0.6); align-items:flex-end; justify-content:center;
+  }
+  #action-sheet.open { display:flex; }
+  .action-sheet-inner {
+    background:#fff; border-radius:24px 24px 0 0;
+    padding:28px 24px 40px; width:100%; max-width:480px;
+  }
 </style>
 `)}</head>
-<body style="background:var(--c-deep);">
+<body style="background:#f8f5f0;">
 
 <!-- Top bar -->
-<div style="padding:20px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--i-faint);background:#fff;">
+<div style="padding:16px 24px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #eee;background:#fff;position:sticky;top:0;z-index:100;">
   <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;">
-    <img src="/salonlink-logo.png" alt="SalonLink" style="height:36px;"/>
+    <img src="/salonlink-logo.png" alt="SalonLink" style="height:34px;"/>
   </a>
-  <span class="eyebrow">Provider Setup</span>
+  <span style="font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#888;">Provider Setup</span>
 </div>
 
-<!-- Camera Modal -->
-<div id="camera-modal">
-  <div style="position:relative;width:100%;max-width:420px;padding:0 16px;">
-    <div id="cam-title" style="color:#fff;font-size:16px;font-weight:700;text-align:center;margin-bottom:16px;">📷 Position your Ghana Card</div>
-    <div style="position:relative;background:#000;border-radius:16px;overflow:hidden;">
-      <video id="camera-video" autoplay playsinline muted></video>
-      <canvas id="camera-canvas"></canvas>
-      <!-- Face oval only shown during selfie -->
+<!-- ── Hidden file inputs ── -->
+<input type="file" id="file-card-front"  accept="image/*"           style="display:none;" onchange="handleFile(this,'front')"/>
+<input type="file" id="file-card-back"   accept="image/*"           style="display:none;" onchange="handleFile(this,'back')"/>
+<input type="file" id="file-selfie-gal"  accept="image/*"           style="display:none;" onchange="handleFile(this,'selfie')"/>
+
+<!-- ── Action Choice Sheet (Camera vs Gallery) ── -->
+<div id="action-sheet">
+  <div class="action-sheet-inner">
+    <div id="sheet-title" style="font-size:17px;font-weight:800;margin-bottom:20px;text-align:center;"></div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button onclick="sheetUseCamera()" style="background:linear-gradient(135deg,#833AB4,#E1306C);color:#fff;border:none;border-radius:14px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;">
+        <i class="fas fa-camera" style="margin-right:8px;"></i>Take Photo with Camera
+      </button>
+      <button id="sheet-gallery-btn" onclick="sheetUseGallery()" style="background:#f0f0f0;color:#333;border:none;border-radius:14px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;">
+        <i class="fas fa-image" style="margin-right:8px;"></i>Upload from Gallery
+      </button>
+      <button onclick="closeSheet()" style="background:none;color:#999;border:none;padding:10px;font-size:14px;cursor:pointer;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Camera Modal ── -->
+<div id="cam-modal">
+  <div style="width:100%;max-width:440px;padding:0 16px;">
+    <div id="cam-title" style="color:#fff;font-size:16px;font-weight:800;text-align:center;margin-bottom:14px;"></div>
+    <div style="position:relative;background:#000;border-radius:18px;overflow:hidden;">
+      <video id="cam-video" autoplay playsinline muted></video>
+      <canvas id="cam-canvas"></canvas>
       <div class="face-oval" id="face-oval" style="display:none;"></div>
     </div>
-    <div id="cam-hint" style="color:rgba(255,255,255,0.7);font-size:13px;text-align:center;margin-top:12px;"></div>
-    <div style="display:flex;gap:12px;margin-top:20px;justify-content:center;">
-      <button onclick="closeCameraModal()" style="background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:12px;padding:12px 24px;font-size:14px;cursor:pointer;">Cancel</button>
-      <button id="snap-btn" onclick="snapPhoto()" style="background:linear-gradient(135deg,#833AB4,#E1306C);color:#fff;border:none;border-radius:12px;padding:12px 32px;font-size:14px;font-weight:700;cursor:pointer;">
+    <div id="cam-hint" style="color:rgba(255,255,255,0.65);font-size:13px;text-align:center;margin-top:10px;"></div>
+    <div style="display:flex;gap:12px;margin-top:18px;justify-content:center;">
+      <button onclick="closeCam()" style="background:rgba(255,255,255,0.18);color:#fff;border:none;border-radius:12px;padding:12px 24px;font-size:14px;cursor:pointer;">Cancel</button>
+      <button onclick="snapPhoto()" style="background:linear-gradient(135deg,#833AB4,#E1306C);color:#fff;border:none;border-radius:12px;padding:12px 36px;font-size:15px;font-weight:700;cursor:pointer;">
         <i class="fas fa-camera"></i> Capture
       </button>
     </div>
-    <!-- Also allow file upload as fallback -->
-    <div style="margin-top:16px;text-align:center;">
-      <label id="file-fallback-label" style="color:rgba(255,255,255,0.5);font-size:12px;cursor:pointer;text-decoration:underline;">
-        Or upload from gallery
-        <input type="file" id="file-fallback" accept="image/*" onchange="handleFileFallback(this)" style="display:none;"/>
+    <div style="text-align:center;margin-top:14px;">
+      <label id="cam-fallback-lbl" style="color:rgba(255,255,255,0.45);font-size:12px;cursor:pointer;text-decoration:underline;">
+        Camera not working? Upload from gallery instead
+        <input type="file" id="cam-fallback-input" accept="image/*" style="display:none;" onchange="handleFileFallback(this)"/>
       </label>
     </div>
   </div>
 </div>
 
-<div style="max-width:680px;margin:0 auto;padding:40px 20px 100px;">
+<div style="max-width:680px;margin:0 auto;padding:32px 16px 100px;">
 
   <!-- Step progress -->
-  <div style="display:flex;align-items:center;margin-bottom:48px;">
+  <div style="display:flex;align-items:center;margin-bottom:40px;">
     ${[
       {n:1,label:'Identity'},
       {n:2,label:'Business'},
@@ -110,98 +145,115 @@ export const onboardingPage = () => `<!DOCTYPE html>
     `).join('')}
   </div>
 
-  <!-- ── STEP 1: Identity ── -->
+  <!-- ══════════════ STEP 1: Identity ══════════════ -->
   <div id="ob-step1" class="onboard-step active">
-    <div class="eyebrow" style="margin-bottom:14px;">Step 1 of 4</div>
-    <h2 class="display-md" style="margin-bottom:10px;">Verify Your <span class="gold-gradient">Identity</span></h2>
-    <p style="color:var(--t-secondary);margin-bottom:32px;font-size:14px;line-height:1.8;">
-      Upload your Ghana Card (front & back) and take a live selfie. This takes about 2 minutes and builds trust with clients.
+    <div class="eyebrow" style="margin-bottom:12px;">Step 1 of 4</div>
+    <h2 class="display-md" style="margin-bottom:8px;">Verify Your <span class="gold-gradient">Identity</span></h2>
+    <p style="color:var(--t-secondary);margin-bottom:28px;font-size:14px;line-height:1.8;">
+      Upload your Ghana Card (front &amp; back) and take a live selfie. This builds trust with your clients and is required to go live.
     </p>
 
     <!-- Ghana Card Number -->
-    <div style="background:#fff;border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:24px;margin-bottom:16px;">
-      <div class="eyebrow" style="margin-bottom:16px;"><i class="fas fa-id-card" style="margin-right:6px;color:var(--g-main);"></i>Ghana Card Number</div>
-      <input type="text" id="card-num" class="input" placeholder="GHA-XXXXXXXXX-X" style="text-transform:uppercase;letter-spacing:0.05em;"
-        oninput="this.value=this.value.toUpperCase()" maxlength="15"/>
-      <div style="font-size:11px;color:var(--t-muted);margin-top:8px;">Format: GHA-000000000-0 (found on front of your Ghana Card)</div>
+    <div style="background:#fff;border:1px solid #e5e5e5;border-radius:18px;padding:22px;margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#a0793c;margin-bottom:14px;">
+        <i class="fas fa-id-card" style="margin-right:6px;"></i>Ghana Card Number
+      </div>
+      <input type="text" id="card-num" class="input" placeholder="GHA-XXXXXXXXX-X"
+        style="text-transform:uppercase;letter-spacing:0.06em;font-size:15px;"
+        oninput="this.value=this.value.toUpperCase()" maxlength="16"/>
+      <div style="font-size:11px;color:#999;margin-top:6px;">Format: GHA-000000000-0 (found on front of card)</div>
     </div>
 
-    <!-- Ghana Card Front & Back -->
-    <div style="background:#fff;border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:24px;margin-bottom:16px;">
-      <div class="eyebrow" style="margin-bottom:16px;"><i class="fas fa-camera" style="margin-right:6px;color:var(--g-main);"></i>Ghana Card Photos</div>
+    <!-- Ghana Card Photos -->
+    <div style="background:#fff;border:1px solid #e5e5e5;border-radius:18px;padding:22px;margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#a0793c;margin-bottom:16px;">
+        <i class="fas fa-camera" style="margin-right:6px;"></i>Ghana Card Photos
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+
         <!-- Front -->
         <div>
-          <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--t-secondary);">FRONT SIDE</div>
-          <div class="upload-zone" id="zone-front" onclick="openCamera('front')">
-            <img id="preview-front" class="preview" style="display:none;"/>
-            <div id="placeholder-front">
-              <div style="font-size:36px;margin-bottom:10px;">📄</div>
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Tap to capture</div>
-              <div style="font-size:11px;color:var(--t-muted);">Camera or gallery</div>
+          <div style="font-size:11px;font-weight:800;margin-bottom:8px;color:#555;text-transform:uppercase;letter-spacing:0.08em;">FRONT SIDE</div>
+          <div class="upload-zone" id="zone-front" onclick="openSheet('front')">
+            <img class="preview" id="prev-front" alt="Front"/>
+            <div id="ph-front">
+              <div style="font-size:32px;margin-bottom:8px;">📄</div>
+              <div style="font-size:13px;font-weight:700;margin-bottom:3px;">Tap to upload</div>
+              <div style="font-size:11px;color:#999;">Camera or gallery</div>
             </div>
-            <div id="done-front" style="display:none;">
-              <i class="fas fa-check-circle" style="color:#00C853;font-size:24px;margin-bottom:6px;"></i>
-              <div style="font-size:12px;font-weight:700;color:#00C853;">Captured ✓</div>
+            <div id="ok-front" style="display:none;padding-top:6px;">
+              <i class="fas fa-check-circle" style="color:#00C853;font-size:22px;"></i>
+              <div style="font-size:12px;font-weight:700;color:#00C853;margin-top:4px;">Captured ✓</div>
+              <div style="font-size:10px;color:#999;margin-top:2px;">Tap to retake</div>
             </div>
           </div>
         </div>
+
         <!-- Back -->
         <div>
-          <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--t-secondary);">BACK SIDE</div>
-          <div class="upload-zone" id="zone-back" onclick="openCamera('back')">
-            <img id="preview-back" class="preview" style="display:none;"/>
-            <div id="placeholder-back">
-              <div style="font-size:36px;margin-bottom:10px;">📄</div>
-              <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Tap to capture</div>
-              <div style="font-size:11px;color:var(--t-muted);">Camera or gallery</div>
+          <div style="font-size:11px;font-weight:800;margin-bottom:8px;color:#555;text-transform:uppercase;letter-spacing:0.08em;">BACK SIDE</div>
+          <div class="upload-zone" id="zone-back" onclick="openSheet('back')">
+            <img class="preview" id="prev-back" alt="Back"/>
+            <div id="ph-back">
+              <div style="font-size:32px;margin-bottom:8px;">📄</div>
+              <div style="font-size:13px;font-weight:700;margin-bottom:3px;">Tap to upload</div>
+              <div style="font-size:11px;color:#999;">Camera or gallery</div>
             </div>
-            <div id="done-back" style="display:none;">
-              <i class="fas fa-check-circle" style="color:#00C853;font-size:24px;margin-bottom:6px;"></i>
-              <div style="font-size:12px;font-weight:700;color:#00C853;">Captured ✓</div>
+            <div id="ok-back" style="display:none;padding-top:6px;">
+              <i class="fas fa-check-circle" style="color:#00C853;font-size:22px;"></i>
+              <div style="font-size:12px;font-weight:700;color:#00C853;margin-top:4px;">Captured ✓</div>
+              <div style="font-size:10px;color:#999;margin-top:2px;">Tap to retake</div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Selfie / Facial -->
-    <div style="background:#fff;border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:24px;margin-bottom:32px;">
-      <div class="eyebrow" style="margin-bottom:16px;"><i class="fas fa-face-smile" style="margin-right:6px;color:var(--g-main);"></i>Live Selfie — Facial Verification</div>
-      <p style="font-size:13px;color:var(--t-secondary);margin-bottom:16px;line-height:1.7;">
-        We need a live photo of your face to match with your Ghana Card. Please look directly at the camera and smile.
+    <!-- Selfie / Facial Verification -->
+    <div style="background:#fff;border:1px solid #e5e5e5;border-radius:18px;padding:22px;margin-bottom:28px;">
+      <div style="font-size:12px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:#a0793c;margin-bottom:14px;">
+        <i class="fas fa-face-smile" style="margin-right:6px;"></i>Live Selfie — Facial Verification
+      </div>
+      <p style="font-size:13px;color:#666;margin-bottom:16px;line-height:1.7;">
+        We need a live photo of your face to compare with your Ghana Card. Look directly at the camera, good lighting, no sunglasses.
       </p>
-      <img id="selfie-preview" src="" alt="Selfie"/>
-      <div class="upload-zone" id="zone-selfie" onclick="openCamera('selfie')">
-        <div id="placeholder-selfie">
+
+      <!-- Round selfie preview -->
+      <img id="selfie-round" src="" alt="Selfie preview"/>
+
+      <div class="upload-zone" id="zone-selfie" onclick="openSheet('selfie')">
+        <div id="ph-selfie">
           <div style="font-size:48px;margin-bottom:12px;">🤳</div>
-          <div style="font-size:15px;font-weight:700;margin-bottom:6px;">Take a Live Selfie</div>
-          <div style="font-size:12px;color:var(--t-secondary);margin-bottom:16px;">Look at camera · Good lighting · No sunglasses</div>
-          <span style="background:linear-gradient(135deg,#833AB4,#E1306C);color:#fff;padding:10px 24px;border-radius:12px;font-size:12px;font-weight:700;">Open Camera</span>
+          <div style="font-size:15px;font-weight:800;margin-bottom:6px;">Take Live Selfie</div>
+          <div style="font-size:12px;color:#888;margin-bottom:18px;">Look at camera · Good lighting · No sunglasses</div>
+          <span style="background:linear-gradient(135deg,#833AB4,#E1306C);color:#fff;padding:11px 28px;border-radius:14px;font-size:13px;font-weight:700;display:inline-block;">📷 Open Camera</span>
         </div>
-        <div id="done-selfie" style="display:none;text-align:center;">
-          <i class="fas fa-check-circle" style="color:#00C853;font-size:28px;margin-bottom:8px;"></i>
+        <div id="ok-selfie" style="display:none;text-align:center;padding:8px 0;">
+          <i class="fas fa-check-circle" style="color:#00C853;font-size:28px;margin-bottom:8px;display:block;"></i>
           <div style="font-size:13px;font-weight:700;color:#00C853;">Selfie Captured ✓</div>
-          <div style="font-size:11px;color:var(--t-muted);margin-top:4px;">Tap to retake</div>
+          <div style="font-size:11px;color:#999;margin-top:4px;">Tap to retake</div>
         </div>
       </div>
-      <!-- Status -->
-      <div id="kyc-status" style="display:none;margin-top:16px;padding:14px 16px;border-radius:12px;">
+
+      <!-- KYC note -->
+      <div id="kyc-note" style="display:none;margin-top:14px;padding:14px;border-radius:12px;background:rgba(0,200,83,0.07);border:1px solid rgba(0,200,83,0.25);">
+        <i class="fas fa-check-circle" style="color:#00C853;margin-right:8px;"></i>
+        <strong style="color:#00C853;">All documents captured!</strong> Admin will review within 1–2 hours.
       </div>
     </div>
 
-    <button onclick="validateStep1()" class="btn-primary" style="width:100%;justify-content:center;padding:16px;font-size:14px;">
+    <button onclick="validateStep1()" class="btn-primary" style="width:100%;justify-content:center;padding:16px;font-size:15px;">
       Continue <i class="fas fa-arrow-right" style="margin-left:8px;"></i>
     </button>
   </div>
 
-  <!-- ── STEP 2: Business ── -->
+  <!-- ══════════════ STEP 2: Business ══════════════ -->
   <div id="ob-step2" class="onboard-step">
     <div class="eyebrow" style="margin-bottom:14px;">Step 2 of 4</div>
     <h2 class="display-md" style="margin-bottom:10px;">Your <span class="gold-gradient">Business</span></h2>
     <p style="color:var(--t-secondary);margin-bottom:32px;font-size:14px;line-height:1.8;">Tell clients about your salon. This will appear on your public profile.</p>
 
-    <div style="background:#fff;border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:28px;margin-bottom:28px;">
+    <div style="background:#fff;border:1px solid #e5e5e5;border-radius:18px;padding:24px;margin-bottom:28px;">
       ${[
         {label:'Business Name',id:'biz-name',type:'text',ph:'Glam Studio GH'},
         {label:'Tagline',id:'tagline',type:'text',ph:'Your short pitch line'},
@@ -225,11 +277,11 @@ export const onboardingPage = () => `<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- ── STEP 3: Services ── -->
+  <!-- ══════════════ STEP 3: Services ══════════════ -->
   <div id="ob-step3" class="onboard-step">
     <div class="eyebrow" style="margin-bottom:14px;">Step 3 of 4</div>
     <h2 class="display-md" style="margin-bottom:10px;">Your <span class="gold-gradient">Services</span></h2>
-    <p style="color:var(--t-secondary);margin-bottom:32px;font-size:14px;line-height:1.8;">Add services you offer with pricing. You can update these anytime from your dashboard.</p>
+    <p style="color:var(--t-secondary);margin-bottom:32px;font-size:14px;line-height:1.8;">Add the services you offer with pricing. You can update these from your dashboard anytime.</p>
 
     <div id="services-list" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;"></div>
 
@@ -243,7 +295,7 @@ export const onboardingPage = () => `<!DOCTYPE html>
     </div>
   </div>
 
-  <!-- ── STEP 4: Complete ── -->
+  <!-- ══════════════ STEP 4: Complete ══════════════ -->
   <div id="ob-step4" class="onboard-step" style="text-align:center;padding-top:40px;">
     <div style="font-size:72px;margin-bottom:24px;">🎉</div>
     <h2 class="display-md" style="margin-bottom:16px;">You're All Set!<br/><span class="gold-gradient">Welcome to SalonLink.</span></h2>
@@ -264,122 +316,200 @@ export const onboardingPage = () => `<!DOCTYPE html>
 
 ${globalScripts()}
 <script>
-// ── State ──
-var kycData = { front: null, back: null, selfie: null };
-var currentCamTarget = null;
-var stream = null;
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STATE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+var kycData   = { front: null, back: null, selfie: null };
+var camTarget = null;   // 'front' | 'back' | 'selfie'
+var camStream = null;
+var sheetTarget = null; // same
 
-// ── Camera ──
-async function openCamera(target) {
-  currentCamTarget = target;
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ACTION SHEET (Choose Camera or Gallery)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function openSheet(target) {
+  sheetTarget = target;
+  var titles = {
+    front:  '📄 Ghana Card — Front Side',
+    back:   '📄 Ghana Card — Back Side',
+    selfie: '🤳 Live Selfie for Verification'
+  };
+  document.getElementById('sheet-title').textContent = titles[target] || 'Upload Photo';
+  document.getElementById('action-sheet').classList.add('open');
+}
+
+function closeSheet() {
+  document.getElementById('action-sheet').classList.remove('open');
+}
+
+function sheetUseCamera() {
+  closeSheet();
+  openCam(sheetTarget);
+}
+
+function sheetUseGallery() {
+  closeSheet();
+  // Trigger the corresponding hidden file input
+  var inputMap = { front: 'file-card-front', back: 'file-card-back', selfie: 'file-selfie-gal' };
+  var el = document.getElementById(inputMap[sheetTarget]);
+  if (el) el.click();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CAMERA
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function openCam(target) {
+  camTarget = target;
   var isSelfie = target === 'selfie';
+
   document.getElementById('face-oval').style.display = isSelfie ? 'block' : 'none';
   document.getElementById('cam-title').textContent = isSelfie
-    ? '🤳 Look directly at camera and smile'
-    : (target === 'front' ? '📄 Capture Ghana Card — FRONT' : '📄 Capture Ghana Card — BACK');
+    ? '🤳 Look directly at the camera and smile'
+    : (target === 'front' ? '📄 Ghana Card — FRONT side' : '📄 Ghana Card — BACK side');
   document.getElementById('cam-hint').textContent = isSelfie
-    ? 'Align your face inside the oval · Good lighting · No glasses'
-    : 'Ensure all text is clearly visible · Flat surface · Good lighting';
-  document.getElementById('camera-modal').classList.add('open');
+    ? 'Align face in oval · Good lighting · Remove glasses'
+    : 'Lay card flat · Ensure all text is sharp & clear · Good lighting';
+
+  document.getElementById('cam-modal').classList.add('open');
 
   try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: isSelfie ? 'user' : 'environment', width:{ideal:1280}, height:{ideal:720} },
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: isSelfie ? 'user' : 'environment',
+        width:  { ideal: 1280 },
+        height: { ideal: 720 }
+      },
       audio: false
     });
-    var video = document.getElementById('camera-video');
-    video.srcObject = stream;
-    video.play();
-  } catch(err) {
-    // Camera not available — fallback to file upload
-    closeCameraModal();
-    document.getElementById('file-fallback').click();
-    showToast('Camera not available — please upload from gallery', 'info');
+    var vid = document.getElementById('cam-video');
+    vid.srcObject = camStream;
+    await vid.play();
+  } catch (err) {
+    closeCam();
+    showToast('Camera not available — please use "Upload from Gallery"', 'error');
+    // Auto-open gallery as fallback
+    var inputMap = { front: 'file-card-front', back: 'file-card-back', selfie: 'file-selfie-gal' };
+    var el = document.getElementById(inputMap[camTarget]);
+    if (el) el.click();
   }
 }
 
-function closeCameraModal() {
-  document.getElementById('camera-modal').classList.remove('open');
-  if (stream) { stream.getTracks().forEach(function(t){ t.stop(); }); stream = null; }
+function closeCam() {
+  document.getElementById('cam-modal').classList.remove('open');
+  if (camStream) {
+    camStream.getTracks().forEach(function(t){ t.stop(); });
+    camStream = null;
+  }
 }
 
 function snapPhoto() {
-  var video  = document.getElementById('camera-video');
-  var canvas = document.getElementById('camera-canvas');
-  canvas.width  = video.videoWidth  || 640;
-  canvas.height = video.videoHeight || 480;
+  var vid    = document.getElementById('cam-video');
+  var canvas = document.getElementById('cam-canvas');
+  var w = vid.videoWidth  || 640;
+  var h = vid.videoHeight || 480;
+  canvas.width  = w;
+  canvas.height = h;
   var ctx = canvas.getContext('2d');
-  if (currentCamTarget === 'selfie') {
-    // Mirror selfie
-    ctx.translate(canvas.width, 0);
+  if (camTarget === 'selfie') {
+    // Mirror selfie so text reads correctly
+    ctx.translate(w, 0);
     ctx.scale(-1, 1);
   }
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-  closeCameraModal();
-  applyCapture(currentCamTarget, dataUrl);
+  ctx.drawImage(vid, 0, 0, w, h);
+  var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+  closeCam();
+  applyCapture(camTarget, dataUrl);
 }
 
+// Fallback inside camera modal
 function handleFileFallback(input) {
   if (!input.files || !input.files[0]) return;
   var reader = new FileReader();
   reader.onload = function(e) {
-    closeCameraModal();
-    applyCapture(currentCamTarget, e.target.result);
+    closeCam();
+    applyCapture(camTarget, e.target.result);
   };
   reader.readAsDataURL(input.files[0]);
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// FILE INPUT HANDLER (from gallery)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function handleFile(input, target) {
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  // Basic size guard — 10 MB max
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('Image is too large (max 10 MB). Please choose a smaller file.', 'error');
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    applyCapture(target, e.target.result);
+  };
+  reader.readAsDataURL(file);
+  // Reset input so same file can be re-selected
+  input.value = '';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// APPLY CAPTURED IMAGE TO UI
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function applyCapture(target, dataUrl) {
   kycData[target] = dataUrl;
+
   if (target === 'selfie') {
-    var prev = document.getElementById('selfie-preview');
-    prev.src = dataUrl;
-    prev.style.display = 'block';
-    document.getElementById('placeholder-selfie').style.display = 'none';
-    document.getElementById('done-selfie').style.display = 'block';
-    document.getElementById('zone-selfie').classList.add('uploaded');
-    showToast('Selfie captured! ✓', 'success');
+    var round = document.getElementById('selfie-round');
+    round.src = dataUrl;
+    round.style.display = 'block';
+    document.getElementById('ph-selfie').style.display   = 'none';
+    document.getElementById('ok-selfie').style.display   = 'block';
+    document.getElementById('zone-selfie').classList.add('done');
+    showToast('Selfie captured ✓', 'success');
   } else {
-    var img = document.getElementById('preview-' + target);
+    var img = document.getElementById('prev-' + target);
     img.src = dataUrl;
-    img.style.display = 'block';
-    document.getElementById('placeholder-' + target).style.display = 'none';
-    document.getElementById('done-' + target).style.display = 'block';
-    document.getElementById('zone-' + target).classList.add('uploaded');
-    showToast((target === 'front' ? 'Front' : 'Back') + ' side captured! ✓', 'success');
+    document.getElementById('zone-' + target).classList.add('done');
+    document.getElementById('ph-' + target).style.display = 'none';
+    document.getElementById('ok-' + target).style.display = 'block';
+    showToast((target === 'front' ? 'Front' : 'Back') + ' side captured ✓', 'success');
   }
 }
 
-// ── Step 1 validation ──
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STEP VALIDATION
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function validateStep1() {
   var cardNum = document.getElementById('card-num').value.trim();
-  if (!cardNum) { showToast('Please enter your Ghana Card number', 'error'); return; }
-  if (!kycData.front) { showToast('Please capture the FRONT of your Ghana Card', 'error'); return; }
-  if (!kycData.back)  { showToast('Please capture the BACK of your Ghana Card', 'error'); return; }
-  if (!kycData.selfie){ showToast('Please take a live selfie for facial verification', 'error'); return; }
+  if (!cardNum) {
+    showToast('Please enter your Ghana Card number', 'error'); return;
+  }
+  if (!kycData.front) {
+    showToast('Please capture the FRONT of your Ghana Card', 'error'); return;
+  }
+  if (!kycData.back) {
+    showToast('Please capture the BACK of your Ghana Card', 'error'); return;
+  }
+  if (!kycData.selfie) {
+    showToast('Please take a live selfie for facial verification', 'error'); return;
+  }
 
-  // Mark KYC pending in status
-  var status = document.getElementById('kyc-status');
-  status.style.display = 'block';
-  status.style.background = 'rgba(0,200,83,0.08)';
-  status.style.border = '1px solid rgba(0,200,83,0.25)';
-  status.innerHTML = '<i class="fas fa-check-circle" style="color:#00C853;margin-right:8px;"></i><strong style="color:#00C853;">All documents captured!</strong> Your KYC will be reviewed by admin within 1-2 hours.';
-
-  showToast('Identity documents captured! Proceeding...', 'success');
+  document.getElementById('kyc-note').style.display = 'block';
+  showToast('All documents captured! Proceeding...', 'success');
   setTimeout(function(){ goObStep(2); }, 800);
 }
 
-// ── Step 2 validation ──
 function validateStep2() {
   var bizName = document.getElementById('biz-name').value.trim();
   if (!bizName) { showToast('Please enter your business name', 'error'); return; }
   var loc = document.getElementById('location').value.trim();
-  if (!loc) { showToast('Please enter your location', 'error'); return; }
+  if (!loc)     { showToast('Please enter your location', 'error'); return; }
   goObStep(3);
 }
 
-// ── Step navigation ──
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STEP NAVIGATION
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function goObStep(n) {
   for (var i = 1; i <= 4; i++) {
     var s = document.getElementById('ob-step' + i);
@@ -387,9 +517,7 @@ function goObStep(n) {
     var node = document.getElementById('ob-node-' + i);
     if (node) {
       node.className = 'step-node ' + (i < n ? 'done' : i === n ? 'active' : 'pending');
-      node.innerHTML = i < n
-        ? '<i class="fas fa-check" style="font-size:9px;"></i>'
-        : String(i);
+      node.innerHTML = i < n ? '<i class="fas fa-check" style="font-size:9px;"></i>' : String(i);
     }
     var line = document.getElementById('ob-line-' + i);
     if (line) line.className = 'step-line ' + (i < n ? 'done' : '');
@@ -397,16 +525,17 @@ function goObStep(n) {
   var el = document.getElementById('ob-step' + n);
   if (el) el.classList.add('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  // Add first service row if step 3
   if (n === 3 && document.getElementById('services-list').children.length === 0) addService();
 }
 
-// ── Services ──
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SERVICES
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function addService() {
   var list = document.getElementById('services-list');
-  var div = document.createElement('div');
+  var div  = document.createElement('div');
   div.className = 'service-entry';
-  div.style.cssText = 'background:#fff;border:1px solid var(--i-faint);border-radius:14px;padding:16px;display:grid;grid-template-columns:1fr 100px 100px 40px;gap:10px;align-items:center;';
+  div.style.cssText = 'background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:16px;display:grid;grid-template-columns:1fr 100px 100px 40px;gap:10px;align-items:center;';
   div.innerHTML =
     '<input type="text" class="input" placeholder="Service name (e.g. Box Braids)" style="font-size:13px;"/>' +
     '<input type="number" class="input" placeholder="GHS" style="font-size:13px;" min="1"/>' +
@@ -415,29 +544,36 @@ function addService() {
   list.appendChild(div);
 }
 
-function removeService(btn) { btn.closest('.service-entry').remove(); }
-
-// ── Submit onboarding ──
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SUBMIT ONBOARDING
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async function submitOnboarding() {
   var token = localStorage.getItem('sl_token');
   if (!token) { window.location.href = '/login'; return; }
 
-  var bizName = document.getElementById('biz-name').value.trim();
-  var bio     = document.getElementById('bio').value.trim();
-  var phone   = document.getElementById('biz-phone').value.trim();
-  var loc     = document.getElementById('location').value.trim();
   var entries = document.querySelectorAll('.service-entry');
-
   if (entries.length === 0) { showToast('Please add at least one service', 'error'); return; }
+
+  var btn = event && event.target ? event.target : document.querySelector('#ob-step3 .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
 
   try {
     showToast('Saving your profile...', 'info');
+
+    // Save profile + KYC data
     await axios.put('/api/providers/me', {
-      business_name: bizName, bio: bio, phone: phone, address: loc,
-      kyc_status: 'pending',
-      kyc_card_number: document.getElementById('card-num').value.trim()
+      business_name:  document.getElementById('biz-name').value.trim(),
+      bio:            document.getElementById('bio').value.trim(),
+      phone:          document.getElementById('biz-phone').value.trim(),
+      address:        document.getElementById('location').value.trim(),
+      kyc_status:     'submitted',
+      kyc_card_number: document.getElementById('card-num').value.trim(),
+      kyc_front_url:  kycData.front,
+      kyc_back_url:   kycData.back,
+      kyc_selfie_url: kycData.selfie
     }, { headers: { Authorization: 'Bearer ' + token } });
 
+    // Save services
     var servicePs = Array.from(entries).map(function(e) {
       var inputs = e.querySelectorAll('input');
       var name  = inputs[0] && inputs[0].value.trim();
@@ -449,10 +585,13 @@ async function submitOnboarding() {
       }, { headers: { Authorization: 'Bearer ' + token } }).catch(function(){});
     });
     await Promise.all(servicePs);
+
     goObStep(4);
-    showToast('Profile saved! Under review by admin.', 'success');
+    showToast('Profile saved! Pending admin review.', 'success');
   } catch(e) {
-    showToast('Could not save. Please try again.', 'error');
+    var msg = (e.response && e.response.data && e.response.data.error) || 'Could not save. Please try again.';
+    showToast(msg, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Finish Setup'; }
   }
 }
 </script>

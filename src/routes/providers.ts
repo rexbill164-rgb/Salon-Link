@@ -111,7 +111,10 @@ providers.put('/me', async (c) => {
     }
 
     const body = await c.req.json()
-    const { bio, address, city, price_from, price_to, is_accepting_bookings, business_name, phone } = body
+    const {
+      bio, address, city, price_from, price_to, is_accepting_bookings, business_name, phone,
+      kyc_status, kyc_card_number, kyc_front_url, kyc_back_url, kyc_selfie_url
+    } = body
 
     await c.env.DB.prepare(`
       UPDATE providers SET
@@ -122,10 +125,21 @@ providers.put('/me', async (c) => {
         price_from = COALESCE(?, price_from),
         price_to = COALESCE(?, price_to),
         is_accepting_bookings = COALESCE(?, is_accepting_bookings),
+        kyc_status = COALESCE(?, kyc_status),
+        kyc_card_number = COALESCE(?, kyc_card_number),
+        kyc_front_url = COALESCE(?, kyc_front_url),
+        kyc_back_url = COALESCE(?, kyc_back_url),
+        kyc_selfie_url = COALESCE(?, kyc_selfie_url),
         updated_at = CURRENT_TIMESTAMP
       WHERE user_id = ?
-    `).bind(bio||null, business_name||null, address||null, city||null, price_from||null, price_to||null,
-            is_accepting_bookings !== undefined ? (is_accepting_bookings ? 1 : 0) : null, user.sub).run()
+    `).bind(
+      bio||null, business_name||null, address||null, city||null,
+      price_from||null, price_to||null,
+      is_accepting_bookings !== undefined ? (is_accepting_bookings ? 1 : 0) : null,
+      kyc_status||null, kyc_card_number||null,
+      kyc_front_url||null, kyc_back_url||null, kyc_selfie_url||null,
+      user.sub
+    ).run()
 
     // Update phone on users table if provided
     if (phone) {

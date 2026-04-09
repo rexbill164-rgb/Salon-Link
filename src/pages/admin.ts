@@ -179,8 +179,8 @@ ${baseHead('Admin Panel', `
         <div class="eyebrow" style="margin-bottom:24px;">KYC Verification Queue</div>
         <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
           <table class="admin-table">
-            <thead><tr><th>Business</th><th>Owner</th><th>Email</th><th>Category</th><th>Actions</th></tr></thead>
-            <tbody id="kyc-tbody"><tr><td colspan="5" style="text-align:center;padding:32px;color:var(--t-muted);">Loading KYC queue...</td></tr></tbody>
+            <thead><tr><th>Business / Provider</th><th>Email</th><th>Category</th><th>Ghana Card</th><th>Selfie</th><th>Actions</th></tr></thead>
+            <tbody id="kyc-tbody"><tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">Loading KYC queue...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -344,19 +344,24 @@ document.addEventListener('DOMContentLoaded', function() {
       }).join('');
     }
     if (kyctbody) {
-      var pending = rows.filter(function(p) { return p.kyc_status === 'pending'; });
+      var pending = rows.filter(function(p) { return p.kyc_status === 'pending' || p.kyc_status === 'submitted'; });
       kyctbody.innerHTML = pending.length ? pending.map(function(p) {
+        var frontImg  = p.kyc_front_url  ? '<img src="' + p.kyc_front_url  + '" style="width:70px;height:45px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="viewImg(this.src,\'Ghana Card Front\')" title="Click to enlarge"/>' : '<span style="color:#bbb;font-size:11px;">Not uploaded</span>';
+        var backImg   = p.kyc_back_url   ? '<img src="' + p.kyc_back_url   + '" style="width:70px;height:45px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="viewImg(this.src,\'Ghana Card Back\')" title="Click to enlarge"/>'  : '<span style="color:#bbb;font-size:11px;">Not uploaded</span>';
+        var selfieImg = p.kyc_selfie_url ? '<img src="' + p.kyc_selfie_url + '" style="width:45px;height:45px;object-fit:cover;border-radius:50%;cursor:pointer;" onclick="viewImg(this.src,\'Selfie\')" title="Click to enlarge"/>'             : '<span style="color:#bbb;font-size:11px;">Not taken</span>';
+        var cardNum   = p.kyc_card_number ? '<div style="font-size:10px;font-weight:700;color:#a0793c;margin-top:4px;">' + p.kyc_card_number + '</div>' : '';
         return '<tr>' +
-          '<td>' + p.business_name + '</td>' +
-          '<td>' + p.first_name + ' ' + p.last_name + '</td>' +
-          '<td>' + p.email + '</td>' +
-          '<td>' + p.service_category.replace('_',' ') + '</td>' +
+          '<td><div style="font-weight:700;">' + (p.business_name || '—') + '</div><div style="font-size:11px;color:#888;">' + p.first_name + ' ' + p.last_name + '</div>' + cardNum + '</td>' +
+          '<td style="font-size:12px;">' + p.email + '</td>' +
+          '<td>' + (p.service_category||'').replace('_',' ') + '</td>' +
+          '<td><div style="display:flex;gap:6px;align-items:center;">' + frontImg + backImg + '</div></td>' +
+          '<td>' + selfieImg + '</td>' +
           '<td>' +
-            '<button onclick="approveKyc(' + p.id + ')" class="btn-primary" style="padding:6px 14px;font-size:10px;margin-right:4px;">✓ Approve</button>' +
-            '<button onclick="rejectKyc(' + p.id + ')" style="padding:6px 14px;font-size:10px;background:none;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);border-radius:8px;cursor:pointer;">✗ Reject</button>' +
+            '<button onclick="approveKyc(' + p.id + ')" class="btn-primary" style="padding:6px 14px;font-size:11px;margin-bottom:4px;display:block;width:100%;">✓ Approve</button>' +
+            '<button onclick="rejectKyc(' + p.id + ')" style="padding:6px 14px;font-size:11px;background:none;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);border-radius:8px;cursor:pointer;display:block;width:100%;">✗ Reject</button>' +
           '</td>' +
         '</tr>';
-      }).join('') : '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--t-muted);">No pending KYC submissions ✦</td></tr>';
+      }).join('') : '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">No pending KYC submissions ✦</td></tr>';
     }
   }).catch(function(){});
 
@@ -383,6 +388,16 @@ function toggleUser(id) {
   axios.patch('/api/admin/users/' + id + '/toggle', {}, { headers: { Authorization: 'Bearer ' + token } })
     .then(function(r) { showToast(r.data.message + ' ✦', 'success'); setTimeout(function(){location.reload();},1000); })
     .catch(function() { showToast('Action failed', 'error'); });
+}
+
+// View KYC image in lightbox
+function viewImg(src, title) {
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;';
+  overlay.onclick = function(){ document.body.removeChild(overlay); };
+  overlay.innerHTML = '<div style="color:#fff;font-size:14px;font-weight:700;margin-bottom:16px;letter-spacing:0.05em;">' + title + ' — Click anywhere to close</div>' +
+    '<img src="' + src + '" style="max-width:90vw;max-height:80vh;border-radius:12px;box-shadow:0 0 60px rgba(0,0,0,0.8);"/>';
+  document.body.appendChild(overlay);
 }
 
 function approveKyc(id) {
