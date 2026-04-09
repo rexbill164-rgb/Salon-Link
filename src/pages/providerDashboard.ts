@@ -620,7 +620,7 @@ function renderApptsList(list) {
       '<div class="mini-avatar">'+(a.first_name||'?').charAt(0)+'</div>' +
       '<div style="flex:1;min-width:120px;">' +
         '<div style="font-size:13px;font-weight:700;">'+(a.first_name||'')+' '+(a.last_name||'')+'</div>' +
-        '<div style="font-size:11px;color:var(--t-muted);">'+(a.service_name||'')+' · '+(a.booking_date||'')+'</div>' +
+        '<div style="font-size:11px;color:var(--t-muted);">'+(a.service_name||'')+' · '+(a.booking_date||'')+' '+(a.booking_time?'@ '+a.booking_time:'')+'</div>' +
       '</div>' +
       '<div style="text-align:right;">' +
         '<div style="font-size:13px;font-weight:700;color:var(--g-main);">GHS '+Math.round((a.total_amount||0)/100)+'</div>' +
@@ -652,8 +652,39 @@ function updateApptBtn(btn) {
 function updateAppt(id, status) {
   var token = localStorage.getItem('sl_token');
   axios.patch('/api/bookings/'+id+'/status', { status: status }, { headers: { Authorization: 'Bearer ' + token } })
-    .then(function() { showToast('Booking '+status+' ✦', 'success'); setTimeout(function(){ location.reload(); }, 800); })
+    .then(function() {
+      showToast('Booking '+status+' ✦', 'success');
+      if (status === 'completed') {
+        // Show platform fee reminder for cash bookings
+        setTimeout(function() {
+          showFeeReminder();
+        }, 600);
+      }
+      setTimeout(function(){ location.reload(); }, 2000);
+    })
     .catch(function() { showToast('Update failed', 'error'); });
+}
+
+function showFeeReminder() {
+  var existing = document.getElementById('fee-reminder-modal');
+  if (existing) existing.remove();
+  var modal = document.createElement('div');
+  modal.id = 'fee-reminder-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  modal.innerHTML = '<div style="background:#fff;border-radius:20px;padding:28px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
+    '<div style="text-align:center;margin-bottom:16px;font-size:36px;">💰</div>' +
+    '<div style="font-size:16px;font-weight:700;text-align:center;margin-bottom:8px;">Platform Fee Reminder</div>' +
+    '<div style="font-size:13px;color:#666;text-align:center;margin-bottom:20px;">Please send the <strong style="color:#E1306C;">GHS 3.00</strong> platform fee for this booking.</div>' +
+    '<div style="background:#FFF8F0;border:1.5px solid #FFD89B;border-radius:14px;padding:16px;margin-bottom:20px;">' +
+      '<div style="font-size:11px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">Send to</div>' +
+      '<div style="font-size:15px;font-weight:700;margin-bottom:4px;">Nadia Yartey</div>' +
+      '<div style="font-size:18px;font-weight:800;color:#E1306C;letter-spacing:0.05em;">0533 675 960</div>' +
+      '<div style="font-size:11px;color:#888;margin-top:6px;">MTN Mobile Money</div>' +
+    '</div>' +
+    '<div style="font-size:12px;color:#aaa;text-align:center;margin-bottom:16px;">Amount: <strong>GHS 3.00</strong> per completed booking</div>' +
+    '<button onclick="document.getElementById(\'fee-reminder-modal\').remove()" style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#E1306C,#F77737);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;">Got it ✓</button>' +
+  '</div>';
+  document.body.appendChild(modal);
 }
 
 /* ── Services ── */

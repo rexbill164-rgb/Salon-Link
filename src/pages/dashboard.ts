@@ -277,7 +277,15 @@ function loadDashboard() {
       setEl('stat-total', allBookings.length);
       setEl('stat-completed', completed);
       setEl('stat-upcoming', upcoming);
-      setEl('stat-services', allBookings.length); // services done = total bookings
+      setEl('stat-services', allBookings.length);
+      // Auto-prompt review for first unreviewed completed booking (once per session)
+      if (!sessionStorage.getItem('sl_review_prompted')) {
+        var needsReview = allBookings.find(function(b){ return b.status==='completed' && b.payment_status==='paid' && !b.has_review; });
+        if (needsReview) {
+          sessionStorage.setItem('sl_review_prompted','1');
+          setTimeout(function(){ openReview(needsReview.id); }, 1500);
+        }
+      }
     })
     .catch(function(){ window.location.href='/login'; });
 }

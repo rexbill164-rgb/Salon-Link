@@ -150,33 +150,23 @@ ${baseHead('Admin Panel', `
           </div>
         </div>
 
-        <!-- Charts -->
-        <div class="admin-charts-grid" style="display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-bottom:32px;">
-          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:28px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
-              <div>
-                <div class="eyebrow" style="margin-bottom:6px;">Platform Revenue</div>
-                <div class="font-display gold-gradient" style="font-size:24px;" id="chart-revenue-label">GHS 0</div>
-                <div style="font-size:11px;color:var(--t-muted);" id="chart-revenue-sub">Year to date</div>
-              </div>
+        <!-- Revenue Summary (simple, no charts) -->
+        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:24px;margin-bottom:24px;">
+          <div class="eyebrow" style="margin-bottom:6px;">Platform Revenue</div>
+          <div class="font-display gold-gradient" style="font-size:28px;margin-bottom:4px;" id="chart-revenue-label">GHS 0</div>
+          <div style="font-size:12px;color:var(--t-muted);" id="chart-revenue-sub">Total earnings from bookings</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px;">
+            <div style="background:var(--c-raise);border-radius:12px;padding:14px;text-align:center;">
+              <div style="font-size:10px;color:var(--t-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em;">Fee / Booking</div>
+              <div style="font-size:18px;font-weight:700;color:var(--g-main);">GHS 3</div>
             </div>
-            <canvas id="admin-revenue" height="120"></canvas>
-          </div>
-          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:28px;">
-            <div class="eyebrow" style="margin-bottom:20px;">User Roles</div>
-            <canvas id="admin-roles" height="160"></canvas>
-            <div style="margin-top:16px;display:flex;flex-direction:column;gap:9px;">
-              ${[
-                {label:'Customers',val:'82%',color:'#C9A84C'},
-                {label:'Providers',val:'17%',color:'#5DC98A'},
-                {label:'Admins',   val:'1%', color:'#E07070'},
-              ].map(s=>`
-                <div style="display:flex;align-items:center;gap:8px;">
-                  <div style="width:8px;height:8px;border-radius:50%;background:${s.color};flex-shrink:0;"></div>
-                  <span style="font-size:12px;flex:1;">${s.label}</span>
-                  <span style="font-size:12px;font-weight:700;color:${s.color};">${s.val}</span>
-                </div>
-              `).join('')}
+            <div style="background:var(--c-raise);border-radius:12px;padding:14px;text-align:center;">
+              <div style="font-size:10px;color:var(--t-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em;">Platform Cut</div>
+              <div style="font-size:18px;font-weight:700;color:#5DC98A;">3 GHS each</div>
+            </div>
+            <div style="background:var(--c-raise);border-radius:12px;padding:14px;text-align:center;">
+              <div style="font-size:10px;color:var(--t-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em;">Model</div>
+              <div style="font-size:14px;font-weight:700;color:var(--t-primary);">Flat Fee</div>
             </div>
           </div>
         </div>
@@ -214,7 +204,7 @@ ${baseHead('Admin Panel', `
           <table class="admin-table">
             <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Verified</th><th>Joined</th><th>Actions</th></tr></thead>
             <tbody id="users-tbody">
-              <tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">Loading users...</td></tr>
+              <tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">Select Users tab to load data</td></tr>
             </tbody>
           </table>
         </div>
@@ -226,7 +216,7 @@ ${baseHead('Admin Panel', `
         <div class="table-scroll">
           <table class="admin-table">
             <thead><tr><th>Business / Provider</th><th>Email</th><th>Category</th><th>Ghana Card</th><th>Selfie</th><th>Actions</th></tr></thead>
-            <tbody id="kyc-tbody"><tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">Loading KYC queue...</td></tr></tbody>
+            <tbody id="kyc-tbody"><tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">Select KYC tab to load queue</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -472,67 +462,30 @@ function adminSection(id, btn) {
   if (id === 'fees') { loadFeeSummary(); loadFees('pending'); }
   if (id === 'registrants') loadRegistrants(30);
   if (id === 'payments') loadPaymentSummary();
+  if (id === 'users') loadUsers();
+  if (id === 'providers') loadProviders();
+  if (id === 'kyc') loadKyc();
+  if (id === 'bookings') loadBookings();
   if (id === 'reconcile') {
     var dateInput = document.getElementById('reconcile-date');
     if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
   }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  try {
-  if (window.Chart) {
-    new Chart(document.getElementById('admin-revenue'), {
-      type: 'bar',
-      data: {
-        labels: ['Oct','Nov','Dec','Jan','Feb','Mar','Apr'],
-        datasets: [{
-          data: [0,0,0,0,0,0,0],
-          backgroundColor: 'rgba(201,168,76,0.25)',
-          borderColor: '#C9A84C',
-          borderWidth: 2,
-          borderRadius: 6,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { color: 'rgba(58,47,30,0.08)' }, ticks: { color: '#8A7A62', font: { size: 10 } } },
-          y: { grid: { color: 'rgba(58,47,30,0.08)' }, ticks: { color: '#8A7A62', font: { size: 10 }, callback: v => 'GHS ' + (v/1000) + 'K' } }
-        }
-      }
-    });
-    new Chart(document.getElementById('admin-roles'), {
-      type: 'doughnut',
-      data: {
-        datasets: [{
-          data: [82, 17, 1],
-          backgroundColor: ['rgba(201,168,76,0.8)','rgba(61,170,110,0.8)','rgba(224,112,112,0.8)'],
-          borderColor: 'transparent',
-          borderWidth: 0,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        cutout: '70%'
-      }
-    });
-  }
-  } catch(e) { console.warn('Chart init failed:', e); }
-});
+// Charts removed — using simple stat cards instead
 
 // Load real admin data
 document.addEventListener('DOMContentLoaded', function() {
-try {
   var token = localStorage.getItem('sl_token');
   var user = JSON.parse(localStorage.getItem('sl_user') || '{}');
   if (!token || user.role !== 'admin') { window.location.href = '/login'; return; }
   var h = { Authorization: 'Bearer ' + token };
+  window._adminToken = token;
+  window._adminH = h;
 
-  // Load stats
+  // Load only stats on init (lightweight)
   axios.get('/api/admin/stats', { headers: h }).then(function(res) {
-    var s = res.data.stats;
+    var s = res.data.stats || {};
     var set = function(id, v) { var el = document.getElementById(id); if(el) el.textContent = v; };
     set('kpi-users',     s.total_users || 0);
     set('kpi-providers', s.total_providers || 0);
@@ -540,91 +493,116 @@ try {
     var rev = 'GHS ' + Math.round((s.total_revenue||0)/100).toLocaleString();
     set('kpi-revenue', rev);
     set('chart-revenue-label', rev);
-    set('kpi-users-sub',    s.total_users > 0 ? 'registered accounts' : 'No users yet');
-    set('kpi-providers-sub',s.total_providers > 0 ? (s.total_providers + ' on platform') : 'No providers yet');
+    set('kpi-users-sub',    s.total_users > 0 ? s.total_users + ' registered' : 'No users yet');
+    set('kpi-providers-sub',s.total_providers > 0 ? s.total_providers + ' on platform' : 'No providers yet');
     set('kpi-bookings-sub', s.total_bookings > 0 ? 'all time' : 'No bookings yet');
     set('kpi-revenue-sub',  (s.total_revenue||0) > 0 ? 'total earned' : 'No revenue yet');
     set('chart-revenue-sub',(s.total_revenue||0) > 0 ? 'total earned' : 'No revenue yet');
-  }).catch(function(){
+  }).catch(function(e) {
+    console.error('Stats error:', e);
     ['kpi-users','kpi-providers','kpi-bookings','kpi-revenue'].forEach(function(id){
       var el = document.getElementById(id); if(el) el.textContent = '—';
     });
   });
+});
 
-  // Load users table
+function adminHeaders() {
+  var t = localStorage.getItem('sl_token');
+  return t ? { Authorization: 'Bearer ' + t } : null;
+}
+
+function loadUsers() {
+  var h = adminHeaders();
+  if (!h) { window.location.href = '/login'; return; }
+  var tbody = document.getElementById('users-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--t-muted);">Loading...</td></tr>';
   axios.get('/api/admin/users', { headers: h }).then(function(res) {
-    var tbody = document.getElementById('users-tbody');
     if (!tbody) return;
-    tbody.innerHTML = (res.data.users || []).map(function(u) {
+    var rows = (res.data.users || []);
+    tbody.innerHTML = rows.length ? rows.map(function(u) {
       return '<tr>' +
-        '<td>' + u.first_name + ' ' + u.last_name + '</td>' +
-        '<td>' + u.email + '</td>' +
+        '<td style="font-weight:600;">' + (u.first_name||'') + ' ' + (u.last_name||'') + '</td>' +
+        '<td style="font-size:12px;">' + (u.email||'') + '</td>' +
         '<td><span class="badge ' + (u.role==='admin'?'badge-error':u.role==='provider'?'badge-verified':'badge-pending') + '">' + u.role + '</span></td>' +
         '<td><span class="badge ' + (u.is_verified?'badge-verified':'badge-pending') + '">' + (u.is_verified?'Yes':'No') + '</span></td>' +
-        '<td>' + new Date(u.created_at).toLocaleDateString() + '</td>' +
+        '<td style="font-size:12px;">' + new Date(u.created_at).toLocaleDateString() + '</td>' +
         '<td><button onclick="toggleUser(' + u.id + ')" class="btn-ghost" style="padding:5px 12px;font-size:10px;color:' + (u.is_active?'var(--s-red)':'var(--s-green)') + ';">' + (u.is_active?'Deactivate':'Activate') + '</button></td>' +
       '</tr>';
-    }).join('');
-  }).catch(function(){});
+    }).join('') : '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">No users found</td></tr>';
+  }).catch(function(e) { if(tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--s-red);">Failed to load users: ' + (e.message||'') + '</td></tr>'; });
+}
 
-  // Load providers/KYC table
+function loadProviders() {
+  var h = adminHeaders();
+  if (!h) return;
+  var tbody = document.getElementById('providers-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--t-muted);">Loading...</td></tr>';
   axios.get('/api/admin/providers', { headers: h }).then(function(res) {
-    var tbody = document.getElementById('providers-tbody');
-    var kyctbody = document.getElementById('kyc-tbody');
-    var rows = (res.data.providers || []);
-    if (tbody) {
-      tbody.innerHTML = rows.map(function(p) {
-        return '<tr>' +
-          '<td>' + p.business_name + '</td>' +
-          '<td>' + p.email + '</td>' +
-          '<td>' + p.service_category.replace('_',' ') + '</td>' +
-          '<td>' + p.rating + ' ★</td>' +
-          '<td><span class="badge ' + (p.kyc_status==='approved'?'badge-verified':'badge-pending') + '">' + p.kyc_status + '</span></td>' +
-          '<td>' +
-            '<button onclick="approveKyc(' + p.id + ')" class="btn-primary" style="padding:5px 12px;font-size:10px;margin-right:4px;">Approve</button>' +
-            '<button onclick="rejectKyc(' + p.id + ')" style="padding:5px 12px;font-size:10px;background:none;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);border-radius:8px;cursor:pointer;">Reject</button>' +
-          '</td>' +
-        '</tr>';
-      }).join('');
-    }
-    if (kyctbody) {
-      var pending = rows.filter(function(p) { return p.kyc_status === 'pending' || p.kyc_status === 'submitted'; });
-      kyctbody.innerHTML = pending.length ? pending.map(function(p) {
-        var cardNum = p.kyc_card_number ? '<div style="font-size:10px;font-weight:700;color:#a0793c;margin-top:4px;">' + p.kyc_card_number + '</div>' : '';
-        // Images loaded on-demand via button click to avoid freezing the page
-        return '<tr id="kyc-row-' + p.id + '">' +
-          '<td><div style="font-weight:700;">' + (p.business_name || '—') + '</div><div style="font-size:11px;color:#888;">' + p.first_name + ' ' + p.last_name + '</div>' + cardNum + '</td>' +
-          '<td style="font-size:12px;">' + p.email + '</td>' +
-          '<td>' + (p.service_category||'').replace('_',' ') + '</td>' +
-          '<td id="kyc-imgs-' + p.id + '"><button onclick="loadKycImages(' + p.id + ')" style="padding:5px 12px;font-size:11px;background:rgba(160,120,48,0.1);border:1px solid rgba(160,120,48,0.3);color:#a0793c;border-radius:8px;cursor:pointer;">🪪 View Documents</button></td>' +
-          '<td id="kyc-selfie-' + p.id + '">—</td>' +
-          '<td>' +
-            '<button onclick="approveKyc(' + p.id + ')" class="btn-primary" style="padding:6px 14px;font-size:11px;margin-bottom:4px;display:block;width:100%;">✓ Approve</button>' +
-            '<button onclick="rejectKyc(' + p.id + ')" style="padding:6px 14px;font-size:11px;background:none;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);border-radius:8px;cursor:pointer;display:block;width:100%;">✗ Reject</button>' +
-          '</td>' +
-        '</tr>';
-      }).join('') : '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">No pending KYC submissions ✦</td></tr>';
-    }
-  }).catch(function(){});
-
-  // Load bookings
-  axios.get('/api/admin/bookings', { headers: h }).then(function(res) {
-    var tbody = document.getElementById('bookings-tbody');
     if (!tbody) return;
-    tbody.innerHTML = (res.data.bookings || []).slice(0, 50).map(function(b) {
+    var rows = (res.data.providers || []);
+    tbody.innerHTML = rows.length ? rows.map(function(p) {
+      return '<tr>' +
+        '<td style="font-weight:600;">' + (p.business_name||'—') + '</td>' +
+        '<td style="font-size:12px;">' + (p.email||'') + '</td>' +
+        '<td>' + (p.service_category||'').replace(/_/g,' ') + '</td>' +
+        '<td>' + (p.rating||0) + ' ★</td>' +
+        '<td><span class="badge ' + (p.kyc_status==='approved'?'badge-verified':'badge-pending') + '">' + (p.kyc_status||'pending') + '</span></td>' +
+        '<td>' +
+          '<button onclick="approveKyc(' + p.id + ')" class="btn-primary" style="padding:5px 12px;font-size:10px;margin-right:4px;">Approve</button>' +
+          '<button onclick="rejectKyc(' + p.id + ')" style="padding:5px 12px;font-size:10px;background:none;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);border-radius:8px;cursor:pointer;">Reject</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('') : '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">No providers found</td></tr>';
+  }).catch(function(e) { if(tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--s-red);">Failed to load providers</td></tr>'; });
+}
+
+function loadKyc() {
+  var h = adminHeaders();
+  if (!h) return;
+  var kyctbody = document.getElementById('kyc-tbody');
+  if (kyctbody) kyctbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--t-muted);">Loading KYC queue...</td></tr>';
+  axios.get('/api/admin/providers', { headers: h }).then(function(res) {
+    if (!kyctbody) return;
+    var rows = (res.data.providers || []);
+    var pending = rows.filter(function(p) { return p.kyc_status === 'pending' || p.kyc_status === 'submitted'; });
+    kyctbody.innerHTML = pending.length ? pending.map(function(p) {
+      var cardNum = p.kyc_card_number ? '<div style="font-size:10px;font-weight:700;color:#a0793c;margin-top:4px;">' + p.kyc_card_number + '</div>' : '';
+      return '<tr id="kyc-row-' + p.id + '">' +
+        '<td><div style="font-weight:700;">' + (p.business_name||'—') + '</div><div style="font-size:11px;color:#888;">' + (p.first_name||'') + ' ' + (p.last_name||'') + '</div>' + cardNum + '</td>' +
+        '<td style="font-size:12px;">' + (p.email||'') + '</td>' +
+        '<td>' + (p.service_category||'').replace(/_/g,' ') + '</td>' +
+        '<td id="kyc-imgs-' + p.id + '"><button onclick="loadKycImages(' + p.id + ')" style="padding:5px 12px;font-size:11px;background:rgba(160,120,48,0.1);border:1px solid rgba(160,120,48,0.3);color:#a0793c;border-radius:8px;cursor:pointer;">🪪 View Docs</button></td>' +
+        '<td id="kyc-selfie-' + p.id + '">—</td>' +
+        '<td>' +
+          '<button onclick="approveKyc(' + p.id + ')" class="btn-primary" style="padding:6px 14px;font-size:11px;margin-bottom:4px;display:block;width:100%;">✓ Approve</button>' +
+          '<button onclick="rejectKyc(' + p.id + ')" style="padding:6px 14px;font-size:11px;background:none;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);border-radius:8px;cursor:pointer;display:block;width:100%;">✗ Reject</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('') : '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">No pending KYC submissions ✦</td></tr>';
+  }).catch(function(e) { if(kyctbody) kyctbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--s-red);">Failed to load KYC data</td></tr>'; });
+}
+
+function loadBookings() {
+  var h = adminHeaders();
+  if (!h) return;
+  var tbody = document.getElementById('bookings-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t-muted);">Loading...</td></tr>';
+  axios.get('/api/admin/bookings', { headers: h }).then(function(res) {
+    if (!tbody) return;
+    var rows = (res.data.bookings || []).slice(0, 50);
+    tbody.innerHTML = rows.length ? rows.map(function(b) {
       return '<tr>' +
         '<td>#' + b.id + '</td>' +
-        '<td>' + b.customer_first_name + ' ' + b.customer_last_name + '</td>' +
-        '<td>' + b.business_name + '</td>' +
-        '<td>' + b.service_name + '</td>' +
-        '<td>' + b.booking_date + ' ' + b.booking_time + '</td>' +
-        '<td>GHS ' + Math.round(b.total_amount/100) + '</td>' +
+        '<td>' + (b.customer_first_name||'') + ' ' + (b.customer_last_name||'') + '</td>' +
+        '<td style="font-weight:600;">' + (b.business_name||'') + '</td>' +
+        '<td>' + (b.service_name||'') + '</td>' +
+        '<td style="font-size:12px;">' + (b.booking_date||'') + ' ' + (b.booking_time||'') + '</td>' +
+        '<td>GHS ' + Math.round((b.total_amount||0)/100) + '</td>' +
         '<td><span class="badge ' + (b.status==='completed'?'badge-success':b.status==='confirmed'?'badge-verified':b.status==='cancelled'?'badge-error':'badge-pending') + '">' + b.status + '</span></td>' +
       '</tr>';
-    }).join('');
-  }).catch(function(){});
-} catch(initErr) { console.error('Admin init error:', initErr); }
-});
+    }).join('') : '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t-muted);">No bookings found</td></tr>';
+  }).catch(function(e) { if(tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--s-red);">Failed to load bookings</td></tr>'; });
+}
 
 function toggleUser(id) {
   var token = localStorage.getItem('sl_token');

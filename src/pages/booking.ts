@@ -370,9 +370,16 @@ ${navbar('')}
         <span style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Total</span>
         <span style="font-size:18px;font-weight:800;color:#E1306C;" id="rc-total"></span>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <span style="font-size:11px;color:#aaa;" id="rc-issued"></span>
         <span style="font-size:12px;font-weight:700;" id="rc-status"></span>
+      </div>
+      <!-- Cash fee notice (shown only for cash payment) -->
+      <div id="rc-cash-notice" style="display:none;background:#FFF8E6;border:1.5px solid #FFD89B;border-radius:14px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;color:#C9A84C;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.07em;">💳 Platform Fee</div>
+        <div style="font-size:12px;color:#555;margin-bottom:8px;">After your appointment, your provider will send the <strong>GHS 3.00</strong> platform fee to:</div>
+        <div style="font-size:14px;font-weight:800;color:#E1306C;letter-spacing:0.05em;">0533 675 960</div>
+        <div style="font-size:12px;color:#777;">Nadia Yartey · MTN MoMo</div>
       </div>
       <button onclick="window.location.href='/dashboard'" style="width:100%;background:linear-gradient(135deg,#833AB4,#E1306C);color:#fff;border:none;border-radius:14px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;">View My Bookings</button>
     </div>
@@ -656,6 +663,11 @@ function payWithMomo() {
 
 function payWithCash() {
   closePaymentModal();
+  // Confirm the booking as cash payment immediately
+  var token = getToken();
+  if (token && _bookingId) {
+    axios.post('/api/payments/mock-success', { booking_id: _bookingId, method: 'cash' }, { headers: { Authorization: 'Bearer ' + token } }).catch(function(){});
+  }
   showReceipt('cash', '');
 }
 
@@ -677,6 +689,8 @@ function showReceipt(method, momoNum) {
   document.getElementById('rc-issued').textContent = dateStr + ' at ' + timeStr;
   document.getElementById('rc-status').textContent = method === 'momo' ? '✓ PAID' : '⏳ Pay on arrival';
   document.getElementById('rc-status').style.color = method === 'momo' ? '#00C853' : '#C9A84C';
+  var cashNotice = document.getElementById('rc-cash-notice');
+  if (cashNotice) cashNotice.style.display = method === 'cash' ? 'block' : 'none';
   document.getElementById('receipt-modal').style.display = 'flex';
 }
 

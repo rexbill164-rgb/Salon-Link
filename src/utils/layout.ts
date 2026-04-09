@@ -1,6 +1,7 @@
 export const baseHead = (title: string, extra = '') => `
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="referrer" content="no-referrer-when-downgrade"/>
   <title>${title} | SalonLink</title>
   <meta name="description" content="SalonLink — Ghana's beauty booking app. Find, book and manage salon appointments."/>
   <!-- PWA / Home Screen -->
@@ -687,6 +688,32 @@ function toggleDD() {
   var dd = document.getElementById('user-dd');
   if (dd) dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
 }
+
+// ── PWA Add-to-Home-Screen prompt ──
+(function() {
+  var dismissed = localStorage.getItem('sl_pwa_dismissed');
+  if (dismissed) return;
+  var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  if (isStandalone) return;
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isAndroid = /android/i.test(navigator.userAgent);
+  if (!isIOS && !isAndroid) return;
+
+  setTimeout(function() {
+    var banner = document.createElement('div');
+    banner.id = 'pwa-banner';
+    banner.style.cssText = 'position:fixed;bottom:env(safe-area-inset-bottom,0);left:0;right:0;z-index:99998;padding:12px 16px;background:#fff;border-top:1px solid #f0f0f0;box-shadow:0 -4px 24px rgba(0,0,0,0.12);display:flex;align-items:center;gap:12px;';
+    banner.innerHTML =
+      '<img src="/icon-192.png" style="width:44px;height:44px;border-radius:12px;flex-shrink:0;" alt="SalonLink"/>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:13px;font-weight:700;margin-bottom:2px;">Add SalonLink to your home screen</div>' +
+        '<div style="font-size:11px;color:#888;">' + (isIOS ? 'Tap Share → Add to Home Screen' : 'Tap ⋮ → Add to Home Screen') + '</div>' +
+      '</div>' +
+      '<button onclick="document.getElementById(\'pwa-banner\').remove();localStorage.setItem(\'sl_pwa_dismissed\',\'1\')" style="flex-shrink:0;background:linear-gradient(135deg,#E1306C,#F77737);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;">Add App</button>' +
+      '<button onclick="document.getElementById(\'pwa-banner\').remove();localStorage.setItem(\'sl_pwa_dismissed\',\'1\')" style="flex-shrink:0;background:none;border:none;color:#aaa;font-size:20px;cursor:pointer;padding:4px;">×</button>';
+    document.body.appendChild(banner);
+  }, 3000);
+})();
 </script>
 `
 

@@ -373,7 +373,10 @@ ${globalScripts()}
         var map = L.map('provider-map', { zoomControl: true, scrollWheelZoom: false })
           .setView([parseFloat(p.location_lat), parseFloat(p.location_lng)], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap', maxZoom: 19
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: 19,
+          crossOrigin: 'anonymous',
+          referrerPolicy: 'no-referrer'
         }).addTo(map);
         var icon = L.divIcon({
           html: '<div style="background:linear-gradient(135deg,#C9A84C,#8B6914);width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"></div>',
