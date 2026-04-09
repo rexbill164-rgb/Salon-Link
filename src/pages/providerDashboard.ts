@@ -67,14 +67,23 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
   .main-wrap { margin-left:0; }
   .menu-btn { display:flex; }
   .mob-nav { display:flex; }
-  .content-pad { padding:14px; padding-bottom:90px; }
+  .content-pad { padding:12px; padding-bottom:90px; }
   .kpi-grid { grid-template-columns:repeat(2,1fr); gap:10px; }
-  .topbar { padding:10px 14px; }
+  .topbar { padding:10px 12px; }
   .form-row-3 { grid-template-columns:1fr; }
   .form-row { grid-template-columns:1fr; }
+  .card { padding:14px; }
+  .card-title { font-size:12px; }
+  /* Hide the sidebar close button default, show it as inline flex */
+  #sb-close { display:flex !important; }
+  /* Appointment action buttons stack better */
+  .appt-row { flex-wrap:wrap; }
+  /* Admin table overflow */
+  .overflow-x-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
 }
 @media(min-width:769px){
   .kpi-grid { grid-template-columns:repeat(4,1fr); }
+  #sb-close { display:none !important; }
 }
 </style>
 `)}
@@ -96,7 +105,7 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
         </div>
         <span style="font-family:'Poppins',sans-serif;font-size:16px;font-weight:800;background:linear-gradient(135deg,#833AB4,#E1306C);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Salon<em style="font-weight:500;font-style:italic;">Link</em></span>
       </a>
-      <button onclick="closeSidebar()" style="background:none;border:none;cursor:pointer;color:var(--t-muted);font-size:20px;display:none;" id="sb-close">✕</button>
+      <button onclick="closeSidebar()" style="background:none;border:none;cursor:pointer;color:var(--t-muted);font-size:20px;" id="sb-close">✕</button>
     </div>
 
     <!-- Provider info -->
@@ -398,8 +407,6 @@ var locationMap = null, locationMarker = null, pickedLat = null, pickedLng = nul
 function openSidebar() {
   document.getElementById('sidebar').classList.add('open');
   document.getElementById('sb-overlay').classList.add('open');
-  var btn = document.getElementById('sb-close');
-  if(btn) btn.style.display = window.innerWidth <= 768 ? 'block' : 'none';
 }
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');

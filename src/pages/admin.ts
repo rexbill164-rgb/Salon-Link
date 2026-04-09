@@ -14,11 +14,40 @@ ${baseHead('Admin Panel', `
   .kpi { background:var(--c-surface); border:1px solid var(--i-faint); border-radius:var(--r-lg); padding:22px; position:relative; overflow:hidden; transition:border-color 0.3s; }
   .kpi:hover { border-color:var(--g-border); }
   .kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--accent, var(--g-main)); }
-  .admin-table { width:100%; border-collapse:collapse; }
-  .admin-table th { font-size:10px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--t-muted); padding:14px 20px; border-bottom:1px solid var(--i-faint); text-align:left; }
+  .admin-table { width:100%; border-collapse:collapse; min-width:600px; }
+  .admin-table th { font-size:10px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--t-muted); padding:14px 20px; border-bottom:1px solid var(--i-faint); text-align:left; white-space:nowrap; }
   .admin-table td { padding:14px 20px; border-bottom:1px solid var(--i-faint); font-size:13px; color:var(--t-secondary); }
   .admin-table tr:hover td { background:var(--c-raise); }
-  @media(max-width:768px){ .admin-sidebar{display:none;} }
+  .table-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:var(--r-xl); border:1px solid var(--i-faint); background:var(--c-surface); }
+  .admin-table { min-width:580px; }
+  .admin-menu-btn { display:none; width:38px; height:38px; border-radius:10px; border:1px solid var(--i-faint); background:var(--c-raise); align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+  .admin-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:299; }
+  .admin-mob-nav { display:none; position:fixed; bottom:0; left:0; right:0; background:var(--c-deep); border-top:1px solid var(--i-faint); z-index:400; padding:6px 0 env(safe-area-inset-bottom,8px); overflow-x:auto; }
+  .admin-mob-nav-inner { display:flex; min-width:max-content; padding:0 8px; gap:2px; }
+  .amob-btn { display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 10px; cursor:pointer; border:none; background:none; color:var(--t-muted); font-size:8px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; border-radius:10px; white-space:nowrap; }
+  .amob-btn.active { color:var(--g-main); background:var(--g-dim); }
+  .amob-btn .aico { font-size:16px; }
+  @media(max-width:768px){
+    .admin-sidebar { position:fixed; top:0; left:0; bottom:0; z-index:300; transform:translateX(-100%); transition:transform 0.3s; }
+    .admin-sidebar.open { transform:translateX(0); }
+    .admin-overlay.open { display:block; }
+    .admin-menu-btn { display:flex; }
+    .admin-mob-nav { display:flex; }
+    .admin-main { margin-left:0 !important; }
+    .admin-topbar { padding:10px 12px; }
+    .admin-topbar .font-display { font-size:14px !important; }
+    div[style*="padding:32px"] { padding:12px !important; padding-bottom:90px !important; }
+    .kpi { padding:14px !important; }
+    .kpi .font-display { font-size:20px !important; }
+    .admin-kpi-grid { grid-template-columns:repeat(2,1fr) !important; gap:10px !important; }
+    .admin-charts-grid { grid-template-columns:1fr !important; }
+    .admin-actions-grid { grid-template-columns:repeat(2,1fr) !important; gap:8px !important; }
+    .admin-fees-grid { grid-template-columns:1fr 1fr 1fr !important; gap:8px !important; }
+    div[style*="grid-template-columns:repeat(4,1fr)"] { grid-template-columns:repeat(2,1fr) !important; }
+    .eyebrow { font-size:10px !important; }
+    /* Reconcile summary */
+    #reconcile-summary { grid-template-columns:repeat(2,1fr) !important; gap:8px !important; }
+  }
 </style>
 `)}
 </head>
@@ -26,8 +55,11 @@ ${baseHead('Admin Panel', `
 
 <div class="admin-layout">
 
+  <!-- Mobile overlay -->
+  <div class="admin-overlay" id="admin-overlay" onclick="closeAdminSidebar()"></div>
+
   <!-- ═══ SIDEBAR ═══ -->
-  <aside class="admin-sidebar">
+  <aside class="admin-sidebar" id="admin-sidebar">
     <div style="padding:22px 18px;border-bottom:1px solid var(--i-faint);display:flex;align-items:center;gap:10px;">
       <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--g-deep),var(--g-main));display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(160,120,48,0.3);">
         <i class="fas fa-star" style="color:#FFFFFF;font-size:12px;"></i>
@@ -71,9 +103,12 @@ ${baseHead('Admin Panel', `
   <!-- ═══ MAIN ═══ -->
   <div class="admin-main">
     <div class="admin-topbar">
-      <div>
-        <div class="font-display" style="font-size:20px;font-weight:500;" id="admin-title">Platform Overview</div>
-        <div style="font-size:12px;color:var(--t-muted);">SalonLink Admin · ${new Date().toLocaleDateString('en-GH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="admin-menu-btn" onclick="openAdminSidebar()" aria-label="Menu">☰</button>
+        <div>
+          <div class="font-display" style="font-size:18px;font-weight:500;" id="admin-title">Platform Overview</div>
+          <div style="font-size:11px;color:var(--t-muted);">SalonLink Admin</div>
+        </div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;">
         <span class="badge badge-live" style="font-size:10px;">
@@ -92,7 +127,7 @@ ${baseHead('Admin Panel', `
       <!-- ── OVERVIEW ── -->
       <div id="admin-overview" class="admin-section active">
         <!-- KPIs -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;">
+        <div class="admin-kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;">
           ${[
             {val:'12,480',label:'Total Users',     sub:'↑ 23% this month',  accent:'var(--g-main)'},
             {val:'2,406', label:'Active Providers',sub:'↑ 18% verified',    accent:'var(--s-green)'},
@@ -108,7 +143,7 @@ ${baseHead('Admin Panel', `
         </div>
 
         <!-- Charts -->
-        <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-bottom:32px;">
+        <div class="admin-charts-grid" style="display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-bottom:32px;">
           <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:28px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
               <div>
@@ -141,7 +176,7 @@ ${baseHead('Admin Panel', `
         <!-- Quick actions -->
         <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:28px;">
           <div class="eyebrow" style="margin-bottom:20px;">Quick Actions</div>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+          <div class="admin-actions-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
             ${[
               {icon:'🔍',label:'Review KYC Queue',sub:'3 pending',action:'kyc'},
               {icon:'⚠️',label:'Fraud Alerts',    sub:'2 flagged', action:'security'},
@@ -167,7 +202,7 @@ ${baseHead('Admin Panel', `
             <button onclick="showToast('Export initiated','info')" class="btn-outline" style="font-size:12px;padding:9px 22px;">Export CSV</button>
           </div>
         </div>
-        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
+        <div class="table-scroll">
           <table class="admin-table">
             <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Verified</th><th>Joined</th><th>Actions</th></tr></thead>
             <tbody id="users-tbody">
@@ -180,7 +215,7 @@ ${baseHead('Admin Panel', `
       <!-- ── KYC QUEUE ── -->
       <div id="admin-kyc" class="admin-section">
         <div class="eyebrow" style="margin-bottom:24px;">KYC Verification Queue</div>
-        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
+        <div class="table-scroll">
           <table class="admin-table">
             <thead><tr><th>Business / Provider</th><th>Email</th><th>Category</th><th>Ghana Card</th><th>Selfie</th><th>Actions</th></tr></thead>
             <tbody id="kyc-tbody"><tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">Loading KYC queue...</td></tr></tbody>
@@ -215,7 +250,7 @@ ${baseHead('Admin Panel', `
       <!-- ── Remaining sections ── -->
       <div id="admin-providers" class="admin-section">
         <div class="eyebrow" style="margin-bottom:20px;">Manage Providers</div>
-        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
+        <div class="table-scroll">
           <table class="admin-table">
             <thead><tr><th>Business</th><th>Email</th><th>Category</th><th>Rating</th><th>KYC</th><th>Actions</th></tr></thead>
             <tbody id="providers-tbody"><tr><td colspan="6" style="text-align:center;padding:32px;color:var(--t-muted);">Loading...</td></tr></tbody>
@@ -224,7 +259,7 @@ ${baseHead('Admin Panel', `
       </div>
       <div id="admin-bookings" class="admin-section">
         <div class="eyebrow" style="margin-bottom:20px;">All Bookings</div>
-        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
+        <div class="table-scroll">
           <table class="admin-table">
             <thead><tr><th>#ID</th><th>Customer</th><th>Provider</th><th>Service</th><th>Date & Time</th><th>Amount</th><th>Status</th></tr></thead>
             <tbody id="bookings-tbody"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t-muted);">Loading...</td></tr></tbody>
@@ -238,7 +273,7 @@ ${baseHead('Admin Panel', `
       <div id="admin-fees" class="admin-section">
         <div class="eyebrow" style="margin-bottom:8px;">Platform Service Fees (GHS 3/booking)</div>
         <div style="font-size:12px;color:var(--t-muted);margin-bottom:20px;">Track fees owed by providers. Due by midnight of each booking day.</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
+        <div class="admin-fees-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
           <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:20px;text-align:center;">
             <div style="font-size:22px;font-weight:800;color:var(--g-main);" id="admin-fees-pending-amt">GHS 0</div>
             <div style="font-size:11px;color:var(--t-muted);">Total Pending</div>
@@ -257,7 +292,7 @@ ${baseHead('Admin Panel', `
           <button onclick="loadFees('paid')" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid var(--i-faint);color:var(--t-secondary);">Paid</button>
           <button onclick="loadFees('')" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid var(--i-faint);color:var(--t-secondary);">All</button>
         </div>
-        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
+        <div class="table-scroll">
           <table class="admin-table">
             <thead><tr><th>Provider</th><th>Email</th><th>Booking Date</th><th>Fee</th><th>Due Date</th><th>Status</th><th>Action</th></tr></thead>
             <tbody id="fees-tbody"><tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t-muted);">Click a filter above to load fees</td></tr></tbody>
@@ -276,7 +311,7 @@ ${baseHead('Admin Panel', `
           <button onclick="loadRegistrants(365)" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid var(--i-faint);color:var(--t-secondary);">All time</button>
         </div>
         <div id="reg-count-summary" style="margin-bottom:16px;font-size:13px;color:var(--t-secondary);"></div>
-        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
+        <div class="table-scroll">
           <table class="admin-table">
             <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Type</th><th>Business</th><th>KYC</th><th>Joined</th><th>Action</th></tr></thead>
             <tbody id="registrants-tbody"><tr><td colspan="8" style="text-align:center;padding:32px;color:var(--t-muted);">Loading registrants...</td></tr></tbody>
@@ -298,7 +333,7 @@ ${baseHead('Admin Panel', `
           <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:16px;text-align:center;"><div style="font-size:20px;font-weight:800;color:var(--s-red);" id="rec-pending">-</div><div style="font-size:11px;color:var(--t-muted);">Pending</div></div>
           <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:16px;text-align:center;"><div style="font-size:20px;font-weight:800;color:var(--g-main);" id="rec-amount">-</div><div style="font-size:11px;color:var(--t-muted);">Total Amount</div></div>
         </div>
-        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
+        <div class="table-scroll">
           <table class="admin-table">
             <thead><tr><th>Provider</th><th>Email / Phone</th><th>Fee</th><th>Status</th><th>Action</th></tr></thead>
             <tbody id="reconcile-tbody"><tr><td colspan="5" style="text-align:center;padding:32px;color:var(--t-muted);">Select a date and click Load Report</td></tr></tbody>
@@ -310,16 +345,49 @@ ${baseHead('Admin Panel', `
   </div>
 </div>
 
+<!-- Mobile bottom nav -->
+<nav class="admin-mob-nav">
+  <div class="admin-mob-nav-inner">
+    ${[
+      {id:'overview',icon:'⬡',label:'Overview'},
+      {id:'users',icon:'👥',label:'Users'},
+      {id:'providers',icon:'💇',label:'Providers'},
+      {id:'bookings',icon:'📅',label:'Bookings'},
+      {id:'kyc',icon:'🪪',label:'KYC'},
+      {id:'fees',icon:'🧾',label:'Fees'},
+      {id:'registrants',icon:'📋',label:'Registrants'},
+      {id:'reports',icon:'📊',label:'Reports'},
+    ].map((l,i)=>`
+      <button class="amob-btn ${i===0?'active':''}" id="amob-${l.id}" onclick="adminSection('${l.id}',document.getElementById('admin-nav-${l.id}'))">
+        <span class="aico">${l.icon}</span>${l.label}
+      </button>
+    `).join('')}
+  </div>
+</nav>
+
 ${globalScripts()}
 <script>
+function openAdminSidebar() {
+  document.getElementById('admin-sidebar').classList.add('open');
+  document.getElementById('admin-overlay').classList.add('open');
+}
+function closeAdminSidebar() {
+  document.getElementById('admin-sidebar').classList.remove('open');
+  document.getElementById('admin-overlay').classList.remove('open');
+}
+
 function adminSection(id, btn) {
   document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.amob-btn').forEach(b => b.classList.remove('active'));
   var sec = document.getElementById('admin-' + id);
   if (sec) sec.classList.add('active');
   if (btn) btn.classList.add('active');
+  var mobBtn = document.getElementById('amob-' + id);
+  if (mobBtn) mobBtn.classList.add('active');
   var titles = {overview:'Platform Overview',users:'User Management',providers:'Provider Management',bookings:'Booking Management',kyc:'KYC Verification Queue',payments:'Payment Management',reports:'Reports & Analytics',security:'Security & Fraud',fees:'Platform Service Fees',registrants:'Registrants Tracker',reconcile:'Daily Fee Reconciliation'};
   document.getElementById('admin-title').textContent = titles[id] || id;
+  closeAdminSidebar();
   if (id === 'fees') { loadFeeSummary(); loadFees('pending'); }
   if (id === 'registrants') loadRegistrants(30);
   if (id === 'reconcile') {
