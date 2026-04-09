@@ -7,7 +7,7 @@ ${baseHead('Provider Profile', `
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  .hero-cover { height:340px; position:relative; overflow:hidden; }
+  .hero-cover { height:380px; position:relative; overflow:hidden; }
   .hero-cover img { width:100%; height:100%; object-fit:cover; }
   .avatar-ring { width:90px; height:90px; border-radius:26px; overflow:hidden; border:3px solid #FFFFFF; box-shadow:0 4px 20px rgba(160,120,48,0.2); position:relative; background:var(--g-dim); }
   .service-item { display:flex; align-items:center; justify-content:space-between; padding:18px 0; border-bottom:1px solid var(--i-faint); cursor:pointer; transition:padding-left 0.3s; }
@@ -29,45 +29,46 @@ ${navbar('')}
 <!-- ── HERO COVER ── -->
 <div class="hero-cover">
   <img id="profile-cover" src="https://images.unsplash.com/photo-1560869713-7d0a29430803?w=1280&q=80" alt="Salon Cover" loading="lazy"/>
-  <div style="position:absolute;inset:0;background:linear-gradient(to bottom, transparent 50%, rgba(26,18,9,0.3) 100%);"></div>
-  <a href="/discover" style="position:absolute;top:20px;left:24px;display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.9);backdrop-filter:blur(10px);border-radius:100px;padding:8px 16px;font-size:12px;font-weight:600;color:var(--t-primary);text-decoration:none;transition:all 0.3s;" onmouseover="this.style.background='#FFFFFF'" onmouseout="this.style.background='rgba(255,255,255,0.9)'">
-    <i class="fas fa-arrow-left" style="font-size:10px;"></i> Back to Discover
+  <!-- Strong gradient so name is always readable -->
+  <div style="position:absolute;inset:0;background:linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, transparent 40%, rgba(0,0,0,0.65) 100%);"></div>
+  <!-- Back button -->
+  <a href="/discover" style="position:absolute;top:20px;left:16px;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.18);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:100px;padding:8px 14px;font-size:12px;font-weight:600;color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,0.25);">
+    <i class="fas fa-arrow-left" style="font-size:10px;"></i> Back
   </a>
-</div>
-
-<!-- ── PROFILE HEADER ── -->
-<div class="container" style="position:relative;">
-  <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:-48px;margin-bottom:36px;flex-wrap:wrap;gap:16px;">
-    <div style="display:flex;align-items:flex-end;gap:24px;">
-      <div class="avatar-ring">
-        <img id="profile-avatar" src="https://images.unsplash.com/photo-1560869713-7d0a29430803?w=180&q=80" alt="Provider" style="width:100%;height:100%;object-fit:cover;" loading="lazy"/>
-      </div>
-      <div style="padding-bottom:6px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
-          <h1 id="profile-name" class="font-display" style="font-size:32px;font-weight:500;">Loading...</h1>
+  <!-- Status + save overlaid top-right -->
+  <div style="position:absolute;top:20px;right:16px;display:flex;gap:8px;align-items:center;">
+    <span id="profile-status-badge" class="badge badge-closed" style="display:none;background:rgba(255,255,255,0.92);backdrop-filter:blur(8px);"></span>
+    <button onclick="showToast('Saved to favourites ✦','success')" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.18);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.25);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+    </button>
+  </div>
+  <!-- Name + info overlaid at bottom of cover -->
+  <div style="position:absolute;bottom:0;left:0;right:0;padding:24px 20px 20px;">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
           <span id="profile-verified-badge" class="badge badge-pending" style="display:none;"></span>
         </div>
-        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-          <span id="profile-category-loc" style="font-size:14px;color:var(--t-secondary);">—</span>
-          <div style="display:flex;align-items:center;gap:7px;">
-            <span class="stars" style="font-size:14px;">★★★★★</span>
-            <span id="profile-rating" style="font-weight:700;color:var(--g-main);">—</span>
-            <span id="profile-review-count" style="font-size:12px;color:var(--t-muted);"></span>
+        <h1 id="profile-name" class="font-display" style="font-size:28px;font-weight:700;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.4);margin-bottom:4px;line-height:1.2;">Loading...</h1>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span id="profile-category-loc" style="font-size:13px;color:rgba(255,255,255,0.85);">—</span>
+          <div style="display:flex;align-items:center;gap:5px;">
+            <span style="color:#F6C90E;font-size:12px;">★</span>
+            <span id="profile-rating" style="font-weight:700;color:#fff;font-size:13px;">—</span>
+            <span id="profile-review-count" style="font-size:11px;color:rgba(255,255,255,0.7);"></span>
           </div>
-          <span id="profile-status-badge" class="badge badge-closed" style="display:none;"></span>
         </div>
       </div>
+      <!-- Avatar -->
+      <div class="avatar-ring" style="flex-shrink:0;">
+        <img id="profile-avatar" src="https://images.unsplash.com/photo-1560869713-7d0a29430803?w=180&q=80" alt="Provider" style="width:100%;height:100%;object-fit:cover;" loading="lazy"/>
+      </div>
     </div>
-    <div style="display:flex;gap:10px;padding-bottom:6px;">
-      <button onclick="showToast('Saved to favourites ✦','success')" class="btn-ghost">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        Save
-      </button>
-      <a href="/book/${id}" class="btn-primary">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        Book Appointment
-      </a>
-    </div>
+    <!-- Book button -->
+    <a href="/book/${id}" class="btn-primary" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;width:100%;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Book Appointment
+    </a>
   </div>
 </div>
 
