@@ -7,10 +7,10 @@ ${baseHead('Provider Profile', `
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  .hero-cover { height:380px; position:relative; overflow:hidden; }
+  .hero-cover { height:340px; position:relative; overflow:hidden; }
   .hero-cover img { width:100%; height:100%; object-fit:cover; }
-  .avatar-ring { width:90px; height:90px; border-radius:26px; overflow:hidden; border:3px solid #FFFFFF; box-shadow:0 4px 20px rgba(160,120,48,0.2); position:relative; background:var(--g-dim); }
-  .service-item { display:flex; align-items:center; justify-content:space-between; padding:18px 0; border-bottom:1px solid var(--i-faint); cursor:pointer; transition:padding-left 0.3s; }
+  .avatar-ring { width:80px; height:80px; border-radius:20px; overflow:hidden; border:3px solid #FFFFFF; box-shadow:0 4px 20px rgba(160,120,48,0.2); position:relative; background:var(--g-dim); flex-shrink:0; }
+  .service-item { display:flex; align-items:center; justify-content:space-between; padding:16px 0; border-bottom:1px solid var(--i-faint); cursor:pointer; transition:padding-left 0.3s; gap:8px; }
   .service-item:hover { padding-left:6px; }
   .service-item:last-child { border-bottom:none; }
   .time-slot { padding:10px 16px; border-radius:10px; background:var(--c-raise); border:1px solid var(--i-faint); font-size:13px; font-weight:500; cursor:pointer; transition:all 0.25s; text-align:center; }
@@ -18,8 +18,18 @@ ${baseHead('Provider Profile', `
   .time-slot.disabled { opacity:0.3; cursor:not-allowed; background:var(--c-dark); }
   .portfolio-item { aspect-ratio:1; border-radius:14px; overflow:hidden; background:var(--c-raise); cursor:pointer; transition:all 0.35s var(--ease-luxury); display:flex; align-items:center; justify-content:center; font-size:36px; border:1px solid var(--i-faint); }
   .portfolio-item:hover { transform:scale(1.04); border-color:var(--g-border); }
-  /* Override global reveal — make all cards immediately visible on this page */
+  /* Reveal always visible on profile page */
   .reveal { opacity:1 !important; transform:none !important; }
+  /* Responsive layout */
+  .profile-layout { display:grid; grid-template-columns:1fr 360px; gap:32px; }
+  @media(max-width:960px) {
+    .profile-layout { grid-template-columns:1fr !important; }
+    .hero-cover { height:260px; }
+  }
+  @media(max-width:480px) {
+    .hero-cover { height:220px; }
+    .hero-cover h1 { font-size:20px !important; }
+  }
 </style>
 `)}
 </head>
@@ -74,7 +84,7 @@ ${navbar('')}
 
 <!-- ── MAIN CONTENT ── -->
 <div class="container" style="padding-bottom:120px;">
-  <div style="display:grid;grid-template-columns:1fr 380px;gap:40px;" class="profile-layout">
+  <div class="profile-layout">
 
     <!-- LEFT COLUMN -->
     <div>
@@ -216,12 +226,6 @@ ${navbar('')}
     </div>
   </div>
 </div>
-
-<style>
-@media(max-width:900px){
-  .profile-layout { grid-template-columns:1fr !important; }
-}
-</style>
 
 ${mobileNav('')}
 ${globalScripts()}

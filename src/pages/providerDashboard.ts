@@ -682,9 +682,14 @@ function showFeeReminder() {
       '<div style="font-size:11px;color:#888;margin-top:6px;">MTN Mobile Money</div>' +
     '</div>' +
     '<div style="font-size:12px;color:#aaa;text-align:center;margin-bottom:16px;">Amount: <strong>GHS 3.00</strong> per completed booking</div>' +
-    '<button onclick="document.getElementById(\'fee-reminder-modal\').remove()" style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#E1306C,#F77737);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;">Got it ✓</button>' +
+    '<button onclick="closeFeeReminder()" style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#E1306C,#F77737);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;">Got it \u2713</button>' +
   '</div>';
   document.body.appendChild(modal);
+}
+
+function closeFeeReminder() {
+  var m = document.getElementById('fee-reminder-modal');
+  if (m) m.remove();
 }
 
 /* ── Services ── */

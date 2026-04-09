@@ -560,16 +560,21 @@ function goObStep(n) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // SERVICES
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function removeServiceEntry(btn) {
+  var entry = btn.closest('.service-entry');
+  if (entry) entry.remove();
+}
+
 function addService() {
   var list = document.getElementById('services-list');
   var div  = document.createElement('div');
   div.className = 'service-entry';
-  div.style.cssText = 'background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:16px;display:grid;grid-template-columns:1fr 110px 120px 40px;gap:10px;align-items:center;';
+  div.style.cssText = 'background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:16px;display:grid;grid-template-columns:1fr 100px 110px 38px;gap:8px;align-items:center;';
   div.innerHTML =
     '<input type="text" class="input svc-name" placeholder="Service name (e.g. Box Braids)" style="font-size:13px;"/>' +
     '<input type="number" class="input svc-price" placeholder="GHS price" style="font-size:13px;" min="1" step="1"/>' +
     '<input type="number" class="input svc-duration" placeholder="Duration (mins)" style="font-size:13px;" min="10" step="5" value="60"/>' +
-    '<button onclick="this.closest(\\'.service-entry\\').remove()" style="background:rgba(255,59,48,0.1);border:none;border-radius:10px;width:38px;height:38px;cursor:pointer;color:#FF3B30;font-size:16px;">✕</button>';
+    '<button onclick="removeServiceEntry(this)" style="background:rgba(255,59,48,0.1);border:none;border-radius:10px;width:38px;height:38px;cursor:pointer;color:#FF3B30;font-size:16px;">✕</button>';
   list.appendChild(div);
 }
 
