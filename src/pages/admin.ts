@@ -587,16 +587,14 @@ document.addEventListener('DOMContentLoaded', function() {
     if (kyctbody) {
       var pending = rows.filter(function(p) { return p.kyc_status === 'pending' || p.kyc_status === 'submitted'; });
       kyctbody.innerHTML = pending.length ? pending.map(function(p) {
-        var frontImg  = p.kyc_front_url  ? '<img src="' + p.kyc_front_url  + '" style="width:70px;height:45px;object-fit:cover;border-radius:6px;cursor:pointer;" data-caption="Ghana Card Front" onclick="viewImgBtn(this)" title="Click to enlarge"/>' : '<span style="color:#bbb;font-size:11px;">Not uploaded</span>';
-        var backImg   = p.kyc_back_url   ? '<img src="' + p.kyc_back_url   + '" style="width:70px;height:45px;object-fit:cover;border-radius:6px;cursor:pointer;" data-caption="Ghana Card Back" onclick="viewImgBtn(this)" title="Click to enlarge"/>'  : '<span style="color:#bbb;font-size:11px;">Not uploaded</span>';
-        var selfieImg = p.kyc_selfie_url ? '<img src="' + p.kyc_selfie_url + '" style="width:45px;height:45px;object-fit:cover;border-radius:50%;cursor:pointer;" data-caption="Selfie" onclick="viewImgBtn(this)" title="Click to enlarge"/>'             : '<span style="color:#bbb;font-size:11px;">Not taken</span>';
-        var cardNum   = p.kyc_card_number ? '<div style="font-size:10px;font-weight:700;color:#a0793c;margin-top:4px;">' + p.kyc_card_number + '</div>' : '';
-        return '<tr>' +
+        var cardNum = p.kyc_card_number ? '<div style="font-size:10px;font-weight:700;color:#a0793c;margin-top:4px;">' + p.kyc_card_number + '</div>' : '';
+        // Images loaded on-demand via button click to avoid freezing the page
+        return '<tr id="kyc-row-' + p.id + '">' +
           '<td><div style="font-weight:700;">' + (p.business_name || '—') + '</div><div style="font-size:11px;color:#888;">' + p.first_name + ' ' + p.last_name + '</div>' + cardNum + '</td>' +
           '<td style="font-size:12px;">' + p.email + '</td>' +
           '<td>' + (p.service_category||'').replace('_',' ') + '</td>' +
-          '<td><div style="display:flex;gap:6px;align-items:center;">' + frontImg + backImg + '</div></td>' +
-          '<td>' + selfieImg + '</td>' +
+          '<td id="kyc-imgs-' + p.id + '"><button onclick="loadKycImages(' + p.id + ')" style="padding:5px 12px;font-size:11px;background:rgba(160,120,48,0.1);border:1px solid rgba(160,120,48,0.3);color:#a0793c;border-radius:8px;cursor:pointer;">🪪 View Documents</button></td>' +
+          '<td id="kyc-selfie-' + p.id + '">—</td>' +
           '<td>' +
             '<button onclick="approveKyc(' + p.id + ')" class="btn-primary" style="padding:6px 14px;font-size:11px;margin-bottom:4px;display:block;width:100%;">✓ Approve</button>' +
             '<button onclick="rejectKyc(' + p.id + ')" style="padding:6px 14px;font-size:11px;background:none;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);border-radius:8px;cursor:pointer;display:block;width:100%;">✗ Reject</button>' +
@@ -629,6 +627,24 @@ function toggleUser(id) {
   axios.patch('/api/admin/users/' + id + '/toggle', {}, { headers: { Authorization: 'Bearer ' + token } })
     .then(function(r) { showToast(r.data.message + ' ✦', 'success'); setTimeout(function(){location.reload();},1000); })
     .catch(function() { showToast('Action failed', 'error'); });
+}
+
+// Load KYC images on demand (avoids freezing page with huge base64 payloads)
+function loadKycImages(providerId) {
+  var token = localStorage.getItem('sl_token');
+  var cell = document.getElementById('kyc-imgs-' + providerId);
+  var selfieCell = document.getElementById('kyc-selfie-' + providerId);
+  if (cell) cell.textContent = 'Loading...';
+  axios.get('/api/admin/providers/' + providerId + '/kyc-images', { headers: { Authorization: 'Bearer ' + token } })
+    .then(function(r) {
+      var imgs = r.data.images || {};
+      var front = imgs.kyc_front_url ? '<img src="' + imgs.kyc_front_url + '" style="width:70px;height:45px;object-fit:cover;border-radius:6px;cursor:pointer;" data-caption="Ghana Card Front" onclick="viewImgBtn(this)" title="Click to enlarge"/>' : '<span style="color:#bbb;font-size:11px;">Not uploaded</span>';
+      var back  = imgs.kyc_back_url  ? '<img src="' + imgs.kyc_back_url  + '" style="width:70px;height:45px;object-fit:cover;border-radius:6px;cursor:pointer;" data-caption="Ghana Card Back"  onclick="viewImgBtn(this)" title="Click to enlarge"/>' : '<span style="color:#bbb;font-size:11px;">Not uploaded</span>';
+      var selfie= imgs.kyc_selfie_url? '<img src="' + imgs.kyc_selfie_url + '" style="width:45px;height:45px;object-fit:cover;border-radius:50%;cursor:pointer;" data-caption="Selfie" onclick="viewImgBtn(this)" title="Click to enlarge"/>' : '<span style="color:#bbb;font-size:11px;">Not taken</span>';
+      if (cell) cell.innerHTML = '<div style="display:flex;gap:6px;align-items:center;">' + front + back + '</div>';
+      if (selfieCell) selfieCell.innerHTML = selfie;
+    })
+    .catch(function() { if (cell) cell.textContent = 'Failed to load'; });
 }
 
 // View KYC image in lightbox

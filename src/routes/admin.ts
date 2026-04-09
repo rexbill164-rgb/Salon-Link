@@ -73,8 +73,14 @@ admin.get('/providers', async (c) => {
     if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
 
     const { kyc_status, search } = c.req.query()
+    // Explicitly exclude large base64 image columns (cover_url, logo_url, kyc_*_url)
+    // to prevent the response from becoming several MB and freezing the admin panel
     let query = `
-      SELECT p.*, u.email, u.first_name, u.last_name, u.phone
+      SELECT p.id, p.user_id, p.business_name, p.service_category, p.city, p.address,
+        p.bio, p.rating, p.total_reviews, p.total_bookings, p.is_verified, p.is_accepting_bookings,
+        p.kyc_status, p.kyc_card_number, p.momo_number, p.momo_name,
+        p.gallery_count, p.created_at, p.updated_at,
+        u.email, u.first_name, u.last_name, u.phone
       FROM providers p JOIN users u ON p.user_id = u.id WHERE 1=1
     `
     const params: any[] = []
@@ -353,6 +359,23 @@ admin.get('/daily-reconciliation', async (c) => {
       fees: fees.results,
       summary
     })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// GET /api/admin/providers/:id/kyc-images — load KYC images on demand only
+admin.get('/providers/:id/kyc-images', async (c) => {
+  try {
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+
+    const row = await c.env.DB.prepare(
+      'SELECT id, kyc_front_url, kyc_back_url, kyc_selfie_url, kyc_card_number FROM providers WHERE id = ?'
+    ).bind(c.req.param('id')).first() as any
+
+    if (!row) return c.json({ success: false, error: 'Provider not found' }, 404)
+    return c.json({ success: true, images: row })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }

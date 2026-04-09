@@ -237,14 +237,17 @@ ${globalScripts()}
       } else {
         document.getElementById('status-icon').textContent = '❌';
         document.getElementById('status-title').textContent = 'Payment Not Confirmed';
-        document.getElementById('status-msg').textContent = r.data.message || 'Your payment could not be verified.';
+        var errMsg = r.data.message || 'Your payment could not be verified.';
+        if (r.data.debug) errMsg += ' (' + JSON.stringify(r.data.debug) + ')';
+        document.getElementById('status-msg').textContent = errMsg;
         document.getElementById('fail-btn').style.display = 'block';
       }
     })
     .catch(function(e) {
+      var errDetail = e.response && e.response.data ? JSON.stringify(e.response.data) : e.message;
       document.getElementById('status-icon').textContent = '⚠️';
       document.getElementById('status-title').textContent = 'Verification Error';
-      document.getElementById('status-msg').textContent = 'Could not verify payment. Please check your dashboard.';
+      document.getElementById('status-msg').textContent = 'Could not verify: ' + errDetail;
       document.getElementById('fail-btn').style.display = 'block';
     });
 })();

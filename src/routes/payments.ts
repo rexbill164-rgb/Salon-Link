@@ -58,9 +58,9 @@ payments.post('/initialize', async (c) => {
 
     if (!booking) return c.json({ success: false, error: 'Booking not found or already paid' }, 404)
 
-    // Total = service amount + platform fee (3 GHS)
-    const serviceAmount = booking.total_amount  // pesewas
-    const totalCharge = serviceAmount + PLATFORM_FEE_PESEWAS
+    // booking.total_amount already includes the 3 GHS platform fee (added at booking creation)
+    const totalCharge = booking.total_amount  // pesewas — service price + 300 (3 GHS fee)
+    const serviceAmount = totalCharge - PLATFORM_FEE_PESEWAS
     const reference = generateRef()
     const paystackKey = c.env.PAYSTACK_SECRET_KEY || PAYSTACK_SECRET
 
@@ -77,9 +77,9 @@ payments.post('/initialize', async (c) => {
         reference,
         currency: 'GHS',
         metadata: {
-          booking_id: booking.id,
-          provider_id: booking.provider_id,
-          service_id: booking.service_id,
+          booking_id: String(booking.id),
+          provider_id: String(booking.provider_id),
+          service_id: String(booking.service_id),
           platform_fee: PLATFORM_FEE_PESEWAS,
           service_amount: serviceAmount,
           customer_name: `${booking.first_name} ${booking.last_name}`,
@@ -123,58 +123,87 @@ payments.get('/verify/:reference', async (c) => {
     const reference = c.req.param('reference')
     const paystackKey = c.env.PAYSTACK_SECRET_KEY || PAYSTACK_SECRET
 
+    // Call Paystack verify API
     const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
       headers: { 'Authorization': `Bearer ${paystackKey}` }
     })
     const data = await res.json() as any
 
-    if (!data.status || data.data?.status !== 'success') {
-      return c.json({ success: false, status: 'failed', message: 'Payment not successful' })
+    if (!data.status || !data.data) {
+      return c.json({ success: false, status: 'failed', message: data.message || 'Paystack verification failed', debug: data })
+    }
+
+    const txStatus = data.data.status
+    if (txStatus !== 'success') {
+      return c.json({ success: false, status: txStatus || 'failed', message: `Payment status: ${txStatus}`, debug: { gateway: data.data.gateway_response, channel: data.data.channel } })
     }
 
     const txData = data.data
     const meta = txData.metadata || {}
     const amountPaid = txData.amount // pesewas
     const providerEarning = amountPaid - PLATFORM_FEE_PESEWAS
+    const bookingId = meta.booking_id ? parseInt(String(meta.booking_id)) : null
+    const providerId = meta.provider_id ? parseInt(String(meta.provider_id)) : null
 
-    // Check if already processed (idempotency)
+    // Already processed? Return success immediately
     const existing = await c.env.DB.prepare(
       'SELECT id FROM transactions WHERE payment_reference = ?'
     ).bind(reference).first()
+    if (existing) {
+      return c.json({ success: true, status: 'success', reference, amount: amountPaid })
+    }
 
-    if (!existing) {
-      const payment = await c.env.DB.prepare(
-        'SELECT * FROM payments WHERE reference = ?'
-      ).bind(reference).first() as any
+    // Look up payment record (may exist from initialize step)
+    let payment = await c.env.DB.prepare(
+      'SELECT * FROM payments WHERE reference = ?'
+    ).bind(reference).first() as any
 
-      if (payment) {
-        // Create transaction record
+    // If no payment record (race condition or direct Paystack), look up booking from metadata
+    if (!payment && bookingId) {
+      const booking = await c.env.DB.prepare(
+        'SELECT * FROM bookings WHERE id = ?'
+      ).bind(bookingId).first() as any
+
+      if (booking) {
+        // Create payment record on the fly
         await c.env.DB.prepare(
-          `INSERT INTO transactions (booking_id, provider_id, customer_id, amount_paid, platform_fee, provider_earning, payout_status, payment_reference, paystack_event_id)
-           VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
-        ).bind(
-          payment.booking_id, payment.provider_id, payment.customer_id,
-          amountPaid, PLATFORM_FEE_PESEWAS, providerEarning,
-          reference, txData.id
-        ).run()
+          `INSERT OR IGNORE INTO payments (booking_id, customer_id, provider_id, amount, reference, status)
+           VALUES (?, ?, ?, ?, ?, 'success')`
+        ).bind(booking.id, booking.customer_id, booking.provider_id, amountPaid, reference).run()
 
-        // Mark payment success
-        await c.env.DB.prepare(
-          "UPDATE payments SET status='success', updated_at=CURRENT_TIMESTAMP WHERE reference=?"
-        ).bind(reference).run()
-
-        // Update booking
-        await c.env.DB.prepare(
-          "UPDATE bookings SET payment_status='paid', payment_reference=?, status='confirmed', updated_at=CURRENT_TIMESTAMP WHERE id=?"
-        ).bind(reference, payment.booking_id).run()
-
-        // Notify customer
-        await c.env.DB.prepare(
-          `INSERT INTO notifications (user_id, title, message, type, action_url)
-           VALUES (?, 'Payment Confirmed! ✅', 'Your booking is confirmed. Provider earning: GHS ${(providerEarning/100).toFixed(2)}', 'payment', '/dashboard')`
-        ).bind(payment.customer_id).run()
+        payment = { booking_id: booking.id, customer_id: booking.customer_id, provider_id: booking.provider_id }
       }
     }
+
+    if (!payment) {
+      // Paystack confirmed success but we can't find the booking — still return success to user
+      return c.json({ success: true, status: 'success', reference, amount: amountPaid, note: 'booking_lookup_failed' })
+    }
+
+    // Create transaction record
+    await c.env.DB.prepare(
+      `INSERT OR IGNORE INTO transactions (booking_id, provider_id, customer_id, amount_paid, platform_fee, provider_earning, payout_status, payment_reference, paystack_event_id)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
+    ).bind(
+      payment.booking_id, payment.provider_id, payment.customer_id,
+      amountPaid, PLATFORM_FEE_PESEWAS, providerEarning,
+      reference, String(txData.id)
+    ).run()
+
+    // Mark payment + booking confirmed
+    await c.env.DB.prepare(
+      "UPDATE payments SET status='success', updated_at=CURRENT_TIMESTAMP WHERE reference=?"
+    ).bind(reference).run()
+
+    await c.env.DB.prepare(
+      "UPDATE bookings SET payment_status='paid', payment_reference=?, status='confirmed', updated_at=CURRENT_TIMESTAMP WHERE id=?"
+    ).bind(reference, payment.booking_id).run()
+
+    // Notify customer
+    await c.env.DB.prepare(
+      `INSERT INTO notifications (user_id, title, message, type, action_url)
+       VALUES (?, '💳 Payment Confirmed!', 'GHS ${(amountPaid/100).toFixed(2)} paid. Your booking is confirmed!', 'payment', '/dashboard')`
+    ).bind(payment.customer_id).run()
 
     return c.json({ success: true, status: 'success', reference, amount: amountPaid })
   } catch (e: any) {
