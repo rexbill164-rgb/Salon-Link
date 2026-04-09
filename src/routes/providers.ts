@@ -125,8 +125,8 @@ providers.get('/me/fees', async (c) => {
     const summary = await c.env.DB.prepare(`
       SELECT
         COUNT(*) as total_bookings,
-        COALESCE(SUM(CASE WHEN status='pending' THEN fee_amount ELSE 0 END), 0) as pending_amount,
-        COALESCE(SUM(CASE WHEN status='paid' THEN fee_amount ELSE 0 END), 0) as paid_amount,
+        COALESCE(SUM(CASE WHEN sf.status='pending' THEN sf.fee_amount ELSE 0 END), 0) as pending_amount,
+        COALESCE(SUM(CASE WHEN sf.status='paid' THEN sf.fee_amount ELSE 0 END), 0) as paid_amount,
         COALESCE(SUM(b.total_amount - sf.fee_amount), 0) as total_earned,
         COALESCE(SUM(CASE WHEN b.booking_date >= date('now', 'start of month') THEN b.total_amount - sf.fee_amount ELSE 0 END), 0) as month_earned
       FROM service_fees sf JOIN bookings b ON sf.booking_id = b.id
