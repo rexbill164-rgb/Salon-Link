@@ -3,7 +3,8 @@ export const baseHead = (title: string, extra = '') => `
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>${title} | SalonLink</title>
   <meta name="description" content="SalonLink — Ghana's most exclusive beauty booking experience."/>
-  <link rel="icon" href="/salonlink-logo.png"/>
+  <link rel="icon" href="/favicon.png"/>
+  <link rel="apple-touch-icon" href="/icon-192.png"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.0/css/all.min.css"/>
