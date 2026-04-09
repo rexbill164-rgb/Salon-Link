@@ -5,9 +5,11 @@ export const baseHead = (title: string, extra = '') => `
   <title>${title} | SalonLink</title>
   <meta name="description" content="SalonLink — Ghana's beauty booking app. Find, book and manage salon appointments."/>
   <!-- PWA / Home Screen -->
-  <link rel="manifest" href="/manifest.json"/>
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png"/>
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"/>
+  <link rel="manifest" href="/manifest.json?v=2"/>
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?v=2"/>
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2"/>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2"/>
+  <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png?v=2"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
   <meta name="apple-mobile-web-app-title" content="SalonLink"/>
