@@ -1,7 +1,9 @@
 import { Hono } from 'hono'
 import { verify } from 'hono/jwt'
+import { sendEmail, bookingConfirmEmail, providerNewBookingEmail, bookingReminderEmail } from '../utils/email'
+import { sendPushToUser } from '../utils/push'
 
-type Bindings = { DB: D1Database }
+type Bindings = { DB: D1Database; RESEND_API_KEY?: string; SENDGRID_KEY?: string; VAPID_PRIVATE_KEY?: string; VAPID_PUBLIC_KEY?: string }
 
 const bookings = new Hono<{ Bindings: Bindings }>()
 
@@ -72,25 +74,66 @@ bookings.post('/', async (c) => {
 
     // Get customer and provider info for notifications
     const customer = await c.env.DB.prepare(
-      'SELECT first_name, last_name FROM users WHERE id = ?'
+      'SELECT first_name, last_name, email FROM users WHERE id = ?'
     ).bind(user.sub).first() as any
     const provUser = await c.env.DB.prepare(
-      'SELECT u.id FROM users u JOIN providers p ON p.user_id = u.id WHERE p.id = ?'
+      'SELECT u.id, u.email, u.first_name, u.last_name, p.address FROM users u JOIN providers p ON p.user_id = u.id WHERE p.id = ?'
     ).bind(provider_id).first() as any
 
-    // Notify customer
+    const customerName = `${customer?.first_name || ''} ${customer?.last_name || ''}`.trim()
+    const providerName = (provider as any).business_name
+    const totalGhs = totalWithFee / 100
+
+    // ── DB notifications ──
     await c.env.DB.prepare(`
       INSERT INTO notifications (user_id, title, message, type, action_url)
-      VALUES (?, 'Booking Submitted!', ?, 'booking', '/dashboard')
-    `).bind(user.sub, `Your booking at ${(provider as any).business_name} on ${booking_date} at ${booking_time} is pending confirmation.`).run()
+      VALUES (?, 'Booking Submitted! ✦', ?, 'booking', '/dashboard')
+    `).bind(user.sub, `Your booking at ${providerName} on ${booking_date} at ${booking_time} is pending confirmation.`).run()
 
-    // Notify provider
     if (provUser) {
       await c.env.DB.prepare(`
         INSERT INTO notifications (user_id, title, message, type, action_url)
-        VALUES (?, 'New Booking Request!', ?, 'booking', '/provider/dashboard')
-      `).bind(provUser.id, `${customer?.first_name} ${customer?.last_name} booked ${service.name} for ${booking_date} at ${booking_time}.`).run()
+        VALUES (?, 'New Booking Request! 🎉', ?, 'booking', '/provider/dashboard')
+      `).bind(provUser.id, `${customerName} booked ${service.name} for ${booking_date} at ${booking_time}.`).run()
     }
+
+    // ── Push notifications (fire & forget) ──
+    c.executionCtx?.waitUntil(Promise.allSettled([
+      sendPushToUser(c.env.DB, user.sub, {
+        title: 'Booking Confirmed! ✦',
+        body: `${providerName} · ${booking_date} at ${booking_time}`,
+        url: '/dashboard',
+        tag: `booking-${bookingId}`
+      }, c.env),
+      provUser ? sendPushToUser(c.env.DB, provUser.id, {
+        title: 'New Booking! 🎉',
+        body: `${customerName} booked ${service.name} · ${booking_date} at ${booking_time}`,
+        url: '/provider/dashboard',
+        tag: `newbooking-${bookingId}`,
+        requireInteraction: true
+      }, c.env) : Promise.resolve()
+    ]))
+
+    // ── Emails (fire & forget) ──
+    c.executionCtx?.waitUntil(Promise.allSettled([
+      // Customer booking confirmation
+      customer?.email ? sendEmail(c.env, customer.email, `Booking Confirmed — ${providerName}`,
+        bookingConfirmEmail({
+          customerName, providerName, serviceName: service.name,
+          date: booking_date, time: booking_time,
+          totalGhs, bookingId
+        })
+      ) : Promise.resolve(),
+      // Provider new booking email
+      provUser?.email ? sendEmail(c.env, provUser.email, `New Booking from ${customerName}`,
+        providerNewBookingEmail({
+          providerName: `${provUser.first_name || ''} ${provUser.last_name || ''}`.trim() || providerName,
+          customerName, serviceName: service.name,
+          date: booking_date, time: booking_time,
+          totalGhs, bookingId
+        })
+      ) : Promise.resolve()
+    ]))
 
     return c.json({ success: true, booking_id: bookingId, message: 'Booking created successfully' })
   } catch (e: any) {
@@ -256,6 +299,57 @@ bookings.post('/:id/review', async (c) => {
     ).bind(Math.round(avgResult.avg * 10) / 10, avgResult.count, booking.provider_id).run()
 
     return c.json({ success: true, message: 'Review submitted successfully' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// POST /api/bookings/send-reminders — called by customer dashboard on load, sends reminder emails
+// for bookings happening tomorrow that haven't been reminded yet
+bookings.post('/send-reminders', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
+
+    // Find tomorrow's confirmed bookings for this customer that haven't had reminder sent
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const tomorrowStr = tomorrow.toISOString().split('T')[0]
+
+    const upcoming = await c.env.DB.prepare(`
+      SELECT b.*, s.name as service_name, p.business_name, p.address,
+        cu.email as customer_email, cu.first_name as customer_first, cu.last_name as customer_last
+      FROM bookings b
+      JOIN services s ON b.service_id = s.id
+      JOIN providers p ON b.provider_id = p.id
+      JOIN users cu ON b.customer_id = cu.id
+      WHERE b.customer_id = ? AND b.booking_date = ? AND b.status IN ('confirmed','pending')
+        AND b.reminder_sent = 0
+    `).bind(user.sub, tomorrowStr).all()
+
+    let sent = 0
+    for (const b of (upcoming.results as any[])) {
+      if (!b.customer_email) continue
+      const customerName = `${b.customer_first||''} ${b.customer_last||''}`.trim()
+      await sendEmail(c.env, b.customer_email, `Reminder: Appointment Tomorrow — ${b.business_name}`,
+        bookingReminderEmail({
+          customerName, providerName: b.business_name, serviceName: b.service_name,
+          date: b.booking_date, time: b.booking_time, address: b.address || ''
+        })
+      )
+      // Push reminder
+      await sendPushToUser(c.env.DB, user.sub, {
+        title: '⏰ Appointment Tomorrow!',
+        body: `${b.business_name} · ${b.booking_time}`,
+        url: '/dashboard',
+        tag: `reminder-${b.id}`
+      }, c.env)
+      // Mark reminder sent
+      await c.env.DB.prepare('UPDATE bookings SET reminder_sent=1 WHERE id=?').bind(b.id).run()
+      sent++
+    }
+
+    return c.json({ success: true, reminders_sent: sent })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }

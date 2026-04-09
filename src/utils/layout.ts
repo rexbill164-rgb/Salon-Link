@@ -722,6 +722,70 @@ function dismissPwa() {
     document.body.appendChild(banner);
   }, 3000);
 })();
+
+// ── Service Worker + Push Notification Registration ──
+(function() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  var token = localStorage.getItem('sl_token');
+
+  // Register SW on every load
+  navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(function(reg) {
+    if (!token) return; // not logged in, skip push subscribe
+
+    // Check if already subscribed
+    reg.pushManager.getSubscription().then(function(existing) {
+      if (existing) {
+        // Re-save subscription (in case user logged in on new device)
+        savePushSub(existing, token);
+        return;
+      }
+
+      // Ask for push permission after brief delay (less intrusive)
+      setTimeout(function() {
+        // Only ask if user is logged in and on provider/dashboard page
+        var path = window.location.pathname;
+        var isAppPage = path.startsWith('/provider') || path.startsWith('/dashboard') || path.startsWith('/admin');
+        if (!isAppPage) return;
+
+        Notification.requestPermission().then(function(perm) {
+          if (perm !== 'granted') return;
+          // Fetch VAPID public key then subscribe
+          fetch('/api/notifications/vapid-public-key').then(function(r){ return r.json(); }).then(function(d) {
+            if (!d.key) return;
+            var appServerKey = urlBase64ToUint8Array(d.key);
+            reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appServerKey })
+              .then(function(sub) { savePushSub(sub, token); })
+              .catch(function(){});
+          }).catch(function(){});
+        });
+      }, 5000);
+    });
+  }).catch(function(){});
+
+  function savePushSub(sub, tok) {
+    var key = sub.getKey ? sub.getKey('p256dh') : null;
+    var auth = sub.getKey ? sub.getKey('auth') : null;
+    if (!key || !auth) return;
+    fetch('/api/notifications/push-subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok },
+      body: JSON.stringify({
+        endpoint: sub.endpoint,
+        p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(key))),
+        auth: btoa(String.fromCharCode.apply(null, new Uint8Array(auth)))
+      })
+    }).catch(function(){});
+  }
+
+  function urlBase64ToUint8Array(base64String) {
+    var padding = '='.repeat((4 - base64String.length % 4) % 4);
+    var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    var rawData = window.atob(base64);
+    var outputArray = new Uint8Array(rawData.length);
+    for (var i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); }
+    return outputArray;
+  }
+})();
 </script>
 `
 

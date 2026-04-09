@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { verify } from 'hono/jwt'
 
-type Bindings = { DB: D1Database }
+type Bindings = { DB: D1Database; VAPID_PRIVATE_KEY?: string; VAPID_PUBLIC_KEY?: string }
 
 const notifications = new Hono<{ Bindings: Bindings }>()
 
@@ -79,6 +79,49 @@ notifications.delete('/:id', async (c) => {
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
+})
+
+// POST /api/notifications/push-subscribe — save push subscription
+notifications.post('/push-subscribe', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
+
+    const { endpoint, p256dh, auth } = await c.req.json()
+    if (!endpoint || !p256dh || !auth) return c.json({ success: false, error: 'Missing subscription data' }, 400)
+
+    await c.env.DB.prepare(`
+      INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(endpoint) DO UPDATE SET user_id=excluded.user_id, p256dh=excluded.p256dh, auth=excluded.auth
+    `).bind(user.sub, endpoint, p256dh, auth).run()
+
+    return c.json({ success: true, message: 'Push subscription saved' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// DELETE /api/notifications/push-subscribe — remove push subscription
+notifications.delete('/push-subscribe', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
+
+    const { endpoint } = await c.req.json()
+    await c.env.DB.prepare('DELETE FROM push_subscriptions WHERE user_id = ? AND endpoint = ?')
+      .bind(user.sub, endpoint).run()
+
+    return c.json({ success: true })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// GET /api/notifications/vapid-public-key — expose VAPID public key to frontend
+notifications.get('/vapid-public-key', (c) => {
+  const key = c.env.VAPID_PUBLIC_KEY || ''
+  return c.json({ key })
 })
 
 export default notifications

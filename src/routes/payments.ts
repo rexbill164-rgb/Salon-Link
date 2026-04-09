@@ -1,7 +1,9 @@
 import { Hono } from 'hono'
 import { verify } from 'hono/jwt'
+import { sendEmail, paymentReceiptEmail } from '../utils/email'
+import { sendPushToUser } from '../utils/push'
 
-type Bindings = { DB: D1Database; PAYSTACK_SECRET_KEY: string }
+type Bindings = { DB: D1Database; PAYSTACK_SECRET_KEY: string; RESEND_API_KEY?: string; SENDGRID_KEY?: string; VAPID_PRIVATE_KEY?: string; VAPID_PUBLIC_KEY?: string }
 
 const payments = new Hono<{ Bindings: Bindings }>()
 
@@ -562,22 +564,30 @@ payments.get('/provider/earnings', async (c) => {
   }
 })
 
-// ── POST /api/payments/mock-success — dev/test only ──
+// ── POST /api/payments/mock-success — handles MoMo + Cash payments ──
 payments.post('/mock-success', async (c) => {
   try {
     const user = await getUser(c)
     if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
 
-    const { booking_id } = await c.req.json()
-    const booking = await c.env.DB.prepare(
-      "SELECT * FROM bookings WHERE id=? AND customer_id=? AND payment_status='unpaid'"
-    ).bind(booking_id, user.sub).first() as any
+    const { booking_id, method } = await c.req.json()
+    const paymentMethod = method || 'cash'
+
+    const booking = await c.env.DB.prepare(`
+      SELECT b.*, s.name as service_name, p.business_name, p.address as provider_address,
+        cu.email as customer_email, cu.first_name as customer_first, cu.last_name as customer_last
+      FROM bookings b
+      JOIN services s ON b.service_id = s.id
+      JOIN providers p ON b.provider_id = p.id
+      JOIN users cu ON b.customer_id = cu.id
+      WHERE b.id=? AND b.customer_id=?
+    `).bind(booking_id, user.sub).first() as any
 
     if (!booking) return c.json({ success: false, error: 'Booking not found' }, 404)
 
-    const amountPaid = (booking.total_amount || 0) + PLATFORM_FEE_PESEWAS
+    const amountPaid = booking.total_amount || 0
     const providerEarning = amountPaid - PLATFORM_FEE_PESEWAS
-    const reference = 'MOCK-' + Date.now()
+    const reference = `SL-${paymentMethod.toUpperCase()}-${Date.now()}`
 
     await c.env.DB.prepare(
       `INSERT OR IGNORE INTO payments (booking_id, customer_id, provider_id, amount, reference, status)
@@ -589,9 +599,42 @@ payments.post('/mock-success', async (c) => {
        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, 'mock')`
     ).bind(booking.id, booking.provider_id, user.sub, amountPaid, PLATFORM_FEE_PESEWAS, providerEarning, reference).run()
 
+    const newStatus = paymentMethod === 'cash' ? 'confirmed' : 'confirmed'
+    const newPayStatus = paymentMethod === 'cash' ? 'pending' : 'paid'
     await c.env.DB.prepare(
-      "UPDATE bookings SET payment_status='paid', payment_reference=?, status='confirmed', updated_at=CURRENT_TIMESTAMP WHERE id=?"
-    ).bind(reference, booking.id).run()
+      `UPDATE bookings SET payment_status=?, payment_reference=?, status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
+    ).bind(newPayStatus, reference, newStatus, booking.id).run()
+
+    // DB notification
+    await c.env.DB.prepare(
+      `INSERT INTO notifications (user_id, title, message, type, action_url)
+       VALUES (?, '✅ Booking Confirmed!', ?, 'payment', '/dashboard')`
+    ).bind(user.sub, `Your booking at ${booking.business_name} is confirmed. Ref: ${reference}`).run()
+
+    // Push + Email receipt (fire & forget)
+    const customerName = `${booking.customer_first || ''} ${booking.customer_last || ''}`.trim()
+    const totalGhs = amountPaid / 100
+    c.executionCtx?.waitUntil(Promise.allSettled([
+      // Push to customer
+      sendPushToUser(c.env.DB, user.sub, {
+        title: '✅ Booking Confirmed!',
+        body: `${booking.business_name} · ${booking.booking_date} at ${booking.booking_time}`,
+        url: '/dashboard',
+        tag: `payment-${booking.id}`
+      }, c.env),
+      // Receipt email to customer
+      booking.customer_email ? sendEmail(
+        c.env, booking.customer_email,
+        `Payment Receipt — ${booking.business_name}`,
+        paymentReceiptEmail({
+          customerName, providerName: booking.business_name,
+          serviceName: booking.service_name,
+          date: booking.booking_date, time: booking.booking_time,
+          totalGhs, bookingId: booking.id,
+          paymentMethod, reference
+        })
+      ) : Promise.resolve()
+    ]))
 
     return c.json({
       success: true, reference,

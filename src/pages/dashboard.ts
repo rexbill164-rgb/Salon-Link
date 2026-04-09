@@ -290,6 +290,18 @@ function loadDashboard() {
     .catch(function(){ window.location.href='/login'; });
 }
 
-document.addEventListener('DOMContentLoaded', loadDashboard);
+document.addEventListener('DOMContentLoaded', function() {
+  loadDashboard();
+  // Silently send reminders for tomorrow's bookings (fire & forget)
+  var tok = localStorage.getItem('sl_token');
+  if (tok) {
+    setTimeout(function() {
+      fetch('/api/bookings/send-reminders', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + tok }
+      }).catch(function(){});
+    }, 4000);
+  }
+});
 </script>
 </body></html>`
