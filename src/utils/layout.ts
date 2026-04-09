@@ -5,7 +5,7 @@ export const baseHead = (title: string, extra = '') => `
   <meta name="description" content="SalonLink — Ghana's most exclusive beauty booking experience."/>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Inter:wght@300;400;500;600&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.0/css/all.min.css"/>
   <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -13,46 +13,50 @@ export const baseHead = (title: string, extra = '') => `
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      /* ── LIGHT / WHITE & GOLD PALETTE ── */
+      /* ── INSTAGRAM GRADIENT COLORS ── */
 
       /* Page backgrounds */
       --c-void:     #FFFFFF;
       --c-deep:     #FAFAFA;
-      --c-dark:     #F7F4EF;
-      --c-mid:      #F2EEE6;
+      --c-dark:     #F9F9F9;
+      --c-mid:      #F5F5F5;
       --c-surface:  #FFFFFF;
-      --c-raise:    #F9F6F1;
-      --c-lift:     #F0EBE1;
-      --c-mist:     #E8E1D6;
+      --c-raise:    #FAFAFA;
+      --c-lift:     #F5F5F5;
+      --c-mist:     #EEEEEE;
 
-      /* Gold spectrum */
-      --g-pale:     #FDF5E4;
-      --g-light:    #E8C97A;
-      --g-main:     #C9A84C;
-      --g-deep:     #A07830;
-      --g-dim:      rgba(201,168,76,0.10);
-      --g-glow:     rgba(201,168,76,0.08);
-      --g-border:   rgba(201,168,76,0.35);
-      --g-border-s: rgba(201,168,76,0.55);
+      /* Instagram gradient */
+      --ig-purple:  #833AB4;
+      --ig-pink:    #E1306C;
+      --ig-orange:  #FD1D1D;
+      --ig-yellow:  #FCAF45;
+      --g-main:     #E1306C;
+      --g-deep:     #833AB4;
+      --g-light:    #FCAF45;
+      --g-pale:     #FFF0F5;
+      --g-dim:      rgba(225,48,108,0.10);
+      --g-glow:     rgba(225,48,108,0.08);
+      --g-border:   rgba(225,48,108,0.25);
+      --g-border-s: rgba(225,48,108,0.45);
 
-      /* Warm neutral — for subtle elements */
-      --i-full:     #3A2F1E;
-      --i-soft:     rgba(58,47,30,0.75);
-      --i-dim:      rgba(58,47,30,0.45);
-      --i-faint:    rgba(58,47,30,0.10);
-      --i-ghost:    rgba(58,47,30,0.05);
+      /* TikTok black for contrast */
+      --i-full:     #000000;
+      --i-soft:     rgba(0,0,0,0.75);
+      --i-dim:      rgba(0,0,0,0.45);
+      --i-faint:    rgba(0,0,0,0.06);
+      --i-ghost:    rgba(0,0,0,0.03);
 
       /* Text */
-      --t-primary:  #1A1209;
-      --t-secondary:#5A4A32;
-      --t-muted:    #8A7A62;
-      --t-faint:    #B0A090;
+      --t-primary:  #000000;
+      --t-secondary:#262626;
+      --t-muted:    #8E8E8E;
+      --t-faint:    #DBDBDB;
 
       /* Status */
-      --s-green:    #2E9E5E;
-      --s-red:      #C04848;
-      --s-blue:     #3A72C0;
-      --s-amber:    #C9A84C;
+      --s-green:    #00C853;
+      --s-red:      #FF3B30;
+      --s-blue:     #007AFF;
+      --s-amber:    #FCAF45;
 
       /* Spacing & shape */
       --r-sm:  10px;
@@ -69,13 +73,14 @@ export const baseHead = (title: string, extra = '') => `
     html { scroll-behavior: smooth; font-size: 16px; }
 
     body {
-      font-family: 'DM Sans', 'Inter', system-ui, sans-serif;
+      font-family: 'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--c-void);
       color: var(--t-primary);
       min-height: 100vh;
       overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      font-size: 15px;
     }
 
     /* ── SCROLLBAR ── */
@@ -87,26 +92,26 @@ export const baseHead = (title: string, extra = '') => `
     ::selection { background: rgba(201,168,76,0.18); color: var(--g-deep); }
 
     /* ── TYPOGRAPHY ── */
-    .font-display   { font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif; }
-    .font-serif     { font-family: 'Cormorant Garamond', Georgia, serif; }
-    .font-sans      { font-family: 'DM Sans', 'Inter', sans-serif; }
+    .font-display   { font-family: 'Poppins', sans-serif; }
+    .font-serif     { font-family: 'Poppins', sans-serif; }
+    .font-sans      { font-family: 'Poppins', 'Inter', sans-serif; }
 
-    .display-hero   { font-family: 'Playfair Display', serif; font-size: clamp(48px, 8vw, 104px); font-weight: 400; line-height: 0.95; letter-spacing: -0.02em; color: var(--t-primary); }
-    .display-xl     { font-family: 'Playfair Display', serif; font-size: clamp(36px, 5.5vw, 68px); font-weight: 400; line-height: 1.05; letter-spacing: -0.01em; color: var(--t-primary); }
-    .display-lg     { font-family: 'Playfair Display', serif; font-size: clamp(26px, 3.8vw, 46px); font-weight: 400; line-height: 1.1; color: var(--t-primary); }
-    .display-md     { font-family: 'Playfair Display', serif; font-size: clamp(20px, 2.8vw, 30px); font-weight: 400; line-height: 1.2; color: var(--t-primary); }
-    .display-sm     { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 500; color: var(--t-primary); }
-    .eyebrow        { font-size: 10px; font-weight: 700; letter-spacing: 0.25em; text-transform: uppercase; color: var(--g-main); }
+    .display-hero   { font-family: 'Poppins', sans-serif; font-size: clamp(32px, 6vw, 56px); font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; color: var(--t-primary); }
+    .display-xl     { font-family: 'Poppins', sans-serif; font-size: clamp(28px, 4.5vw, 44px); font-weight: 700; line-height: 1.15; letter-spacing: -0.01em; color: var(--t-primary); }
+    .display-lg     { font-family: 'Poppins', sans-serif; font-size: clamp(22px, 3.2vw, 32px); font-weight: 700; line-height: 1.2; color: var(--t-primary); }
+    .display-md     { font-family: 'Poppins', sans-serif; font-size: clamp(18px, 2.4vw, 24px); font-weight: 600; line-height: 1.3; color: var(--t-primary); }
+    .display-sm     { font-family: 'Poppins', sans-serif; font-size: 18px; font-weight: 600; color: var(--t-primary); }
+    .eyebrow        { font-size: 11px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--g-main); }
 
-    /* ── GOLD TEXT ── */
+    /* ── INSTAGRAM GRADIENT TEXT ── */
     .gold           { color: var(--g-main); }
     .gold-gradient  {
-      background: linear-gradient(135deg, var(--g-deep) 0%, var(--g-main) 30%, #E8C050 60%, var(--g-main) 80%, var(--g-deep) 100%);
-      background-size: 300%;
+      background: linear-gradient(135deg, var(--ig-purple) 0%, var(--ig-pink) 33%, var(--ig-orange) 66%, var(--ig-yellow) 100%);
+      background-size: 200%;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      animation: gold-shift 5s ease infinite;
+      animation: gold-shift 4s ease infinite;
     }
     @keyframes gold-shift { 0%,100%{background-position:0%} 50%{background-position:100%} }
 
@@ -167,17 +172,17 @@ export const baseHead = (title: string, extra = '') => `
 
     /* ── BUTTONS ── */
     .btn-primary {
-      display: inline-flex; align-items: center; justify-content: center; gap: 9px;
-      background: linear-gradient(135deg, var(--g-deep), var(--g-main), var(--g-light), var(--g-main), var(--g-deep));
-      background-size: 300%;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      background: linear-gradient(135deg, var(--ig-purple), var(--ig-pink), var(--ig-orange), var(--ig-yellow));
+      background-size: 200%;
       color: #FFFFFF;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 12px; font-weight: 700;
-      letter-spacing: 0.12em; text-transform: uppercase;
-      border: none; border-radius: 100px;
-      padding: 15px 36px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 13px; font-weight: 700;
+      letter-spacing: 0.03em;
+      border: none; border-radius: 12px;
+      padding: 13px 28px;
       cursor: pointer;
-      transition: background-position 0.6s ease, transform 0.3s var(--ease-luxury), box-shadow 0.4s ease;
+      transition: background-position 0.5s ease, transform 0.2s ease, box-shadow 0.3s ease;
       text-decoration: none; white-space: nowrap;
       position: relative; overflow: hidden;
     }
