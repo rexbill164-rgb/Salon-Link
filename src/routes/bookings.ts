@@ -42,11 +42,37 @@ bookings.post('/', async (c) => {
     ).bind(service_id, provider_id).first() as any
     if (!service) return c.json({ success: false, error: 'Service not found' }, 404)
 
-    // Double-booking protection
-    const conflict = await c.env.DB.prepare(
-      "SELECT id FROM bookings WHERE provider_id = ? AND booking_date = ? AND booking_time = ? AND status NOT IN ('cancelled')"
-    ).bind(provider_id, booking_date, booking_time).first()
-    if (conflict) return c.json({ success: false, error: 'That time slot is already booked. Please choose another time.' }, 409)
+    // ── Duration-aware double-booking protection ──
+    // Parse booking_time (e.g. "9:30 AM") to minutes from midnight
+    function timeToMins(t: string): number {
+      const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i)
+      if (!match) return -1
+      let h = parseInt(match[1])
+      const m = parseInt(match[2])
+      const isPM = match[3].toUpperCase() === 'PM'
+      if (isPM && h !== 12) h += 12
+      if (!isPM && h === 12) h = 0
+      return h * 60 + m
+    }
+
+    const newStart = timeToMins(booking_time)
+    const newEnd   = newStart + (service.duration_minutes || 30)
+
+    // Fetch all active bookings for this provider on this date (with their durations)
+    const existingBookings = await c.env.DB.prepare(`
+      SELECT b.booking_time, COALESCE(s.duration_minutes, 30) as duration_minutes
+      FROM bookings b
+      LEFT JOIN services s ON b.service_id = s.id
+      WHERE b.provider_id = ? AND b.booking_date = ? AND b.status NOT IN ('cancelled')
+    `).bind(provider_id, booking_date).all()
+
+    for (const eb of (existingBookings.results as any[])) {
+      const eStart = timeToMins(eb.booking_time)
+      const eEnd   = eStart + (eb.duration_minutes || 30)
+      if (newStart < eEnd && newEnd > eStart) {
+        return c.json({ success: false, error: 'That time slot overlaps an existing booking. Please choose another time.' }, 409)
+      }
+    }
 
     // Check customer doesn't have conflicting booking
     const customerConflict = await c.env.DB.prepare(

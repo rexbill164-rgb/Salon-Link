@@ -191,11 +191,20 @@ ${navbar('')}
               <span class="badge badge-gold" style="font-size:9px;">Recommended</span>
             </div>
             <div class="pay-method" onclick="selectPayWhen(this,'later')" id="pay-later-wrap">
-              <div style="width:42px;height:42px;border-radius:12px;background:var(--c-raise);border:1px solid var(--i-faint);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🏠</div>
+              <div style="width:42px;height:42px;border-radius:12px;background:var(--c-raise);border:1px solid var(--i-faint);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">💵</div>
               <div style="flex:1;">
-                <div style="font-size:14px;font-weight:700;margin-bottom:3px;">Pay On-Site</div>
-                <div style="font-size:12px;color:var(--t-secondary);">Pay cash or MoMo when you arrive</div>
+                <div style="font-size:14px;font-weight:700;margin-bottom:3px;">Pay On-Site (Cash)</div>
+                <div style="font-size:12px;color:var(--t-secondary);">Book now, pay cash directly to the provider when you arrive</div>
               </div>
+              <span class="badge" style="font-size:9px;background:rgba(201,168,76,0.15);color:var(--g-main);">No card needed</span>
+            </div>
+          </div>
+          <!-- Cash notice (shown when pay-on-site selected) -->
+          <div id="cash-booking-notice" style="display:none;background:rgba(201,168,76,0.08);border:1.5px solid var(--g-border);border-radius:14px;padding:16px;margin-bottom:24px;">
+            <div style="font-size:13px;font-weight:700;color:var(--g-main);margin-bottom:6px;">💵 Pay On-Site Details</div>
+            <div style="font-size:12px;color:var(--t-secondary);line-height:1.6;">
+              Your booking will be confirmed immediately. Pay the full amount directly to the provider when you arrive.<br/>
+              <strong style="color:var(--t-primary);">Note:</strong> Your provider will send a GHS 3 platform fee to SalonLink after your appointment.
             </div>
           </div>
 
@@ -233,7 +242,7 @@ ${navbar('')}
           <div style="display:flex;gap:12px;flex-wrap:wrap;">
             <button onclick="goStep(3)" class="btn-ghost" style="padding:14px 32px;">Back</button>
             <button onclick="confirmBooking()" id="confirm-btn" class="btn-primary" style="padding:14px 48px;font-size:13px;flex:1;justify-content:center;min-width:180px;">
-              <span id="confirm-text">Confirm & Book</span>
+              <span id="confirm-text">Confirm & Pay</span>
               <span id="confirm-loader" style="display:none;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin-slow 1s linear infinite;"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
                 Processing...
@@ -462,7 +471,8 @@ function loadAvailability(date) {
   slotsEl.innerHTML = '<div style="color:var(--t-muted);font-size:13px;">Loading slots...</div>';
   selectedTime = null;
   document.getElementById('sum-time').textContent = '—';
-  axios.get('/api/providers/' + window._providerId + '/availability?date=' + date)
+  var svcParam = selectedService && selectedService.id ? '&service_id=' + selectedService.id : '';
+  axios.get('/api/providers/' + window._providerId + '/availability?date=' + date + svcParam)
     .then(function(res) {
       var slots = res.data.slots || [];
       if (!slots.length) {
@@ -570,16 +580,6 @@ function proceedToStep4() {
   goStep(4);
 }
 
-// ── Payment options ──
-function selectPayWhen(el, when) {
-  document.querySelectorAll('#pay-now-wrap,#pay-later-wrap').forEach(function(e){ e.classList.remove('selected'); });
-  el.classList.add('selected');
-  payWhen = when;
-  document.getElementById('payment-methods').style.display = when==='now' ? 'flex' : 'none';
-  document.getElementById('payment-methods').style.flexDirection = 'column';
-  document.getElementById('momo-input').style.display = when==='now' ? 'block' : 'none';
-}
-
 function selectPayMethod(el, method) {
   var step4 = document.getElementById('step4');
   step4.querySelectorAll('.pay-method').forEach(function(e){
@@ -592,6 +592,22 @@ function selectPayMethod(el, method) {
   var r=el.querySelector('.pay-radio');
   if(r) r.innerHTML='<svg width="8" height="8" viewBox="0 0 24 24" fill="var(--g-main)" stroke="none"><circle cx="12" cy="12" r="8"/></svg>';
   document.getElementById('momo-input').style.display = (method==='card') ? 'none' : 'block';
+}
+
+// ── Payment option toggle ──
+function selectPayWhen(el, when) {
+  document.querySelectorAll('#pay-now-wrap,#pay-later-wrap').forEach(function(e){ e.classList.remove('selected'); });
+  el.classList.add('selected');
+  payWhen = when;
+  var isCash = when === 'later';
+  document.getElementById('payment-methods').style.display = isCash ? 'none' : 'flex';
+  document.getElementById('payment-methods').style.flexDirection = 'column';
+  document.getElementById('momo-input').style.display = isCash ? 'none' : 'block';
+  var cashNotice = document.getElementById('cash-booking-notice');
+  if (cashNotice) cashNotice.style.display = isCash ? 'block' : 'none';
+  // Update button text
+  var txt = document.getElementById('confirm-text');
+  if (txt) txt.textContent = isCash ? 'Confirm Cash Booking' : 'Confirm & Pay';
 }
 
 // ── Confirm booking ──
@@ -607,6 +623,7 @@ function confirmBooking() {
   var load = document.getElementById('confirm-loader');
   btn.disabled = true; txt.style.display = 'none'; load.style.display = 'inline-flex';
 
+  // First create the booking
   axios.post('/api/bookings', {
     provider_id: window._providerId,
     service_id: selectedService.id,
@@ -616,22 +633,33 @@ function confirmBooking() {
   }, { headers: { Authorization: 'Bearer ' + token } })
   .then(function(res) {
     _bookingId = res.data.booking_id;
-    // Immediately initialize Paystack and redirect
-    txt.textContent = 'Redirecting to payment...';
-    return axios.post('/api/payments/initialize', { booking_id: _bookingId }, { headers: { Authorization: 'Bearer ' + token } });
-  })
-  .then(function(payRes) {
-    if (payRes.data.authorization_url) {
-      window.location.href = payRes.data.authorization_url;
+
+    if (payWhen === 'later') {
+      // Cash / Pay On-Site — confirm immediately, no Paystack
+      return axios.post('/api/payments/cash-book', { booking_id: _bookingId }, { headers: { Authorization: 'Bearer ' + token } })
+        .then(function(cashRes) {
+          _bookingRef = cashRes.data.reference || ('SL-CASH-' + _bookingId);
+          btn.disabled = false; txt.style.display = ''; txt.textContent = 'Confirm Cash Booking'; load.style.display = 'none';
+          showReceipt('cash', '');
+        });
     } else {
-      showToast('Could not start payment. Try from your dashboard.', 'error');
-      btn.disabled = false; txt.style.display = ''; txt.textContent = 'Confirm & Book'; load.style.display = 'none';
+      // Pay now — redirect to Paystack
+      txt.textContent = 'Redirecting to payment...';
+      return axios.post('/api/payments/initialize', { booking_id: _bookingId }, { headers: { Authorization: 'Bearer ' + token } })
+        .then(function(payRes) {
+          if (payRes.data.authorization_url) {
+            window.location.href = payRes.data.authorization_url;
+          } else {
+            showToast('Could not start payment. Try from your dashboard.', 'error');
+            btn.disabled = false; txt.style.display = ''; txt.textContent = 'Confirm & Pay'; load.style.display = 'none';
+          }
+        });
     }
   })
   .catch(function(err) {
     var msg = (err.response && err.response.data && err.response.data.error) || 'Booking failed. Please try again.';
     showToast(msg, 'error');
-    btn.disabled = false; txt.style.display = ''; txt.textContent = 'Confirm & Book'; load.style.display = 'none';
+    btn.disabled = false; txt.style.display = ''; txt.textContent = payWhen === 'later' ? 'Confirm Cash Booking' : 'Confirm & Pay'; load.style.display = 'none';
   });
 }
 

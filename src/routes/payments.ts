@@ -564,14 +564,90 @@ payments.get('/provider/earnings', async (c) => {
   }
 })
 
-// ── POST /api/payments/mock-success — handles MoMo + Cash payments ──
+// ── POST /api/payments/cash-book — customer books with cash/pay-on-site (no Paystack) ──
+// Booking is confirmed immediately; payment_status stays 'unpaid' until provider collects.
+// Provider owes GHS 3 platform fee regardless (already recorded in service_fees at booking creation).
+payments.post('/cash-book', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
+
+    const { booking_id } = await c.req.json()
+    if (!booking_id) return c.json({ success: false, error: 'booking_id required' }, 400)
+
+    const booking = await c.env.DB.prepare(`
+      SELECT b.*, s.name as service_name, p.business_name,
+        cu.email as customer_email, cu.first_name as customer_first, cu.last_name as customer_last,
+        pu.id as provider_user_id, pu.email as provider_email, pu.first_name as prov_first
+      FROM bookings b
+      JOIN services s ON b.service_id = s.id
+      JOIN providers p ON b.provider_id = p.id
+      JOIN users cu ON b.customer_id = cu.id
+      JOIN users pu ON p.user_id = pu.id
+      WHERE b.id = ? AND b.customer_id = ?
+    `).bind(booking_id, user.sub).first() as any
+
+    if (!booking) return c.json({ success: false, error: 'Booking not found' }, 404)
+
+    const reference = `SL-CASH-${Date.now()}`
+
+    // Confirm booking but keep payment_status = 'unpaid' (cash collected on site)
+    await c.env.DB.prepare(
+      `UPDATE bookings SET status='confirmed', payment_reference=?, payment_method='cash', updated_at=CURRENT_TIMESTAMP WHERE id=?`
+    ).bind(reference, booking.id).run()
+
+    // Notify customer
+    await c.env.DB.prepare(
+      `INSERT INTO notifications (user_id, title, message, type, action_url)
+       VALUES (?, '✅ Booking Confirmed (Pay On-Site)', ?, 'booking', '/dashboard')`
+    ).bind(user.sub, `Your booking at ${booking.business_name} on ${booking.booking_date} at ${booking.booking_time} is confirmed. Pay on arrival.`).run()
+
+    // Notify provider
+    const customerName = `${booking.customer_first || ''} ${booking.customer_last || ''}`.trim()
+    if (booking.provider_user_id) {
+      await c.env.DB.prepare(
+        `INSERT INTO notifications (user_id, title, message, type, action_url)
+         VALUES (?, '💵 Cash Booking Confirmed', ?, 'booking', '/provider/dashboard')`
+      ).bind(booking.provider_user_id, `${customerName} will pay cash on arrival for ${booking.service_name} on ${booking.booking_date} at ${booking.booking_time}. Remember to send GHS 3 platform fee to 0533 675 960.`).run()
+    }
+
+    // Push + email (fire & forget)
+    const totalGhs = (booking.total_amount || 0) / 100
+    c.executionCtx?.waitUntil(Promise.allSettled([
+      sendPushToUser(c.env.DB, user.sub, {
+        title: '✅ Booking Confirmed!',
+        body: `${booking.business_name} · Pay cash on arrival · ${booking.booking_date}`,
+        url: '/dashboard',
+        tag: `cash-booking-${booking.id}`
+      }, c.env),
+      booking.customer_email ? sendEmail(
+        c.env, booking.customer_email,
+        `Booking Confirmed (Pay On-Site) — ${booking.business_name}`,
+        paymentReceiptEmail({
+          customerName, providerName: booking.business_name,
+          serviceName: booking.service_name,
+          date: booking.booking_date, time: booking.booking_time,
+          totalGhs, bookingId: booking.id,
+          paymentMethod: 'cash', reference,
+          isCash: true
+        })
+      ) : Promise.resolve()
+    ]))
+
+    return c.json({ success: true, reference, payment_method: 'cash', message: 'Booking confirmed! Pay on arrival.' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// ── POST /api/payments/mock-success — handles MoMo simulation payments ──
 payments.post('/mock-success', async (c) => {
   try {
     const user = await getUser(c)
     if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
 
     const { booking_id, method } = await c.req.json()
-    const paymentMethod = method || 'cash'
+    const paymentMethod = method || 'momo'
 
     const booking = await c.env.DB.prepare(`
       SELECT b.*, s.name as service_name, p.business_name, p.address as provider_address,
@@ -599,30 +675,26 @@ payments.post('/mock-success', async (c) => {
        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, 'mock')`
     ).bind(booking.id, booking.provider_id, user.sub, amountPaid, PLATFORM_FEE_PESEWAS, providerEarning, reference).run()
 
-    const newStatus = paymentMethod === 'cash' ? 'confirmed' : 'confirmed'
-    const newPayStatus = paymentMethod === 'cash' ? 'pending' : 'paid'
     await c.env.DB.prepare(
-      `UPDATE bookings SET payment_status=?, payment_reference=?, status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`
-    ).bind(newPayStatus, reference, newStatus, booking.id).run()
+      `UPDATE bookings SET payment_status='paid', payment_method=?, payment_reference=?, status='confirmed', updated_at=CURRENT_TIMESTAMP WHERE id=?`
+    ).bind(paymentMethod, reference, booking.id).run()
 
     // DB notification
     await c.env.DB.prepare(
       `INSERT INTO notifications (user_id, title, message, type, action_url)
-       VALUES (?, '✅ Booking Confirmed!', ?, 'payment', '/dashboard')`
+       VALUES (?, '✅ Payment Confirmed!', ?, 'payment', '/dashboard')`
     ).bind(user.sub, `Your booking at ${booking.business_name} is confirmed. Ref: ${reference}`).run()
 
     // Push + Email receipt (fire & forget)
     const customerName = `${booking.customer_first || ''} ${booking.customer_last || ''}`.trim()
     const totalGhs = amountPaid / 100
     c.executionCtx?.waitUntil(Promise.allSettled([
-      // Push to customer
       sendPushToUser(c.env.DB, user.sub, {
-        title: '✅ Booking Confirmed!',
+        title: '✅ Payment Confirmed!',
         body: `${booking.business_name} · ${booking.booking_date} at ${booking.booking_time}`,
         url: '/dashboard',
         tag: `payment-${booking.id}`
       }, c.env),
-      // Receipt email to customer
       booking.customer_email ? sendEmail(
         c.env, booking.customer_email,
         `Payment Receipt — ${booking.business_name}`,

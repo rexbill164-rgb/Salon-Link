@@ -256,7 +256,18 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
               <input type="number" id="new-svc-price" class="input" placeholder="Price (GHS)" min="1" style="font-size:13px;"/>
             </div>
             <div class="form-row">
-              <input type="number" id="new-svc-duration" class="input" placeholder="Duration (mins)" value="60" min="10" step="5" style="font-size:13px;"/>
+              <select id="new-svc-duration" class="input" style="font-size:13px;">
+                <option value="30">30 minutes</option>
+                <option value="45">45 minutes</option>
+                <option value="60" selected>1 hour</option>
+                <option value="90">1 hour 30 min</option>
+                <option value="120">2 hours</option>
+                <option value="150">2 hours 30 min</option>
+                <option value="180">3 hours</option>
+                <option value="240">4 hours</option>
+                <option value="300">5 hours</option>
+                <option value="360">6 hours</option>
+              </select>
               <input type="text" id="new-svc-desc" class="input" placeholder="Short description (optional)" style="font-size:13px;"/>
             </div>
             <div style="display:flex;gap:10px;">

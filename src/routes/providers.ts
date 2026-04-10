@@ -378,31 +378,69 @@ providers.get('/:id', async (c) => {
 })
 
 // GET /api/providers/:id/availability — available slots for a given provider
+// Accepts optional ?service_id= to account for service duration when blocking slots
 providers.get('/:id/availability', async (c) => {
   try {
     const id = c.req.param('id')
-    const { date } = c.req.query()
+    const { date, service_id } = c.req.query()
     if (!date) return c.json({ success: false, error: 'Date required' }, 400)
 
-    // Get all booked slots for this provider on this date
-    const booked = await c.env.DB.prepare(
-      "SELECT booking_time FROM bookings WHERE provider_id = ? AND booking_date = ? AND status NOT IN ('cancelled')"
-    ).bind(id, date).all()
-
-    const bookedTimes = booked.results.map((b: any) => b.booking_time)
-
-    // Generate time slots 9am-6pm in 30min increments (12hr format to match bookings)
-    const slots = []
-    for (let h = 9; h < 18; h++) {
-      for (let m = 0; m < 60; m += 30) {
-        const period = h < 12 ? 'AM' : 'PM'
-        const h12 = h > 12 ? h - 12 : h
-        const time = `${h12}:${String(m).padStart(2, '0')} ${period}`
-        slots.push({ time, available: !bookedTimes.includes(time) })
-      }
+    // Get duration of requested service (default 30 min slot if not provided)
+    let serviceDuration = 30
+    if (service_id) {
+      const svc = await c.env.DB.prepare(
+        'SELECT duration_minutes FROM services WHERE id = ? AND provider_id = ?'
+      ).bind(service_id, id).first() as any
+      if (svc && svc.duration_minutes) serviceDuration = svc.duration_minutes
     }
 
-    return c.json({ success: true, date, slots })
+    // Get all active bookings for this provider on this date (with their durations)
+    const booked = await c.env.DB.prepare(`
+      SELECT b.booking_time, COALESCE(s.duration_minutes, 30) as duration_minutes
+      FROM bookings b
+      LEFT JOIN services s ON b.service_id = s.id
+      WHERE b.provider_id = ? AND b.booking_date = ? AND b.status NOT IN ('cancelled')
+    `).bind(id, date).all()
+
+    // Convert booking times to minutes-from-midnight and block out their duration ranges
+    const blockedRanges: Array<{start: number, end: number}> = []
+    for (const b of (booked.results as any[])) {
+      const t = b.booking_time // e.g. "9:30 AM"
+      const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i)
+      if (!match) continue
+      let h = parseInt(match[1])
+      const m = parseInt(match[2])
+      const isPM = match[3].toUpperCase() === 'PM'
+      if (isPM && h !== 12) h += 12
+      if (!isPM && h === 12) h = 0
+      const startMin = h * 60 + m
+      const endMin = startMin + (b.duration_minutes || 30)
+      blockedRanges.push({ start: startMin, end: endMin })
+    }
+
+    // Helper: convert minutes-from-midnight to 12hr time string
+    function minToTime(totalMin: number): string {
+      const h24 = Math.floor(totalMin / 60)
+      const m = totalMin % 60
+      const period = h24 < 12 ? 'AM' : 'PM'
+      const h12 = h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24
+      return `${h12}:${String(m).padStart(2, '0')} ${period}`
+    }
+
+    // Generate slots from 9am to 6pm in 30-min increments
+    // A slot is available only if [slotStart, slotStart + serviceDuration) doesn't overlap any blocked range
+    const slots = []
+    for (let totalMin = 9 * 60; totalMin < 18 * 60; totalMin += 30) {
+      const slotEnd = totalMin + serviceDuration
+      // Don't show slots that would run past 7 PM (19:00)
+      if (slotEnd > 19 * 60) break
+      const time = minToTime(totalMin)
+      // Check overlap with any booked slot
+      const isBlocked = blockedRanges.some(r => totalMin < r.end && slotEnd > r.start)
+      slots.push({ time, available: !isBlocked })
+    }
+
+    return c.json({ success: true, date, slots, service_duration: serviceDuration })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }

@@ -287,6 +287,13 @@ export const onboardingPage = () => `<!DOCTYPE html>
     <h2 class="display-md" style="margin-bottom:10px;">Your <span class="gold-gradient">Services</span></h2>
     <p style="color:var(--t-secondary);margin-bottom:32px;font-size:14px;line-height:1.8;">Add the services you offer with pricing. You can update these from your dashboard anytime.</p>
 
+    <!-- Column headers -->
+    <div style="display:grid;grid-template-columns:1fr 100px 140px 38px;gap:8px;padding:0 0 4px 0;">
+      <span style="font-size:10px;color:var(--t-muted);text-transform:uppercase;letter-spacing:0.07em;">Service Name</span>
+      <span style="font-size:10px;color:var(--t-muted);text-transform:uppercase;letter-spacing:0.07em;">Price (GHS)</span>
+      <span style="font-size:10px;color:var(--t-muted);text-transform:uppercase;letter-spacing:0.07em;">Duration</span>
+      <span></span>
+    </div>
     <div id="services-list" style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px;"></div>
 
     <button onclick="addService()" class="btn-ghost" style="font-size:13px;padding:12px 24px;margin-bottom:28px;width:100%;">
@@ -569,11 +576,22 @@ function addService() {
   var list = document.getElementById('services-list');
   var div  = document.createElement('div');
   div.className = 'service-entry';
-  div.style.cssText = 'background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:16px;display:grid;grid-template-columns:1fr 100px 110px 38px;gap:8px;align-items:center;';
+  div.style.cssText = 'background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:16px;display:grid;grid-template-columns:1fr 100px 140px 38px;gap:8px;align-items:center;';
   div.innerHTML =
     '<input type="text" class="input svc-name" placeholder="Service name (e.g. Box Braids)" style="font-size:13px;"/>' +
     '<input type="number" class="input svc-price" placeholder="GHS price" style="font-size:13px;" min="1" step="1"/>' +
-    '<input type="number" class="input svc-duration" placeholder="Duration (mins)" style="font-size:13px;" min="10" step="5" value="60"/>' +
+    '<select class="input svc-duration" style="font-size:12px;">' +
+      '<option value="30">30 min</option>' +
+      '<option value="45">45 min</option>' +
+      '<option value="60" selected>1 hour</option>' +
+      '<option value="90">1 hr 30 min</option>' +
+      '<option value="120">2 hours</option>' +
+      '<option value="150">2 hr 30 min</option>' +
+      '<option value="180">3 hours</option>' +
+      '<option value="240">4 hours</option>' +
+      '<option value="300">5 hours</option>' +
+      '<option value="360">6 hours</option>' +
+    '</select>' +
     '<button onclick="removeServiceEntry(this)" style="background:rgba(255,59,48,0.1);border:none;border-radius:10px;width:38px;height:38px;cursor:pointer;color:#FF3B30;font-size:16px;">✕</button>';
   list.appendChild(div);
 }

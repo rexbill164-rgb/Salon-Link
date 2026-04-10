@@ -139,27 +139,38 @@ export function providerNewBookingEmail(opts: {
 export function paymentReceiptEmail(opts: {
   customerName: string, providerName: string, serviceName: string,
   date: string, time: string, totalGhs: number, bookingId: number | string,
-  paymentMethod: string, reference: string
+  paymentMethod: string, reference: string, isCash?: boolean
 }) {
-  const method = opts.paymentMethod === 'momo' ? 'MTN Mobile Money' : 'Cash'
+  const isCash = opts.isCash || opts.paymentMethod === 'cash'
+  const method = isCash ? 'Pay On-Site (Cash)' : opts.paymentMethod === 'momo' ? 'MTN Mobile Money' : 'Card'
+  const status = isCash ? '⏳ Pay on Arrival' : '✓ Paid'
+  const statusClass = isCash ? 'badge-gold' : 'badge-green'
+  const cashNotice = isCash ? `
+    <div style="background:#FFF8E6;border:1.5px solid #C9A84C;border-radius:12px;padding:16px;margin:16px 0;">
+      <div style="font-weight:700;color:#C9A84C;margin-bottom:6px;">💳 Platform Fee Reminder</div>
+      <div style="color:#555;font-size:13px;">After your appointment, your provider will send the <strong>GHS 3.00</strong> platform fee to:</div>
+      <div style="font-size:16px;font-weight:800;color:#E1306C;margin-top:6px;letter-spacing:0.05em;">0533 675 960</div>
+      <div style="font-size:12px;color:#777;">Nadia Yartey · MTN MoMo</div>
+    </div>` : ''
   return base(`
   <div class="hdr">
-    <h1>🧾 Payment Receipt</h1>
-    <p>Thank you for your payment, ${opts.customerName.split(' ')[0]}!</p>
+    <h1>${isCash ? '✅ Booking Confirmed!' : '🧾 Payment Receipt'}</h1>
+    <p>${isCash ? 'Your booking is confirmed. Remember to pay on arrival.' : 'Thank you for your payment, ' + opts.customerName.split(' ')[0] + '!'}</p>
   </div>
   <div class="body">
     <div class="card">
-      <div class="row"><span class="lbl">Receipt #</span><span class="val">${opts.reference}</span></div>
+      <div class="row"><span class="lbl">Reference #</span><span class="val">${opts.reference}</span></div>
       <div class="row"><span class="lbl">Provider</span><span class="val">${opts.providerName}</span></div>
       <div class="row"><span class="lbl">Service</span><span class="val">${opts.serviceName}</span></div>
       <div class="row"><span class="lbl">Date</span><span class="val">${opts.date}</span></div>
       <div class="row"><span class="lbl">Time</span><span class="val">${opts.time}</span></div>
       <div class="row"><span class="lbl">Payment Method</span><span class="val">${method}</span></div>
-      <div class="row"><span class="lbl">Amount Paid</span><span class="val amt">GHS ${opts.totalGhs.toFixed(2)}</span></div>
-      <div class="row"><span class="lbl">Status</span><span class="val"><span class="badge badge-green">✓ Confirmed</span></span></div>
+      <div class="row"><span class="lbl">Total</span><span class="val amt">GHS ${opts.totalGhs.toFixed(2)}</span></div>
+      <div class="row"><span class="lbl">Status</span><span class="val"><span class="badge ${statusClass}">${status}</span></span></div>
     </div>
+    ${cashNotice}
     <center><a href="https://project-ba6e9ce4.pages.dev/dashboard" class="btn">View My Bookings →</a></center>
   </div>
-  <div class="ftr">SalonLink · Ghana's Beauty Booking Platform · Keep this email as your receipt.</div>
+  <div class="ftr">SalonLink · Ghana's Beauty Booking Platform · Keep this email for your records.</div>
   `)
 }
