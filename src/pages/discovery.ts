@@ -434,7 +434,8 @@ function renderGrid() {
 }
 
 function buildCard(p) {
-  var catLabel = (p.service_category||'').replace(/_/g,' ').replace(/\\b\\w/g,function(l){return l.toUpperCase();});
+  var words = (p.service_category||'').replace(/_/g,' ').split(' ').map(function(w){return w.charAt(0).toUpperCase()+w.slice(1);}).join(' ');
+  var catLabel = words;
   var priceFrom = p.price_from ? 'GHS '+Math.round(p.price_from/100) : 'GHS 40';
   var img = p.cover_url || p.logo_url || getProviderImage(p.service_category, p.id);
   var isAccepting = !!p.is_accepting_bookings;
