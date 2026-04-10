@@ -5,58 +5,75 @@ export const bookingPage = (id: string) => `<!DOCTYPE html>
 <head>
 ${baseHead('Book Appointment', `
 <style>
-  .booking-layout { display:grid; grid-template-columns:1fr 360px; gap:40px; align-items:flex-start; }
+  /* ── Fresha-style booking layout ── */
+  body { background: #F5F5F5; }
+  .booking-layout { display:grid; grid-template-columns:1fr 340px; gap:28px; align-items:flex-start; }
   @media(max-width:900px){ .booking-layout { grid-template-columns:1fr; } }
-  .time-chip { padding:11px 18px; border-radius:12px; background:var(--c-raise); border:1px solid var(--i-faint); font-size:13px; font-weight:600; cursor:pointer; transition:all 0.25s; text-align:center; white-space:nowrap; }
-  .time-chip:hover { border-color:var(--g-border); color:var(--g-main); }
-  .time-chip.selected { background:var(--g-dim); border-color:var(--g-main); color:var(--g-main); box-shadow:0 4px 16px rgba(201,168,76,0.15); }
+
+  /* Time chips */
+  .time-chip { padding:10px 16px; border-radius:100px; background:#FFFFFF; border:1.5px solid var(--i-faint); font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; text-align:center; white-space:nowrap; box-shadow:0 1px 4px rgba(0,0,0,0.05); }
+  .time-chip:hover { border-color:var(--g-main); color:var(--g-main); }
+  .time-chip.selected { background:var(--g-main); border-color:var(--g-main); color:#FFFFFF; box-shadow:0 4px 14px rgba(108,71,255,0.28); }
   .time-chip.busy { opacity:0.35; cursor:not-allowed; text-decoration:line-through; }
-  .service-select-item { display:flex; align-items:center; gap:16px; padding:18px; background:var(--c-raise); border:1px solid var(--i-faint); border-radius:var(--r-md); cursor:pointer; transition:all 0.3s; margin-bottom:10px; }
-  .service-select-item:hover { border-color:var(--g-border); }
-  .service-select-item.selected { border-color:var(--g-main); background:rgba(201,168,76,0.08); box-shadow:inset 0 0 0 1px rgba(201,168,76,0.2); }
-  .pay-method { display:flex; align-items:center; gap:16px; padding:20px; background:var(--c-raise); border:1px solid var(--i-faint); border-radius:var(--r-md); cursor:pointer; transition:all 0.3s; }
+
+  /* Service items */
+  .service-select-item { display:flex; align-items:center; gap:16px; padding:16px 20px; background:#FFFFFF; border:1.5px solid var(--i-faint); border-radius:18px; cursor:pointer; transition:all 0.25s; margin-bottom:10px; box-shadow:0 1px 6px rgba(0,0,0,0.05); }
+  .service-select-item:hover { border-color:var(--g-border); box-shadow:0 4px 16px rgba(108,71,255,0.10); }
+  .service-select-item.selected { border-color:var(--g-main); background:var(--g-dim); box-shadow:0 0 0 3px rgba(108,71,255,0.08); }
+
+  /* Payment methods */
+  .pay-method { display:flex; align-items:center; gap:16px; padding:18px 20px; background:#FFFFFF; border:1.5px solid var(--i-faint); border-radius:18px; cursor:pointer; transition:all 0.25s; margin-bottom:10px; box-shadow:0 1px 6px rgba(0,0,0,0.05); }
   .pay-method:hover { border-color:var(--g-border); }
-  .pay-method.selected { border-color:var(--g-main); background:rgba(201,168,76,0.07); }
-  .cal-day { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.25s; }
+  .pay-method.selected { border-color:var(--g-main); background:var(--g-dim); box-shadow:0 0 0 3px rgba(108,71,255,0.08); }
+
+  /* Calendar days */
+  .cal-day { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; }
   .cal-day:hover { background:var(--g-dim); color:var(--g-main); }
-  .cal-day.selected { background:var(--g-main); color:var(--c-void); box-shadow:0 4px 14px rgba(201,168,76,0.35); }
-  .cal-day.today { border:1px solid var(--g-border); color:var(--g-main); }
+  .cal-day.selected { background:var(--g-main); color:#FFFFFF; box-shadow:0 4px 14px rgba(108,71,255,0.30); }
+  .cal-day.today { border:2px solid var(--g-main); color:var(--g-main); }
   .cal-day.past { opacity:0.3; cursor:not-allowed; }
-  .step-panel { display:none; animation:fadeUp 0.5s var(--ease-luxury) both; }
+
+  /* Step panels */
+  .step-panel { display:none; animation:fadeUp 0.4s var(--ease-luxury) both; }
   .step-panel.active { display:block; }
+
+  /* Cards in booking flow */
+  .bk-section-card { background:#FFFFFF; border:1px solid var(--i-faint); border-radius:20px; padding:24px; margin-bottom:16px; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
+
+  /* Summary sidebar */
+  .summary-sidebar { background:#FFFFFF; border:1px solid var(--i-faint); border-radius:20px; padding:24px; position:sticky; top:80px; box-shadow:0 4px 20px rgba(0,0,0,0.07); }
 </style>
 `)}
 </head>
-<body style="background:var(--c-deep);">
+<body>
 ${navbar('')}
 
-<div style="padding:48px 0 120px;">
+<div style="padding:28px 0 120px;">
   <div class="container">
 
     <!-- PAGE HEADER -->
-    <div style="margin-bottom:48px;" class="afu">
-      <a href="/provider/${id}" style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--t-secondary);text-decoration:none;margin-bottom:24px;transition:color 0.2s;" onmouseover="this.style.color='var(--g-main)'" onmouseout="this.style.color='var(--t-secondary)'">
+    <div style="margin-bottom:32px;" class="afu">
+      <a href="/provider/${id}" style="display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--t-secondary);text-decoration:none;margin-bottom:20px;transition:color 0.2s;" onmouseover="this.style.color='var(--g-main)'" onmouseout="this.style.color='var(--t-secondary)'">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         <span id="back-link-label">Back to Provider</span>
       </a>
-      <div class="eyebrow" style="margin-bottom:16px;">Appointment Booking</div>
-      <h1 class="display-lg font-display">Book Your <em class="gold-gradient">Experience</em></h1>
+      <h1 style="font-size:clamp(22px,4vw,32px);font-weight:800;color:var(--t-primary);">Book an appointment</h1>
     </div>
 
-    <!-- STEP PROGRESS -->
-    <div id="step-progress" style="display:flex;align-items:center;gap:0;margin-bottom:60px;overflow-x:auto;padding-bottom:8px;" class="afu-1">
+    <!-- STEP PROGRESS – Fresha pill style -->
+    <div id="step-progress" style="display:flex;align-items:center;gap:0;margin-bottom:32px;overflow-x:auto;padding-bottom:4px;" class="afu-1">
       ${[
         {n:1,label:'Service'},
         {n:2,label:'Date & Time'},
         {n:3,label:'Details'},
         {n:4,label:'Payment'},
       ].map((s,i,arr) => `
-        <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
-            <div class="step-node ${i===0?'active':'pending'}" id="step-node-${s.n}">${s.n}</div>
-            <span style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-faint);" id="step-label-${s.n}">${s.label}</span>
+        <div style="display:flex;align-items:center;gap:0;flex-shrink:0;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:5px;">
+            <div class="step-node ${i===0?'active':'pending'}" id="step-node-${s.n}" style="width:32px;height:32px;font-size:12px;">${s.n}</div>
+            <span style="font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--t-muted);" id="step-label-${s.n}">${s.label}</span>
           </div>
-          ${i < arr.length-1 ? `<div class="step-line" id="step-line-${s.n}" style="width:60px;margin-bottom:18px;"></div>` : ''}
+          ${i < arr.length-1 ? `<div class="step-line" id="step-line-${s.n}" style="width:48px;margin-bottom:20px;margin-left:4px;margin-right:4px;"></div>` : ''}
         </div>
       `).join('')}
     </div>
@@ -81,22 +98,22 @@ ${navbar('')}
 
         <!-- ─ STEP 1: Service ─ -->
         <div id="step1" class="step-panel">
-          <div class="eyebrow" style="margin-bottom:24px;">Choose Your Service</div>
-          <div id="services-select" style="margin-bottom:40px;">
+          <div style="font-size:15px;font-weight:700;color:var(--t-primary);margin-bottom:20px;">Choose your service</div>
+          <div id="services-select" style="margin-bottom:32px;">
             <!-- Populated dynamically -->
           </div>
-          <button onclick="goStep(2)" class="btn-primary" style="padding:15px 48px;font-size:13px;">
-            Continue to Date & Time
+          <button onclick="goStep(2)" class="btn-primary" style="padding:14px 40px;font-size:14px;border-radius:100px;width:100%;justify-content:center;">
+            Continue
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </button>
         </div>
 
         <!-- ─ STEP 2: Date & Time ─ -->
         <div id="step2" class="step-panel">
-          <div class="eyebrow" style="margin-bottom:24px;">Select Date & Time</div>
+          <div style="font-size:15px;font-weight:700;color:var(--t-primary);margin-bottom:20px;">Select date & time</div>
 
           <!-- Mini calendar -->
-          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:28px;margin-bottom:24px;">
+          <div class="bk-section-card" style="margin-bottom:16px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
               <button onclick="prevMonth()" class="btn-icon" style="width:36px;height:36px;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
@@ -113,8 +130,8 @@ ${navbar('')}
           </div>
 
           <!-- Time slots -->
-          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:28px;margin-bottom:32px;">
-            <div class="eyebrow" style="margin-bottom:20px;">Available Time Slots</div>
+          <div class="bk-section-card" style="margin-bottom:20px;">
+            <div style="font-size:14px;font-weight:700;color:var(--t-primary);margin-bottom:16px;">Available time slots</div>
             <div id="time-slots" style="display:flex;flex-wrap:wrap;gap:10px;">
               <div style="color:var(--t-muted);font-size:13px;">Select a date to see available slots</div>
             </div>
@@ -125,9 +142,9 @@ ${navbar('')}
           </div>
 
           <div style="display:flex;gap:12px;flex-wrap:wrap;">
-            <button onclick="goStep(1)" class="btn-ghost" style="padding:14px 32px;">Back</button>
-            <button onclick="proceedToStep3()" class="btn-primary" style="padding:14px 48px;font-size:13px;">
-              Continue to Details
+            <button onclick="goStep(1)" class="btn-ghost" style="padding:12px 28px;border-radius:100px;">Back</button>
+            <button onclick="proceedToStep3()" class="btn-primary" style="flex:1;padding:14px;font-size:14px;border-radius:100px;justify-content:center;">
+              Continue
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </button>
           </div>
@@ -135,8 +152,8 @@ ${navbar('')}
 
         <!-- ─ STEP 3: Details ─ -->
         <div id="step3" class="step-panel">
-          <div class="eyebrow" style="margin-bottom:24px;">Your Details</div>
-          <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:36px;margin-bottom:28px;">
+          <div style="font-size:15px;font-weight:700;color:var(--t-primary);margin-bottom:20px;">Your details</div>
+          <div class="bk-section-card" style="margin-bottom:20px;">
             <div id="logged-in-details" style="display:none;background:var(--g-dim);border:1px solid var(--g-border);border-radius:12px;padding:16px;margin-bottom:20px;">
               <div style="display:flex;align-items:center;gap:12px;">
                 <div style="width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--g-deep),var(--g-main));display:flex;align-items:center;justify-content:center;font-size:16px;color:white;" id="user-initial">?</div>
@@ -157,9 +174,9 @@ ${navbar('')}
           </div>
 
           <div style="display:flex;gap:12px;flex-wrap:wrap;">
-            <button onclick="goStep(2)" class="btn-ghost" style="padding:14px 32px;">Back</button>
-            <button onclick="proceedToStep4()" class="btn-primary" style="padding:14px 48px;font-size:13px;">
-              Continue to Payment
+            <button onclick="goStep(2)" class="btn-ghost" style="padding:12px 28px;border-radius:100px;">Back</button>
+            <button onclick="proceedToStep4()" class="btn-primary" style="flex:1;padding:14px;font-size:14px;border-radius:100px;justify-content:center;">
+              Continue
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
             </button>
           </div>
@@ -167,7 +184,7 @@ ${navbar('')}
 
         <!-- ─ STEP 4: Payment ─ -->
         <div id="step4" class="step-panel">
-          <div class="eyebrow" style="margin-bottom:24px;">Payment</div>
+          <div style="font-size:15px;font-weight:700;color:var(--t-primary);margin-bottom:20px;">Payment</div>
 
           <!-- Booking summary recap -->
           <div style="background:var(--g-dim);border:1px solid var(--g-border);border-radius:16px;padding:18px;margin-bottom:24px;">
@@ -231,8 +248,8 @@ ${navbar('')}
           </div>
 
           <!-- MoMo number input -->
-          <div id="momo-input" style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:24px;margin-bottom:28px;">
-            <div class="eyebrow" style="margin-bottom:16px;">Mobile Money Number</div>
+          <div id="momo-input" class="bk-section-card" style="margin-bottom:20px;">
+            <div style="font-size:13px;font-weight:700;color:var(--t-primary);margin-bottom:14px;">Mobile Money Number</div>
             <div style="display:flex;gap:10px;">
               <div style="background:var(--c-mid);border:1.5px solid var(--i-faint);border-radius:var(--r-md);padding:15px 16px;font-size:14px;white-space:nowrap;display:flex;align-items:center;gap:8px;color:var(--t-secondary);">🇬🇭 +233</div>
               <input type="tel" id="momo-num" class="input" placeholder="24 000 0000" style="flex:1;"/>
@@ -240,8 +257,8 @@ ${navbar('')}
           </div>
 
           <div style="display:flex;gap:12px;flex-wrap:wrap;">
-            <button onclick="goStep(3)" class="btn-ghost" style="padding:14px 32px;">Back</button>
-            <button onclick="confirmBooking()" id="confirm-btn" class="btn-primary" style="padding:14px 48px;font-size:13px;flex:1;justify-content:center;min-width:180px;">
+            <button onclick="goStep(3)" class="btn-ghost" style="padding:12px 28px;border-radius:100px;">Back</button>
+            <button onclick="confirmBooking()" id="confirm-btn" class="btn-primary" style="flex:1;padding:14px;font-size:14px;border-radius:100px;justify-content:center;min-width:160px;">
               <span id="confirm-text">Confirm & Pay</span>
               <span id="confirm-loader" style="display:none;">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin-slow 1s linear infinite;"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
@@ -255,15 +272,14 @@ ${navbar('')}
 
       <!-- RIGHT: Summary -->
       <div>
-        <div style="position:sticky;top:92px;">
-          <div style="background:var(--c-surface);border:1px solid var(--g-border);border-radius:var(--r-xl);padding:28px;">
-            <div class="eyebrow" style="margin-bottom:22px;">Booking Summary</div>
+        <div class="summary-sidebar">
+            <div style="font-size:14px;font-weight:700;color:var(--t-primary);margin-bottom:20px;">Booking summary</div>
 
             <!-- Provider info -->
-            <div style="display:flex;align-items:center;gap:14px;padding-bottom:22px;border-bottom:1px solid var(--i-faint);margin-bottom:22px;">
-              <div style="width:50px;height:50px;border-radius:16px;background:linear-gradient(135deg,var(--g-dim),rgba(131,58,180,0.1));border:1px solid var(--g-border);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">💇‍♀️</div>
+            <div style="display:flex;align-items:center;gap:14px;padding-bottom:18px;border-bottom:1px solid var(--i-faint);margin-bottom:18px;">
+              <div style="width:48px;height:48px;border-radius:14px;background:var(--g-dim);border:1px solid var(--g-border);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">💇‍♀️</div>
               <div>
-                <div id="sum-provider-name" class="font-display" style="font-size:16px;font-weight:500;">Loading...</div>
+                <div id="sum-provider-name" style="font-size:15px;font-weight:700;color:var(--t-primary);">Loading...</div>
                 <div id="sum-provider-loc" style="font-size:12px;color:var(--t-muted);">Accra</div>
               </div>
             </div>

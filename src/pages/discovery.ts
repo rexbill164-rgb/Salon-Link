@@ -1,135 +1,221 @@
-import { baseHead, navbar, mobileNav, globalScripts } from '../utils/layout'
+import { baseHead, mobileNav, globalScripts } from '../utils/layout'
 
 export const discoveryPage = () => `<!DOCTYPE html>
 <html lang="en">
 <head>
 ${baseHead('Discover Services', `
 <style>
-  .filter-row { display:flex; gap:8px; align-items:center; overflow-x:auto; padding-bottom:4px; }
-  .filter-row::-webkit-scrollbar { display:none; }
-  @media(max-width:640px){ .filter-row { flex-wrap:nowrap; } }
-  .cat-chip {
-    flex-shrink:0; padding:9px 20px; border-radius:100px;
-    font-size:12px; font-weight:600; letter-spacing:0.05em;
-    cursor:pointer; transition:all 0.3s var(--ease-luxury); white-space:nowrap;
-    background:transparent; border:1.5px solid var(--i-faint); color:var(--t-secondary);
+  /* ── Dark gradient header – Fresha Explore style ── */
+  .disc-header {
+    background: linear-gradient(160deg, #1A1040 0%, #2D1B80 40%, #4A2FC0 70%, #6C47FF 100%);
+    padding: 28px 0 80px;
+    position: relative;
+    overflow: hidden;
   }
-  .cat-chip:hover { border-color:var(--g-border); color:var(--t-primary); background:var(--g-dim); }
-  .cat-chip.active { background:var(--g-main); color:#FFFFFF; border-color:var(--g-main); box-shadow:0 6px 18px rgba(160,120,48,0.3); }
+  .disc-header::before {
+    content:'';
+    position:absolute;inset:0;
+    background: radial-gradient(ellipse 80% 60% at 60% 50%, rgba(155,123,255,0.25) 0%, transparent 60%);
+    pointer-events:none;
+  }
+
+  /* ── Frosted search bar ── */
+  .disc-search-wrap {
+    position: sticky;
+    top: 64px;
+    z-index: 300;
+    padding: 0 0 16px;
+    background: transparent;
+    margin-top: -54px;
+  }
+  .disc-search-inner {
+    background: #FFFFFF;
+    border-radius: 20px;
+    padding: 6px 6px 6px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.16);
+    border: 1px solid rgba(255,255,255,0.8);
+  }
+
+  /* ── Filter chips – horizontal scroll ── */
+  .filter-chip-row { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; }
+  .filter-chip-row::-webkit-scrollbar { display:none; }
+  .fchip {
+    flex-shrink:0; padding:8px 16px; border-radius:100px;
+    font-size:12px; font-weight:600;
+    cursor:pointer; transition:all 0.25s; white-space:nowrap;
+    background:#FFFFFF; border:1.5px solid var(--i-faint); color:var(--t-secondary);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .fchip:hover { border-color:var(--g-border); color:var(--g-main); }
+  .fchip.active { background:var(--g-main); color:#FFFFFF; border-color:var(--g-main); box-shadow:0 4px 14px rgba(108,71,255,0.30); }
+
+  /* ── 2-column provider grid (Fresha style) ── */
+  .prov-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media(min-width:768px){ .prov-grid { grid-template-columns: repeat(3,1fr); gap:16px; } }
+  @media(min-width:1200px){ .prov-grid { grid-template-columns: repeat(4,1fr); } }
+
+  /* ── Provider card – Fresha clean style ── */
+  .pcard {
+    background:#FFFFFF; border-radius:18px; overflow:hidden; cursor:pointer;
+    border:1px solid var(--i-faint); transition:all 0.3s var(--ease-luxury);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  }
+  .pcard:hover { transform:translateY(-5px); box-shadow:0 16px 40px rgba(0,0,0,0.12); border-color:var(--g-border); }
+  .pcard:hover .pcard-img { transform:scale(1.04); }
+  .pcard-img { width:100%;height:160px;object-fit:cover;display:block;transition:transform 0.5s var(--ease-luxury); }
+
+  /* ── Filter panel ── */
   .filter-panel {
-    background:#FFFFFF; border:1px solid var(--g-border); border-radius:var(--r-xl);
-    padding:36px; margin-bottom:32px;
-    animation:fadeUp 0.3s var(--ease-luxury) both;
-    box-shadow:0 16px 48px rgba(160,120,48,0.12);
+    background:#FFFFFF; border:1px solid var(--i-faint); border-radius:20px;
+    padding:28px; margin-bottom:20px; box-shadow:0 8px 32px rgba(0,0,0,0.08);
+    animation:fadeUp 0.25s var(--ease-luxury) both;
   }
-  .prov-card {
-    background:#FFFFFF; border:1px solid var(--i-faint); border-radius:var(--r-xl);
-    overflow:hidden; cursor:pointer;
-    transition:all 0.45s var(--ease-luxury); position:relative;
-    box-shadow:0 2px 14px rgba(58,47,30,0.06);
-  }
-  .prov-card:hover { border-color:var(--g-border); transform:translateY(-7px); box-shadow:0 28px 60px rgba(160,120,48,0.16); }
-  .prov-card:hover .prov-img-inner { transform:scale(1.05); }
-  .prov-img-inner { transition:transform 0.6s var(--ease-luxury); width:100%; height:100%; object-fit:cover; }
-  .radio-custom { display:flex; align-items:center; gap:10px; margin-bottom:10px; cursor:pointer; }
+  .radio-opt { display:flex; align-items:center; gap:10px; margin-bottom:10px; cursor:pointer; }
   .radio-dot {
-    width:16px; height:16px; border-radius:50%;
+    width:18px; height:18px; border-radius:50%;
     border:1.5px solid var(--i-faint); display:flex; align-items:center;
     justify-content:center; transition:all 0.2s; flex-shrink:0;
   }
-  .radio-custom.selected .radio-dot { border-color:var(--g-main); background:var(--g-main); }
-  .radio-custom.selected .radio-dot::after { content:''; width:5px; height:5px; border-radius:50%; background:#FFFFFF; display:block; }
+  .radio-opt.selected .radio-dot { border-color:var(--g-main); background:var(--g-main); }
+  .radio-opt.selected .radio-dot::after { content:''; width:6px; height:6px; border-radius:50%; background:#FFFFFF; display:block; }
+
+  /* ── Map button (floating) ── */
+  .map-btn {
+    position:fixed; bottom:100px; right:20px; z-index:400;
+    background:var(--t-primary); color:#FFFFFF;
+    border:none; border-radius:100px; padding:12px 22px;
+    font-size:13px; font-weight:700;
+    display:flex; align-items:center; gap:8px; cursor:pointer;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.20);
+    transition: transform 0.25s, box-shadow 0.25s;
+  }
+  .map-btn:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(0,0,0,0.25); }
 </style>
 `)}
 </head>
-<body>
-${navbar('discover')}
+<body style="background:#F5F5F5;">
 
-<div style="min-height:calc(100vh - 70px);padding:20px 0 120px;background:var(--c-deep);">
-  <div class="container">
-
-    <!-- ── PAGE HEADER ── -->
-    <div style="margin-bottom:48px;" class="afu">
-      <div class="eyebrow" style="margin-bottom:14px;"><i class="fas fa-compass" style="margin-right:7px;"></i>Find Your Professional</div>
-      <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:20px;">
-        <h1 class="display-lg font-display">Discover <em class="gold-gradient">Beauty Services</em></h1>
-        <button id="location-btn" onclick="detectLocation()" style="display:flex;align-items:center;gap:9px;height:48px;padding:0 22px;background:#FFFFFF;border:1.5px solid var(--i-faint);border-radius:100px;color:var(--t-secondary);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.3s;white-space:nowrap;" onmouseover="this.style.borderColor='var(--g-border)';this.style.color='var(--g-deep)'" onmouseout="if(!userLocation){this.style.borderColor='var(--i-faint)';this.style.color='var(--t-secondary)'}">
-          <i class="fas fa-map-marker-alt" style="font-size:13px;"></i>
-          📍 Near Me
-        </button>
+<!-- ── Navbar (transparent on top) ── -->
+<nav id="nav-main" style="position:fixed;top:0;left:0;right:0;z-index:800;background:transparent;transition:all 0.3s ease;width:100%;max-width:100vw;">
+  <div style="padding:0 20px;height:64px;display:flex;align-items:center;justify-content:space-between;max-width:1440px;margin:0 auto;width:100%;">
+    <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;">
+      <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.15);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(255,255,255,0.3);">
+        <i class="fas fa-spa" style="color:#FFFFFF;font-size:14px;"></i>
       </div>
+      <span style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#FFFFFF;line-height:1;">Salon<span style="opacity:0.8;">Link</span></span>
+    </a>
+    <div id="nav-auth" style="display:flex;align-items:center;gap:10px;">
+      <a href="/login" style="padding:9px 20px;font-size:13px;background:rgba(255,255,255,0.15);color:#FFFFFF;border:1.5px solid rgba(255,255,255,0.35);border-radius:100px;text-decoration:none;font-weight:600;backdrop-filter:blur(10px);">Sign In</a>
+      <a href="/register" style="padding:10px 20px;font-size:13px;background:#FFFFFF;color:var(--g-main);border:none;border-radius:100px;text-decoration:none;font-weight:700;">Join Free</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════
+     DARK GRADIENT HEADER (Fresha Explore)
+══════════════════════════════════════════════ -->
+<div class="disc-header">
+  <div class="container" style="padding-top:80px;position:relative;z-index:1;">
+
+    <!-- Title row -->
+    <div style="margin-bottom:28px;">
+      <h1 style="font-size:clamp(26px,4vw,40px);font-weight:800;color:#FFFFFF;margin-bottom:8px;line-height:1.2;">
+        Find beauty services
+      </h1>
+      <p style="font-size:15px;color:rgba(255,255,255,0.70);">Verified professionals across Ghana</p>
     </div>
 
-    <!-- ── SEARCH ROW ── -->
-    <div class="filter-row afu-1" style="margin-bottom:22px;">
-      <div style="flex:1;position:relative;">
-        <i class="fas fa-search" style="position:absolute;left:18px;top:50%;transform:translateY(-50%);color:var(--t-faint);pointer-events:none;font-size:14px;"></i>
-        <input type="text" id="search" oninput="filterCards()" placeholder="Search salons, barbers, nail techs..." class="input" style="padding-left:50px;padding-right:50px;height:52px;border-radius:100px;background:#FFFFFF;font-size:14px;"/>
-        <button onclick="clearSearch()" id="clear-btn" style="position:absolute;right:18px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--t-faint);cursor:pointer;display:none;font-size:18px;line-height:1;">×</button>
+    <!-- Search + Near Me row -->
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;">
+      <div style="flex:1;background:rgba(255,255,255,0.15);backdrop-filter:blur(16px);border:1.5px solid rgba(255,255,255,0.25);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="document.getElementById('search-input-hidden').focus()">
+        <i class="fas fa-search" style="color:rgba(255,255,255,0.7);font-size:15px;"></i>
+        <input id="search-input-hidden" type="text" oninput="filterCards()" placeholder="Search salons, services..." style="background:none;border:none;outline:none;color:#FFFFFF;font-family:'Poppins',sans-serif;font-size:14px;width:100%;" />
       </div>
-      <button onclick="toggleFilters()" id="filter-toggle" style="display:flex;align-items:center;gap:9px;height:52px;padding:0 24px;background:#FFFFFF;border:1.5px solid var(--i-faint);border-radius:100px;color:var(--t-secondary);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.3s;white-space:nowrap;" onmouseover="this.style.borderColor='var(--g-border)';this.style.color='var(--g-deep)'" onmouseout="this.style.borderColor='var(--i-faint)';this.style.color='var(--t-secondary)'">
-        <i class="fas fa-sliders-h" style="font-size:13px;"></i>
-        <span id="filter-label">Filters</span>
-        <span id="filter-count" style="display:none;background:var(--g-main);color:#FFFFFF;width:18px;height:18px;border-radius:50%;font-size:10px;font-weight:800;display:none;align-items:center;justify-content:center;margin-left:2px;">0</span>
+      <button id="location-btn" onclick="detectLocation()" style="background:rgba(255,255,255,0.15);backdrop-filter:blur(16px);border:1.5px solid rgba(255,255,255,0.25);border-radius:14px;padding:14px 20px;color:#FFFFFF;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;transition:background 0.25s;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+        <i class="fas fa-map-marker-alt"></i>
+        <span class="hide-mob">Near You</span>
+      </button>
+      <button onclick="toggleFilters()" id="filter-btn" style="background:rgba(255,255,255,0.15);backdrop-filter:blur(16px);border:1.5px solid rgba(255,255,255,0.25);border-radius:14px;padding:14px 20px;color:#FFFFFF;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;transition:background 0.25s;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+        <i class="fas fa-sliders-h"></i>
+        <span class="hide-mob">Filters</span>
       </button>
     </div>
 
-    <!-- ── CATEGORY CHIPS ── -->
-    <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:28px;" class="no-scrollbar afu-2">
+    <!-- Category chips row -->
+    <div class="filter-chip-row no-scrollbar">
       ${[
-        {label:'All',          icon:'fas fa-th'},
-        {label:'Hair Styling', icon:'fas fa-cut'},
-        {label:'Barbing',      icon:'fas fa-male'},
-        {label:'Nail Care',    icon:'fas fa-paint-brush'},
-        {label:'Massage',      icon:'fas fa-spa'},
-        {label:'Facials',      icon:'fas fa-leaf'},
-        {label:'Lashes',       icon:'fas fa-eye'},
-        {label:'Makeup',       icon:'fas fa-magic'},
-        {label:'Bridal',       icon:'fas fa-ring'},
+        {label:'All',          icon:'⬛'},
+        {label:'Hair Styling', icon:'✂️'},
+        {label:'Barbing',      icon:'💈'},
+        {label:'Nail Care',    icon:'💅'},
+        {label:'Massage',      icon:'💆'},
+        {label:'Facials',      icon:'🌿'},
+        {label:'Lashes',       icon:'👁️'},
+        {label:'Makeup',       icon:'💄'},
+        {label:'Bridal',       icon:'💍'},
       ].map((cat,i)=>
-        `<button onclick="filterCat('${cat.label}',this)" class="cat-chip ${i===0?'active':''}"><i class="${cat.icon}" style="margin-right:6px;font-size:11px;"></i>${cat.label}</button>`
+        `<button onclick="filterCat('${cat.label}',this)" class="fchip ${i===0?'active':''}">${cat.icon} ${cat.label}</button>`
       ).join('')}
     </div>
+  </div>
+</div>
 
-    <!-- ── FILTER PANEL ── -->
-    <div id="filter-panel" style="display:none;">
+<!-- ══════════════════════════════════════════════
+     MAIN CONTENT
+══════════════════════════════════════════════ -->
+<div style="padding:20px 0 140px;">
+  <div class="container">
+
+    <!-- Filter panel -->
+    <div id="filter-panel" style="display:none;margin-bottom:20px;">
       <div class="filter-panel">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:24px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <h3 style="font-size:16px;font-weight:700;color:var(--t-primary);">Filters</h3>
+          <button onclick="resetFilters()" style="background:none;border:none;color:var(--g-main);font-size:13px;font-weight:600;cursor:pointer;">Reset all</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:24px;">
           ${[
             {label:'Price Range',    key:'price',  opts:[['Any Price','all'],['Under GHS 50','0-50'],['GHS 50–100','50-100'],['GHS 100–200','100-200'],['GHS 200+','200+']]},
-            {label:'Minimum Rating', key:'rating', opts:[['Any Rating','0'],['4.8+ Stars','4.8'],['4.5+ Stars','4.5'],['4.0+ Stars','4.0']]},
+            {label:'Min Rating',     key:'rating', opts:[['Any Rating','0'],['4.8+ Stars','4.8'],['4.5+ Stars','4.5'],['4.0+ Stars','4.0']]},
             {label:'Distance',       key:'dist',   opts:[['Anywhere','all'],['Within 2 km','2'],['Within 5 km','5'],['Within 10 km','10']]},
             {label:'Availability',   key:'avail',  opts:[['Any Time','all'],['Open Now','open'],['Verified Only','verified'],['Available Today','today']]},
           ].map(f=>`
             <div>
-              <div class="eyebrow" style="margin-bottom:14px;">${f.label}</div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--t-muted);margin-bottom:12px;">${f.label}</div>
               ${f.opts.map(([label,val],i)=>`
-                <div class="radio-custom ${i===0?'selected':''}" data-group="${f.key}" data-val="${val}" onclick="selectFilter('${f.key}',this)">
+                <div class="radio-opt ${i===0?'selected':''}" data-group="${f.key}" data-val="${val}" onclick="selectFilter('${f.key}',this)">
                   <div class="radio-dot"></div>
-                  <span style="font-size:13px;color:var(--t-secondary);font-weight:400;">${label}</span>
+                  <span style="font-size:13px;color:var(--t-secondary);">${label}</span>
                 </div>
               `).join('')}
             </div>
           `).join('')}
         </div>
-        <div style="display:flex;gap:12px;margin-top:28px;padding-top:24px;border-top:1px solid var(--i-faint);">
-          <button onclick="resetFilters()" class="btn-ghost" style="padding:10px 24px;">Reset All</button>
-          <button onclick="applyFilters()" class="btn-primary" style="padding:10px 28px;font-size:12px;">
-            <i class="fas fa-check" style="font-size:11px;"></i> Apply Filters
+        <div style="display:flex;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--i-faint);">
+          <button onclick="toggleFilters()" style="flex:1;background:var(--i-ghost);border:1px solid var(--i-faint);border-radius:100px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;color:var(--t-secondary);transition:background 0.2s;" onmouseover="this.style.background='var(--c-dark)'" onmouseout="this.style.background='var(--i-ghost)'">Cancel</button>
+          <button onclick="applyFilters()" style="flex:2;background:var(--g-main);border:none;border-radius:100px;padding:12px;font-size:13px;font-weight:700;color:#FFFFFF;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='var(--g-deep)'" onmouseout="this.style.background='var(--g-main)'">
+            <i class="fas fa-check" style="margin-right:6px;"></i> Apply Filters
           </button>
         </div>
       </div>
     </div>
 
-    <!-- ── RESULTS BAR ── -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
+    <!-- Results bar -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
       <p style="font-size:14px;color:var(--t-secondary);">
-        <span id="count" style="color:var(--t-primary);font-weight:700;font-size:16px;">0</span>
-        <span style="margin-left:6px;">professionals found</span>
+        <span id="count" style="color:var(--t-primary);font-weight:700;">0</span>
+        <span style="margin-left:5px;">venues found</span>
       </p>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:12px;color:var(--t-muted);">Sort by:</span>
-        <select onchange="sortCards(this.value)" class="input" style="width:auto;padding:9px 36px 9px 14px;border-radius:100px;font-size:12px;background:#FFFFFF;-webkit-appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%238A7A62%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22/></svg>');background-repeat:no-repeat;background-position:right 12px center;background-size:11px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;color:var(--t-muted);">Sort:</span>
+        <select onchange="sortCards(this.value)" style="background:#FFFFFF;border:1.5px solid var(--i-faint);border-radius:100px;padding:8px 32px 8px 14px;font-size:12px;font-weight:600;color:var(--t-primary);cursor:pointer;outline:none;-webkit-appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%238A8A8A%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22/></svg>');background-repeat:no-repeat;background-position:right 10px center;background-size:11px;">
           <option>Top Rated</option>
           <option>Price: Low → High</option>
           <option>Price: High → Low</option>
@@ -139,63 +225,85 @@ ${navbar('discover')}
       </div>
     </div>
 
-    <!-- ── PROVIDER GRID ── -->
-    <div id="providers-grid" class="grid-3">
-      <!-- Skeleton loaders -->
-      ${[1,2,3,4,5,6].map(()=>`
-        <div style="background:#FFFFFF;border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;">
-          <div style="height:200px;background:linear-gradient(90deg,var(--c-dark) 25%,var(--c-mid) 50%,var(--c-dark) 75%);background-size:400%;animation:shimmer 1.8s infinite;"></div>
-          <div style="padding:22px;">
-            <div style="height:18px;background:var(--c-dark);border-radius:6px;margin-bottom:10px;width:70%;animation:shimmer 1.8s infinite;background-size:400%;"></div>
-            <div style="height:13px;background:var(--c-dark);border-radius:6px;margin-bottom:16px;width:50%;animation:shimmer 1.8s infinite;background-size:400%;"></div>
-            <div style="height:40px;background:var(--c-dark);border-radius:100px;animation:shimmer 1.8s infinite;background-size:400%;"></div>
+    <!-- Provider grid -->
+    <div id="providers-grid" class="prov-grid">
+      ${[1,2,3,4,5,6,7,8].map(()=>`
+        <div style="background:#FFFFFF;border-radius:18px;overflow:hidden;border:1px solid var(--i-faint);">
+          <div style="height:160px;background:linear-gradient(90deg,#EEEEEE 25%,#E5E5E5 50%,#EEEEEE 75%);background-size:400%;animation:shimmer 1.8s infinite;"></div>
+          <div style="padding:14px;">
+            <div style="height:16px;background:#EEEEEE;border-radius:6px;margin-bottom:8px;width:70%;animation:shimmer 1.8s infinite;background-size:400%;"></div>
+            <div style="height:12px;background:#EEEEEE;border-radius:6px;margin-bottom:14px;width:50%;animation:shimmer 1.8s infinite;background-size:400%;"></div>
+            <div style="height:36px;background:#EEEEEE;border-radius:100px;animation:shimmer 1.8s infinite;background-size:400%;"></div>
           </div>
         </div>
       `).join('')}
     </div>
 
     <!-- Empty state -->
-    <div id="empty-state" style="display:none;text-align:center;padding:100px 20px;">
-      <div style="width:80px;height:80px;border-radius:50%;background:var(--g-dim);border:1px solid var(--g-border);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;">
+    <div id="empty-state" style="display:none;text-align:center;padding:80px 20px;">
+      <div style="width:80px;height:80px;border-radius:50%;background:var(--g-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;">
         <i class="fas fa-search" style="font-size:28px;color:var(--g-main);"></i>
       </div>
-      <h3 class="font-display" style="font-size:24px;margin-bottom:12px;color:var(--t-primary);">No results found</h3>
-      <p style="font-size:14px;color:var(--t-secondary);margin-bottom:28px;">Try adjusting your filters or search terms</p>
-      <button onclick="clearSearch();resetFilters()" class="btn-outline">Clear All Filters</button>
+      <h3 style="font-size:20px;font-weight:700;margin-bottom:10px;">No results found</h3>
+      <p style="font-size:14px;color:var(--t-muted);margin-bottom:24px;">Try adjusting your filters or search terms</p>
+      <button onclick="clearSearch();resetFilters()" style="background:var(--g-main);color:#FFFFFF;border:none;border-radius:100px;padding:12px 28px;font-size:13px;font-weight:700;cursor:pointer;">Clear Filters</button>
     </div>
 
     <!-- Load more -->
-    <div style="text-align:center;margin-top:64px;" id="load-more-wrap">
-      <button onclick="loadMore()" class="btn-ghost" style="padding:14px 40px;font-size:13px;">
-        Load More Providers
-        <i class="fas fa-chevron-down" style="font-size:11px;"></i>
+    <div style="text-align:center;margin-top:48px;" id="load-more-wrap">
+      <button onclick="loadMore()" style="background:#FFFFFF;border:1.5px solid var(--i-faint);border-radius:100px;padding:13px 36px;font-size:13px;font-weight:600;cursor:pointer;color:var(--t-secondary);transition:all 0.25s;box-shadow:0 2px 10px rgba(0,0,0,0.06);" onmouseover="this.style.borderColor='var(--g-main)';this.style.color='var(--g-main)'" onmouseout="this.style.borderColor='var(--i-faint)';this.style.color='var(--t-secondary)'">
+        Load More <i class="fas fa-chevron-down" style="font-size:11px;margin-left:4px;"></i>
       </button>
     </div>
 
   </div>
 </div>
 
+<!-- Floating map button -->
+<button class="map-btn hide-mob" onclick="showToast('Map view coming soon!','info')">
+  <i class="fas fa-map"></i> Map
+</button>
+
 ${mobileNav('discover')}
 ${globalScripts()}
 
 <script>
+// ── Make navbar solid on scroll ──
+(function(){
+  var u = (function(){ try{ return JSON.parse(localStorage.getItem('sl_user')||'{}'); }catch(e){ return {}; } })();
+  var nav = document.getElementById('nav-auth');
+  if (u && u.id && nav) {
+    var dashLink = u.role === 'provider' ? '/provider/dashboard' : u.role === 'admin' ? '/admin' : '/dashboard';
+    nav.innerHTML = '<a href="' + dashLink + '" style="padding:9px 20px;font-size:13px;background:rgba(255,255,255,0.15);color:#FFFFFF;border:1.5px solid rgba(255,255,255,0.35);border-radius:100px;text-decoration:none;font-weight:600;">' + (u.first_name || u.name || 'Dashboard') + '</a>';
+  }
+  var n = document.getElementById('nav-main');
+  function updateNav() {
+    if (window.scrollY > 100) {
+      n.style.background = 'rgba(255,255,255,0.97)';
+      n.style.borderBottom = '1px solid rgba(0,0,0,0.08)';
+      n.style.boxShadow = '0 2px 16px rgba(0,0,0,0.08)';
+      // Update text colors
+      n.querySelectorAll('a,span').forEach(function(el){
+        if(el.tagName==='A' && el.href && el.style.color==='rgb(255, 255, 255)') {
+          el.style.color = 'var(--t-primary)';
+        }
+      });
+    } else {
+      n.style.background = 'transparent';
+      n.style.borderBottom = 'none';
+      n.style.boxShadow = 'none';
+    }
+  }
+  window.addEventListener('scroll', updateNav, {passive:true});
+  updateNav();
+})();
+
 var filtersOpen = false;
 var activeFilters = {};
 var allProviders = [];
 var activeCat = 'All';
-var userLocation = null; // { lat, lng }
+var userLocation = null;
 
-function goToProvider(id, isAvailable) {
-  if (!isAvailable) {
-    showToast('This provider is currently unavailable. You can still view their profile.', 'info');
-    setTimeout(function() { window.location.href = '/provider/' + id; }, 1200);
-    return;
-  }
-  window.location.href = '/provider/' + id;
-}
-function showFav(btn) { btn.innerHTML = '<i class="fas fa-heart" style="color:var(--s-red);font-size:14px;"></i>'; showToast('Saved to favourites', 'success'); }
-
-// Haversine distance (km) between two lat/lng points
 function haversineKm(lat1, lng1, lat2, lng2) {
   var R = 6371;
   var dLat = (lat2 - lat1) * Math.PI / 180;
@@ -208,76 +316,49 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 
 function detectLocation() {
   var btn = document.getElementById('location-btn');
-  if (btn) { btn.textContent = 'Detecting...'; btn.disabled = true; }
+  if (btn) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true; }
   if (!navigator.geolocation) {
-    showToast('Location not supported on this browser', 'error');
-    if (btn) { btn.textContent = '📍 Near Me'; btn.disabled = false; }
+    showToast('Location not supported', 'error');
+    if (btn) { btn.innerHTML = '<i class="fas fa-map-marker-alt"></i>'; btn.disabled = false; }
     return;
   }
   navigator.geolocation.getCurrentPosition(function(pos) {
     userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-    // Re-sort providers by distance
     allProviders = allProviders.map(function(p) {
       if (p.location_lat && p.location_lng) {
         p.distance_km = haversineKm(userLocation.lat, userLocation.lng, p.location_lat, p.location_lng);
-      } else {
-        p.distance_km = 9999;
-      }
+      } else { p.distance_km = 9999; }
       return p;
     });
-    allProviders.sort(function(a, b) { return (a.distance_km||9999) - (b.distance_km||9999); });
+    allProviders.sort(function(a,b){ return (a.distance_km||9999)-(b.distance_km||9999); });
     renderGrid();
     showToast('Showing nearest services first 📍', 'success');
-    if (btn) { btn.textContent = '✓ Near Me'; btn.style.background = 'var(--g-main)'; btn.style.color = '#fff'; btn.disabled = false; }
+    if (btn) { btn.innerHTML = '<i class="fas fa-map-marker-alt"></i> <span>Near You ✓</span>'; btn.style.background='rgba(255,255,255,0.30)'; btn.disabled = false; }
   }, function() {
-    showToast('Could not get your location. Please allow location access.', 'error');
-    if (btn) { btn.textContent = '📍 Near Me'; btn.disabled = false; }
+    showToast('Could not get location. Please allow access.', 'error');
+    if (btn) { btn.innerHTML = '<i class="fas fa-map-marker-alt"></i>'; btn.disabled = false; }
   });
 }
 
-// Provider images for variety
 var providerImages = {
-  hair_salon: [
-    'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=480&q=75',
-    'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=480&q=75',
-    'https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?w=480&q=75',
-  ],
-  barbershop: [
-    'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=480&q=75',
-    'https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=480&q=75',
-  ],
-  nail_tech: [
-    'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=480&q=75',
-    'https://images.unsplash.com/photo-1604093024411-1e8b48aad80d?w=480&q=75',
-  ],
-  massage: [
-    'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=480&q=75',
-    'https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=480&q=75',
-  ],
-  lash_tech: [
-    'https://images.unsplash.com/photo-1583241475880-083f84372725?w=480&q=75',
-    'https://images.unsplash.com/photo-1519735777090-ec97162dc266?w=480&q=75',
-  ],
-  facial: [
-    'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=480&q=75',
-    'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=480&q=75',
-  ],
-  makeup: [
-    'https://images.unsplash.com/photo-1522337660859-02fbefca4702?w=480&q=75',
-    'https://images.unsplash.com/photo-1487412840181-b9dedc9e3b20?w=480&q=75',
-  ]
+  hair_salon: ['https://images.unsplash.com/photo-1560869713-7d0a29430803?w=480&q=75','https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=480&q=75','https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?w=480&q=75'],
+  barbershop: ['https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=480&q=75','https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=480&q=75'],
+  nail_tech:  ['https://images.unsplash.com/photo-1604654894610-df63bc536371?w=480&q=75','https://images.unsplash.com/photo-1604093024411-1e8b48aad80d?w=480&q=75'],
+  massage:    ['https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=480&q=75','https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=480&q=75'],
+  lash_tech:  ['https://images.unsplash.com/photo-1583241475880-083f84372725?w=480&q=75','https://images.unsplash.com/photo-1519735777090-ec97162dc266?w=480&q=75'],
+  facial:     ['https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=480&q=75','https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=480&q=75'],
+  makeup:     ['https://images.unsplash.com/photo-1522337660859-02fbefca4702?w=480&q=75','https://images.unsplash.com/photo-1487412840181-b9dedc9e3b20?w=480&q=75']
 };
 
 function getProviderImage(cat, id) {
   var imgs = providerImages[cat] || providerImages.hair_salon;
-  return imgs[(id - 1) % imgs.length];
+  return imgs[(id-1) % imgs.length];
 }
 
 function toggleFilters() {
   filtersOpen = !filtersOpen;
   var p = document.getElementById('filter-panel');
   p.style.display = filtersOpen ? 'block' : 'none';
-  document.getElementById('filter-label').textContent = filtersOpen ? 'Hide' : 'Filters';
 }
 
 function selectFilter(group, el) {
@@ -288,167 +369,161 @@ function selectFilter(group, el) {
 
 function applyFilters() {
   toggleFilters();
-  var cnt = Object.values(activeFilters).filter(function(v){ return v !== 'all' && v !== '0'; }).length;
-  var fc = document.getElementById('filter-count');
-  if (cnt > 0) { fc.style.display = 'inline-flex'; fc.textContent = cnt; } else { fc.style.display = 'none'; }
   showToast('Filters applied', 'success');
   renderGrid();
 }
 
 function resetFilters() {
   activeFilters = {};
-  document.querySelectorAll('.radio-custom').forEach(function(el, i) { if (i % 4 === 0) el.classList.add('selected'); });
-  document.getElementById('filter-count').style.display = 'none';
+  document.querySelectorAll('.radio-opt').forEach(function(el, i) { if (i % 4 === 0 || i % 5 === 0) { /* first of each group */ } });
+  document.querySelectorAll('[data-group]').forEach(function(el) { el.classList.remove('selected'); });
+  document.querySelectorAll('[data-val="all"],[data-val="0"]').forEach(function(el){ el.classList.add('selected'); });
   showToast('Filters reset', 'info');
+  renderGrid();
 }
 
 function filterCat(cat, btn) {
-  document.querySelectorAll('.cat-chip').forEach(function(b) { b.className = 'cat-chip'; });
-  btn.className = 'cat-chip active';
+  document.querySelectorAll('.fchip').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
   activeCat = cat;
   renderGrid();
 }
 
-function renderGrid() {
-  var q = (document.getElementById('search').value || '').toLowerCase();
-  var catMap = {'Hair Styling':'hair_salon','Barbing':'barbershop','Nail Care':'nail_tech','Massage':'massage','Facials':'facial','Lashes':'lash_tech','Makeup':'makeup'};
-  var filtered = allProviders.filter(function(p) {
-    var matchCat = activeCat === 'All' || p.service_category === catMap[activeCat];
-    var matchQ = !q || (p.business_name + ' ' + p.city + ' ' + p.service_category).toLowerCase().includes(q);
-    return matchCat && matchQ;
-  });
-  var grid = document.getElementById('providers-grid');
-  if (filtered.length === 0) {
-    grid.innerHTML = '';
-    document.getElementById('empty-state').style.display = 'block';
-    grid.style.display = 'none';
-  } else {
-    grid.innerHTML = filtered.map(buildProviderCard).join('');
-    document.getElementById('empty-state').style.display = 'none';
-    grid.style.display = '';
-  }
-  document.getElementById('count').textContent = filtered.length;
-  document.getElementById('clear-btn').style.display = q ? 'block' : 'none';
-}
-
 function filterCards() { renderGrid(); }
-
-function clearSearch() {
-  document.getElementById('search').value = '';
-  filterCards();
-}
+function clearSearch() { document.getElementById('search-input-hidden').value = ''; filterCards(); }
 
 function sortCards(v) {
   if (v === 'Nearest First' && !userLocation) {
-    showToast('Enable location first using the 📍 Near Me button', 'info');
-    return;
+    showToast('Enable location first using the Near You button', 'info'); return;
   }
-  allProviders.sort(function(a, b) {
-    if (v === 'Price: Low → High') return (a.price_from||0) - (b.price_from||0);
-    if (v === 'Price: High → Low') return (b.price_from||0) - (a.price_from||0);
-    if (v === 'Most Reviews') return (b.total_reviews||0) - (a.total_reviews||0);
-    if (v === 'Nearest First') return (a.distance_km||9999) - (b.distance_km||9999);
-    return (parseFloat(b.rating)||0) - (parseFloat(a.rating)||0);
+  allProviders.sort(function(a,b){
+    if (v==='Price: Low → High') return (a.price_from||0)-(b.price_from||0);
+    if (v==='Price: High → Low') return (b.price_from||0)-(a.price_from||0);
+    if (v==='Most Reviews') return (b.total_reviews||0)-(a.total_reviews||0);
+    if (v==='Nearest First') return (a.distance_km||9999)-(b.distance_km||9999);
+    return (parseFloat(b.rating)||0)-(parseFloat(a.rating)||0);
   });
   renderGrid();
 }
 
-function loadMore() { showToast('All providers loaded', 'info'); document.getElementById('load-more-wrap').style.display = 'none'; }
+function loadMore() { showToast('All providers loaded','info'); document.getElementById('load-more-wrap').style.display='none'; }
 
-function buildProviderCard(p) {
-  var catLabel = (p.service_category || '').replace(/_/g, ' ').replace(/\b\w/g, function(l){ return l.toUpperCase(); });
-  var priceFrom = p.price_from ? 'GHS ' + Math.round(p.price_from/100) : 'GHS 40';
-  // Use cover (background) first, then logo, then category placeholder
+function goToProvider(id, isAvail) {
+  if (!isAvail) { showToast('This provider is currently not accepting bookings','info'); setTimeout(function(){ window.location.href='/provider/'+id; },1000); return; }
+  window.location.href = '/provider/' + id;
+}
+
+function renderGrid() {
+  var q = (document.getElementById('search-input-hidden').value||'').toLowerCase();
+  var catMap = {'Hair Styling':'hair_salon','Barbing':'barbershop','Nail Care':'nail_tech','Massage':'massage','Facials':'facial','Lashes':'lash_tech','Makeup':'makeup','Bridal':'makeup'};
+  var filtered = allProviders.filter(function(p) {
+    var matchCat = activeCat==='All' || p.service_category===catMap[activeCat];
+    var matchQ = !q || (p.business_name+' '+p.city+' '+p.service_category).toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+  var grid = document.getElementById('providers-grid');
+  if (filtered.length===0) {
+    grid.innerHTML=''; grid.style.display='none';
+    document.getElementById('empty-state').style.display='block';
+  } else {
+    grid.innerHTML = filtered.map(buildCard).join('');
+    grid.style.display='';
+    document.getElementById('empty-state').style.display='none';
+  }
+  document.getElementById('count').textContent = filtered.length;
+}
+
+function buildCard(p) {
+  var catLabel = (p.service_category||'').replace(/_/g,' ').replace(/\\b\\w/g,function(l){return l.toUpperCase();});
+  var priceFrom = p.price_from ? 'GHS '+Math.round(p.price_from/100) : 'GHS 40';
   var img = p.cover_url || p.logo_url || getProviderImage(p.service_category, p.id);
-  var stars = Math.round(parseFloat(p.rating) || 4);
-  // Provider is bookable if they accept bookings (verification is optional for booking)
   var isAccepting = !!p.is_accepting_bookings;
-  var isVerified = !!p.is_verified;
-  var isAvailable = isAccepting; // Only block if not accepting bookings
-  var distLabel = (p.distance_km && p.distance_km < 9999)
-    ? (p.distance_km < 1 ? Math.round(p.distance_km * 1000) + 'm away' : p.distance_km.toFixed(1) + 'km away')
-    : (p.city || 'Accra');
+  var isVerified  = !!p.is_verified;
+  var distLabel   = (p.distance_km&&p.distance_km<9999) ? (p.distance_km<1?Math.round(p.distance_km*1000)+'m':p.distance_km.toFixed(1)+'km') : (p.city||'Accra');
+  var stars = parseFloat(p.rating)||4.8;
 
-  return '<div class="prov-card" data-search="' + (p.business_name + ' ' + p.city + ' ' + p.service_category).toLowerCase() +
-    '" data-price="' + (p.price_from/100||0) + '" data-rating="' + p.rating + '" data-reviews="' + p.total_reviews + '"' +
-    ' onclick="goToProvider(' + p.id + ',' + isAvailable + ')" style="' + (!isAccepting ? 'opacity:0.85;' : '') + '">' +
-    '<div style="height:200px;position:relative;overflow:hidden;">' +
-      '<img class="prov-img-inner" src="' + img + '" alt="' + p.business_name + '" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"/>' +
-      (!isAccepting ? '<div style="position:absolute;inset:0;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;"><span style="background:rgba(0,0,0,0.7);color:#fff;font-size:11px;font-weight:700;padding:6px 14px;border-radius:100px;letter-spacing:0.05em;">NOT ACCEPTING BOOKINGS</span></div>' : '') +
-      '<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(26,18,9,0.3),transparent);pointer-events:none;"></div>' +
-      '<div style="position:absolute;top:14px;left:14px;">' +
-        (isVerified ? '<span class="badge badge-verified" style="background:rgba(255,255,255,0.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);"><i class="fas fa-shield-alt" style="font-size:8px;"></i> Verified</span>' :
-          '<span class="badge badge-pending" style="background:rgba(255,255,255,0.92);">New</span>') +
+  return '<div class="pcard" onclick="goToProvider('+p.id+','+isAccepting+')">' +
+    '<div style="position:relative;overflow:hidden;">' +
+      '<img class="pcard-img" src="'+img+'" alt="'+p.business_name+'" loading="lazy"/>' +
+      '<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.3),transparent 55%);"></div>' +
+      '<div style="position:absolute;top:10px;left:10px;">' +
+        (isVerified?'<span style="background:rgba(255,255,255,0.95);border-radius:100px;padding:3px 9px;font-size:10px;font-weight:700;color:#007A3D;display:flex;align-items:center;gap:3px;"><i class="fas fa-shield-alt" style="font-size:8px;"></i> Verified</span>':'') +
       '</div>' +
-      '<div style="position:absolute;top:14px;right:14px;">' +
-        '<span class="badge ' + (isAccepting ? 'badge-live' : 'badge-closed') + '" style="background:rgba(255,255,255,0.92);backdrop-filter:blur(8px);">' +
-          (isAccepting ? '<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#1E8050;margin-right:3px;"></span>Open' : '<i class="far fa-clock" style="font-size:8px;margin-right:3px;"></i>Closed') +
+      '<div style="position:absolute;top:10px;right:10px;">' +
+        '<span style="background:rgba(255,255,255,0.95);border-radius:100px;padding:3px 9px;font-size:10px;font-weight:700;display:flex;align-items:center;gap:4px;color:'+(isAccepting?'#007A3D':'#888')+'">' +
+          (isAccepting?'<span style="width:5px;height:5px;background:#00C853;border-radius:50%;"></span> Open':'<i class="far fa-clock" style="font-size:8px;"></i> Closed') +
         '</span>' +
       '</div>' +
-      '<div style="position:absolute;bottom:12px;left:14px;font-size:11px;color:rgba(255,255,255,0.9);display:flex;align-items:center;gap:5px;">' +
-        '<i class="fas fa-map-marker-alt" style="font-size:10px;"></i>' + distLabel +
+      '<div style="position:absolute;bottom:10px;left:12px;font-size:11px;color:rgba(255,255,255,0.9);display:flex;align-items:center;gap:4px;">' +
+        '<i class="fas fa-map-marker-alt" style="font-size:9px;"></i>' + distLabel +
       '</div>' +
     '</div>' +
-    '<div style="padding:22px;">' +
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">' +
-        '<div><div class="font-display" style="font-size:18px;font-weight:600;margin-bottom:3px;color:var(--t-primary);">' + p.business_name + '</div>' +
-          '<div style="font-size:12px;color:var(--t-muted);">' + catLabel + '</div></div>' +
-        '<div style="text-align:right;flex-shrink:0;margin-left:10px;">' +
-          '<div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-faint);margin-bottom:2px;">from</div>' +
-          '<div class="font-display gold-gradient" style="font-size:19px;font-weight:600;">' + priceFrom + '</div>' +
+    '<div style="padding:14px;">' +
+      '<div style="font-size:15px;font-weight:700;color:var(--t-primary);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + p.business_name + '</div>' +
+      '<div style="font-size:12px;color:var(--t-muted);margin-bottom:10px;">' + catLabel + '</div>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+        '<div style="display:flex;align-items:center;gap:4px;">' +
+          '<span style="color:#FFB800;font-size:13px;">★</span>' +
+          '<span style="font-size:13px;font-weight:700;color:var(--t-primary);">' + stars.toFixed(1) + '</span>' +
+          '<span style="font-size:11px;color:var(--t-muted);">(' + (p.total_reviews||0) + ')</span>' +
         '</div>' +
+        '<div style="font-size:13px;font-weight:700;color:var(--g-main);">' + priceFrom + '</div>' +
       '</div>' +
-      '<div style="display:flex;align-items:center;gap:7px;margin-bottom:14px;">' +
-        '<span class="stars" style="font-size:12px;">★★★★★</span>' +
-        '<span style="font-size:13px;font-weight:700;color:var(--g-deep);">' + (p.rating || '4.8') + '</span>' +
-        '<span style="font-size:11px;color:var(--t-muted);">(' + (p.total_reviews||0) + ' reviews)</span>' +
-      '</div>' +
-      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;">' +
-        '<span class="tag"><i class="fas fa-tag" style="font-size:9px;margin-right:4px;"></i>' + catLabel + '</span>' +
-        (p.service_count ? '<span class="tag">' + p.service_count + ' services</span>' : '') +
-        (p.total_bookings ? '<span class="tag"><i class="fas fa-users" style="font-size:9px;margin-right:4px;"></i>' + p.total_bookings + ' clients</span>' : '') +
-      '</div>' +
-      '<div style="display:flex;gap:9px;">' +
-        (isAccepting
-          ? '<a href="/book/' + p.id + '" onclick="event.stopPropagation()" class="btn-primary" style="flex:1;justify-content:center;padding:11px 14px;font-size:11px;"><i class="far fa-calendar-check" style="font-size:11px;"></i> Book Now</a>'
-          : '<button onclick="event.stopPropagation();goToProvider(' + p.id + ',false)" class="btn-ghost" style="flex:1;justify-content:center;padding:11px 14px;font-size:11px;opacity:0.7;"><i class="fas fa-eye" style="font-size:11px;"></i> View Profile</button>'
-        ) +
-        '<button onclick="event.stopPropagation();showFav(this)" class="btn-icon" title="Save" style="border-radius:12px;">' +
-          '<i class="far fa-heart" style="font-size:14px;"></i>' +
-        '</button>' +
-      '</div>' +
+      '<a href="/book/'+p.id+'" onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;background:var(--g-main);color:#FFFFFF;border:none;border-radius:100px;padding:10px;font-size:12px;font-weight:700;text-decoration:none;transition:background 0.2s;" onmouseover="this.style.background=\'var(--g-deep)\'" onmouseout="this.style.background=\'var(--g-main)\'">' +
+        '<i class="far fa-calendar-check" style="font-size:11px;"></i> Book Now' +
+      '</a>' +
     '</div>' +
   '</div>';
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  // Silently try to get user location
+  // Check URL params for pre-selected category
+  var params = new URLSearchParams(window.location.search);
+  var svc = params.get('service');
+  if (svc) {
+    document.querySelectorAll('.fchip').forEach(function(b) {
+      if (b.textContent.trim().toLowerCase().includes(svc.toLowerCase())) {
+        b.click();
+      }
+    });
+  }
+
+  // Try location silently
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(function(pos) {
       userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
       var btn = document.getElementById('location-btn');
-      if (btn) { btn.textContent = '✓ Near Me'; btn.style.background = 'var(--g-main)'; btn.style.color = '#fff'; }
-    }, function() { /* location denied, that's okay */ });
+      if (btn) { btn.innerHTML = '<i class="fas fa-map-marker-alt"></i><span class="hide-mob"> Near You ✓</span>'; btn.style.background='rgba(255,255,255,0.28)'; }
+    }, function(){});
   }
 
   axios.get('/api/providers').then(function(res) {
     allProviders = res.data.providers || [];
-    // If we already have location, sort by distance
     if (userLocation) {
       allProviders = allProviders.map(function(p) {
-        if (p.location_lat && p.location_lng) {
-          p.distance_km = haversineKm(userLocation.lat, userLocation.lng, p.location_lat, p.location_lng);
-        } else { p.distance_km = 9999; }
+        if (p.location_lat && p.location_lng) { p.distance_km = haversineKm(userLocation.lat, userLocation.lng, p.location_lat, p.location_lng); }
+        else { p.distance_km = 9999; }
         return p;
       });
-      allProviders.sort(function(a, b) { return (a.distance_km||9999) - (b.distance_km||9999); });
+      allProviders.sort(function(a,b){ return (a.distance_km||9999)-(b.distance_km||9999); });
     }
     renderGrid();
+    // Re-apply selected category if any
+    if (svc) {
+      document.querySelectorAll('.fchip').forEach(function(b) {
+        if (b.textContent.trim().toLowerCase().includes(svc.toLowerCase())) {
+          activeCat = b.textContent.trim().replace(/^[^\w]+/,'').trim();
+          document.querySelectorAll('.fchip').forEach(function(x){ x.classList.remove('active'); });
+          b.classList.add('active');
+          renderGrid();
+        }
+      });
+    }
   }).catch(function() {
     showToast('Could not load providers', 'error');
     document.getElementById('providers-grid').innerHTML =
-      '<div style="grid-column:1/-1;text-align:center;padding:80px 20px;">' +
-      '<i class="fas fa-exclamation-circle" style="font-size:40px;color:var(--s-red);margin-bottom:20px;display:block;"></i>' +
+      '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;">' +
+      '<i class="fas fa-exclamation-circle" style="font-size:36px;color:var(--s-red);margin-bottom:16px;display:block;"></i>' +
       '<p style="color:var(--t-secondary);">Failed to load providers. Please refresh.</p></div>';
   });
 });

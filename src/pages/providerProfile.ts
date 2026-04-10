@@ -7,21 +7,34 @@ ${baseHead('Provider Profile', `
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  .hero-cover { height:340px; position:relative; overflow:hidden; }
+  body { background: #F5F5F5; }
+  /* ── Fresha-style provider profile ── */
+  .hero-cover { height:320px; position:relative; overflow:hidden; }
   .hero-cover img { width:100%; height:100%; object-fit:cover; }
-  .avatar-ring { width:80px; height:80px; border-radius:20px; overflow:hidden; border:3px solid #FFFFFF; box-shadow:0 4px 20px rgba(160,120,48,0.2); position:relative; background:var(--g-dim); flex-shrink:0; }
-  .service-item { display:flex; align-items:center; justify-content:space-between; padding:16px 0; border-bottom:1px solid var(--i-faint); cursor:pointer; transition:padding-left 0.3s; gap:8px; }
-  .service-item:hover { padding-left:6px; }
+  .avatar-ring { width:72px; height:72px; border-radius:18px; overflow:hidden; border:3px solid #FFFFFF; box-shadow:0 4px 16px rgba(0,0,0,0.15); position:relative; background:var(--g-dim); flex-shrink:0; }
+
+  /* Service items */
+  .service-item { display:flex; align-items:center; justify-content:space-between; padding:16px 0; border-bottom:1px solid var(--i-faint); cursor:pointer; transition:all 0.2s; gap:8px; }
+  .service-item:hover { background:var(--g-dim); margin:0 -20px; padding-left:20px; padding-right:20px; border-radius:14px; border-bottom-color:transparent; }
   .service-item:last-child { border-bottom:none; }
-  .time-slot { padding:10px 16px; border-radius:10px; background:var(--c-raise); border:1px solid var(--i-faint); font-size:13px; font-weight:500; cursor:pointer; transition:all 0.25s; text-align:center; }
-  .time-slot:hover, .time-slot.selected { background:var(--g-dim); border-color:var(--g-main); color:var(--g-main); }
+
+  /* Time slots – Fresha pill style */
+  .time-slot { padding:9px 16px; border-radius:100px; background:#FFFFFF; border:1.5px solid var(--i-faint); font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,0.05); }
+  .time-slot:hover, .time-slot.selected { background:var(--g-main); border-color:var(--g-main); color:#FFFFFF; box-shadow:0 4px 14px rgba(108,71,255,0.28); }
   .time-slot.disabled { opacity:0.3; cursor:not-allowed; background:var(--c-dark); }
-  .portfolio-item { aspect-ratio:1; border-radius:14px; overflow:hidden; background:var(--c-raise); cursor:pointer; transition:all 0.35s var(--ease-luxury); display:flex; align-items:center; justify-content:center; font-size:36px; border:1px solid var(--i-faint); }
-  .portfolio-item:hover { transform:scale(1.04); border-color:var(--g-border); }
+
+  /* Portfolio */
+  .portfolio-item { aspect-ratio:1; border-radius:14px; overflow:hidden; background:var(--c-raise); cursor:pointer; transition:all 0.3s var(--ease-luxury); display:flex; align-items:center; justify-content:center; font-size:36px; border:1px solid var(--i-faint); }
+  .portfolio-item:hover { transform:scale(1.04); }
+
+  /* Cards */
+  .prof-card { background:#FFFFFF; border:1px solid var(--i-faint); border-radius:20px; padding:22px; margin-bottom:16px; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
+
   /* Reveal always visible on profile page */
   .reveal { opacity:1 !important; transform:none !important; }
+
   /* Responsive layout */
-  .profile-layout { display:grid; grid-template-columns:1fr 360px; gap:32px; }
+  .profile-layout { display:grid; grid-template-columns:1fr 340px; gap:24px; }
   @media(max-width:960px) {
     .profile-layout { grid-template-columns:1fr !important; }
     .hero-cover { height:260px; }
@@ -33,7 +46,7 @@ ${baseHead('Provider Profile', `
 </style>
 `)}
 </head>
-<body style="background:var(--c-deep);">
+<body>
 ${navbar('')}
 
 <!-- ── HERO COVER ── -->
