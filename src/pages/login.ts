@@ -51,9 +51,9 @@ ${baseHead('Sign In', `
   }
   .auth-logo-icon {
     width:44px; height:44px; border-radius:14px;
-    background:linear-gradient(135deg,#A5721A,#C9922A,#E4B55A);
+    background:#111111;
     display:flex; align-items:center; justify-content:center;
-    box-shadow:0 6px 20px rgba(201,146,42,0.5);
+    box-shadow:0 6px 20px rgba(0,0,0,0.35);
   }
   .auth-logo-text {
     font-family:'Poppins',sans-serif; font-size:20px; font-weight:800;
@@ -100,7 +100,7 @@ ${baseHead('Sign In', `
   <div class="auth-card">
     <h1 style="font-size:26px;font-weight:700;margin-bottom:6px;color:var(--t-primary);">Welcome back</h1>
     <p style="font-size:13px;color:var(--t-secondary);margin-bottom:28px;">
-      No account? <a href="/register" style="color:var(--g-main);text-decoration:none;font-weight:700;">Create one free →</a>
+      No account? <a href="/register" style="color:#111111;text-decoration:none;font-weight:700;">Create one free →</a>
     </p>
 
     <!-- Tab switcher -->
@@ -125,7 +125,7 @@ ${baseHead('Sign In', `
       <div class="form-group">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
           <label class="form-label" style="margin-bottom:0;">Password</label>
-          <a href="#" style="font-size:11px;color:var(--g-main);text-decoration:none;font-weight:600;">Forgot?</a>
+          <a href="#" style="font-size:11px;color:#111111;text-decoration:none;font-weight:600;">Forgot?</a>
         </div>
         <div class="input-wrap">
           <i class="fas fa-lock input-icon"></i>
@@ -165,7 +165,7 @@ ${baseHead('Sign In', `
         <div style="text-align:center;margin-bottom:20px;">
           <div style="font-size:36px;margin-bottom:8px;">📲</div>
           <div style="font-size:15px;font-weight:700;margin-bottom:4px;">Check your WhatsApp</div>
-          <div style="font-size:13px;color:var(--t-muted);">Code sent to <span id="phone-display" style="color:var(--g-main);font-weight:700;"></span></div>
+          <div style="font-size:13px;color:var(--t-muted);">Code sent to <span id="phone-display" style="color:#111111;font-weight:700;"></span></div>
         </div>
         <div style="display:flex;gap:10px;justify-content:center;margin-bottom:20px;">
           ${[0,1,2,3,4,5].map(i=>`<input type="tel" maxlength="1" id="otp-${i}" class="input" style="width:46px;height:54px;text-align:center;font-size:22px;font-weight:700;padding:0;border-radius:12px;" oninput="otpInput(this,${i})" onkeydown="otpKey(event,${i})" inputmode="numeric"/>`).join('')}
@@ -177,7 +177,7 @@ ${baseHead('Sign In', `
           ← Change number
         </button>
         <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--t-muted);">
-          Didn't receive it? <button onclick="sendOtp(true)" style="background:none;border:none;color:var(--g-main);font-size:12px;cursor:pointer;font-weight:600;">Resend</button>
+          Didn't receive it? <button onclick="sendOtp(true)" style="background:none;border:none;color:#111111;font-size:12px;cursor:pointer;font-weight:600;">Resend</button>
         </div>
       </div>
     </div>

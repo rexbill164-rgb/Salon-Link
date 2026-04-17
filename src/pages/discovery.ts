@@ -67,7 +67,7 @@ ${baseHead('Discover Services', `
     border:1px solid var(--i-faint); transition:all 0.3s var(--ease-luxury);
     box-shadow: 0 2px 10px rgba(0,0,0,0.06);
   }
-  .pcard:hover { transform:translateY(-5px); box-shadow:0 16px 40px rgba(0,0,0,0.12); border-color:var(--g-border); }
+  .pcard:hover { transform:translateY(-5px); box-shadow:0 16px 40px rgba(0,0,0,0.12); border-color:#BBBBBB; }
   .pcard:hover .pcard-img { transform:scale(1.04); }
   .pcard-img { width:100%;height:160px;object-fit:cover;display:block;transition:transform 0.5s var(--ease-luxury); }
 
@@ -83,7 +83,7 @@ ${baseHead('Discover Services', `
     border:1.5px solid var(--i-faint); display:flex; align-items:center;
     justify-content:center; transition:all 0.2s; flex-shrink:0;
   }
-  .radio-opt.selected .radio-dot { border-color:var(--g-main); background:var(--g-main); }
+  .radio-opt.selected .radio-dot { border-color:#111111; background:#111111; }
   .radio-opt.selected .radio-dot::after { content:''; width:6px; height:6px; border-radius:50%; background:#FFFFFF; display:block; }
 
   /* ── Map button (floating) ── */
@@ -178,7 +178,7 @@ ${baseHead('Discover Services', `
       <div class="filter-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
           <h3 style="font-size:16px;font-weight:700;color:var(--t-primary);">Filters</h3>
-          <button onclick="resetFilters()" style="background:none;border:none;color:var(--g-main);font-size:13px;font-weight:600;cursor:pointer;">Reset all</button>
+          <button onclick="resetFilters()" style="background:none;border:none;color:#111111;font-size:13px;font-weight:600;cursor:pointer;">Reset all</button>
         </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:24px;">
           ${[
@@ -200,7 +200,7 @@ ${baseHead('Discover Services', `
         </div>
         <div style="display:flex;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--i-faint);">
           <button onclick="toggleFilters()" style="flex:1;background:var(--i-ghost);border:1px solid var(--i-faint);border-radius:100px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;color:var(--t-secondary);transition:background 0.2s;" onmouseover="this.style.background='var(--c-dark)'" onmouseout="this.style.background='var(--i-ghost)'">Cancel</button>
-          <button onclick="applyFilters()" style="flex:2;background:var(--g-main);border:none;border-radius:100px;padding:12px;font-size:13px;font-weight:700;color:#FFFFFF;cursor:pointer;transition:background 0.2s;" onmouseover="this.style.background='var(--g-deep)'" onmouseout="this.style.background='var(--g-main)'">
+          <button onclick="applyFilters()" style="flex:2;background:#111111;border:none;border-radius:100px;padding:12px;font-size:13px;font-weight:700;color:#FFFFFF;cursor:pointer;transition:background 0.2s;">
             <i class="fas fa-check" style="margin-right:6px;"></i> Apply Filters
           </button>
         </div>
@@ -241,17 +241,17 @@ ${baseHead('Discover Services', `
 
     <!-- Empty state -->
     <div id="empty-state" style="display:none;text-align:center;padding:80px 20px;">
-      <div style="width:80px;height:80px;border-radius:50%;background:var(--g-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;">
-        <i class="fas fa-search" style="font-size:28px;color:var(--g-main);"></i>
+      <div style="width:80px;height:80px;border-radius:50%;background:#F0F0F0;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;">
+        <i class="fas fa-search" style="font-size:28px;color:#111111;"></i>
       </div>
       <h3 style="font-size:20px;font-weight:700;margin-bottom:10px;">No results found</h3>
       <p style="font-size:14px;color:var(--t-muted);margin-bottom:24px;">Try adjusting your filters or search terms</p>
-      <button onclick="clearSearch();resetFilters()" style="background:var(--g-main);color:#FFFFFF;border:none;border-radius:100px;padding:12px 28px;font-size:13px;font-weight:700;cursor:pointer;">Clear Filters</button>
+      <button onclick="clearSearch();resetFilters()" style="background:#111111;color:#FFFFFF;border:none;border-radius:100px;padding:12px 28px;font-size:13px;font-weight:700;cursor:pointer;">Clear Filters</button>
     </div>
 
     <!-- Load more -->
     <div style="text-align:center;margin-top:48px;" id="load-more-wrap">
-      <button onclick="loadMore()" style="background:#FFFFFF;border:1.5px solid var(--i-faint);border-radius:100px;padding:13px 36px;font-size:13px;font-weight:600;cursor:pointer;color:var(--t-secondary);transition:all 0.25s;box-shadow:0 2px 10px rgba(0,0,0,0.06);" onmouseover="this.style.borderColor='var(--g-main)';this.style.color='var(--g-main)'" onmouseout="this.style.borderColor='var(--i-faint)';this.style.color='var(--t-secondary)'">
+      <button onclick="loadMore()" style="background:#FFFFFF;border:1.5px solid #E0E0E0;border-radius:100px;padding:13px 36px;font-size:13px;font-weight:600;cursor:pointer;color:#555555;transition:all 0.25s;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
         Load More <i class="fas fa-chevron-down" style="font-size:11px;margin-left:4px;"></i>
       </button>
     </div>
@@ -468,9 +468,9 @@ function buildCard(p) {
           '<span style="font-size:13px;font-weight:700;color:var(--t-primary);">' + stars.toFixed(1) + '</span>' +
           '<span style="font-size:11px;color:var(--t-muted);">(' + (p.total_reviews||0) + ')</span>' +
         '</div>' +
-        '<div style="font-size:13px;font-weight:700;color:var(--g-main);">' + priceFrom + '</div>' +
+        '<div style="font-size:13px;font-weight:700;color:#111111;">' + priceFrom + '</div>' +
       '</div>' +
-      '<a href="/book/'+p.id+'" onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;background:var(--g-main);color:#FFFFFF;border:none;border-radius:100px;padding:10px;font-size:12px;font-weight:700;text-decoration:none;transition:background 0.2s;">' +
+      '<a href="/book/'+p.id+'" onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;background:#111111;color:#FFFFFF;border:none;border-radius:100px;padding:10px;font-size:12px;font-weight:700;text-decoration:none;transition:background 0.2s;">' +
         '<i class="far fa-calendar-check" style="font-size:11px;"></i> Book Now' +
       '</a>' +
     '</div>' +
