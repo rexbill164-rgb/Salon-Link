@@ -94,7 +94,7 @@ ${baseHead('Create Account', `
             <div style="background:var(--c-raise);border:1.5px solid var(--i-faint);border-radius:var(--r-md);padding:15px 16px;font-size:14px;color:var(--t-secondary);white-space:nowrap;display:flex;align-items:center;gap:8px;flex-shrink:0;">
               🇬🇭 <span style="color:var(--t-muted);">+233</span>
             </div>
-            <input type="tel" id="phone" class="input" placeholder="20 000 0000" style="flex:1;" required/>
+            <input type="tel" id="phone" class="input" placeholder="20 000 0000" autocomplete="tel" style="flex:1;" required/>
           </div>
         </div>
 
@@ -121,7 +121,7 @@ ${baseHead('Create Account', `
             <label class="form-label">Business Name</label>
             <div class="input-wrap">
               <i class="fas fa-store input-icon" style="font-size:13px;"></i>
-              <input type="text" id="bizName" class="input has-icon-left" placeholder="Your Salon Name"/>
+              <input type="text" id="bizName" class="input has-icon-left" placeholder="Your Salon Name" autocomplete="organization"/>
             </div>
           </div>
           <div class="form-group">
