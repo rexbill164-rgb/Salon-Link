@@ -434,21 +434,37 @@ function closeCam() {
   }
 }
 
+// Compress any image to max 800px wide, JPEG quality 0.72 (~50-80KB)
+function compressImage(srcDataUrl, callback) {
+  var img = new Image();
+  img.onload = function() {
+    var MAX = 800;
+    var w = img.width, h = img.height;
+    if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+    var c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    c.getContext('2d').drawImage(img, 0, 0, w, h);
+    callback(c.toDataURL('image/jpeg', 0.72));
+  };
+  img.src = srcDataUrl;
+}
+
 function snapPhoto() {
   var vid    = document.getElementById('cam-video');
   var canvas = document.getElementById('cam-canvas');
   var w = vid.videoWidth  || 640;
   var h = vid.videoHeight || 480;
+  // Cap at 800px
+  if (w > 800) { h = Math.round(h * 800 / w); w = 800; }
   canvas.width  = w;
   canvas.height = h;
   var ctx = canvas.getContext('2d');
   if (camTarget === 'selfie') {
-    // Mirror selfie so text reads correctly
     ctx.translate(w, 0);
     ctx.scale(-1, 1);
   }
   ctx.drawImage(vid, 0, 0, w, h);
-  var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+  var dataUrl = canvas.toDataURL('image/jpeg', 0.72);
   closeCam();
   applyCapture(camTarget, dataUrl);
 }
@@ -459,7 +475,9 @@ function handleFileFallback(input) {
   var reader = new FileReader();
   reader.onload = function(e) {
     closeCam();
-    applyCapture(camTarget, e.target.result);
+    compressImage(e.target.result, function(compressed) {
+      applyCapture(camTarget, compressed);
+    });
   };
   reader.readAsDataURL(input.files[0]);
 }
@@ -477,7 +495,9 @@ function handleFile(input, target) {
   }
   var reader = new FileReader();
   reader.onload = function(e) {
-    applyCapture(target, e.target.result);
+    compressImage(e.target.result, function(compressed) {
+      applyCapture(target, compressed);
+    });
   };
   reader.readAsDataURL(file);
   // Reset input so same file can be re-selected
@@ -633,18 +653,25 @@ function submitOnboarding() {
     address:       (document.getElementById('location') ? document.getElementById('location').value.trim() : ''),
   };
 
-  // Add KYC fields only if provided
   var cardNumEl = document.getElementById('card-num');
-  if (cardNumEl && cardNumEl.value.trim()) profilePayload.kyc_card_number = cardNumEl.value.trim();
-  if (kycData && kycData.front)  profilePayload.kyc_front_url  = kycData.front;
-  if (kycData && kycData.back)   profilePayload.kyc_back_url   = kycData.back;
-  if (kycData && kycData.selfie) profilePayload.kyc_selfie_url = kycData.selfie;
-  if (kycData && kycData.front && kycData.back && kycData.selfie) profilePayload.kyc_status = 'submitted';
-
   var headers = { Authorization: 'Bearer ' + token };
 
-  // Step 1: save profile
+  // Step 1: save profile (no images — keep payload small)
   axios.put('/api/providers/me', profilePayload, { headers: headers })
+    .then(function() {
+      // Step 1b: upload KYC images separately via dedicated endpoint
+      if (kycData && (kycData.front || kycData.back || kycData.selfie)) {
+        var kycPayload = {};
+        if (cardNumEl && cardNumEl.value.trim()) kycPayload.kyc_card_number = cardNumEl.value.trim();
+        if (kycData.front)  kycPayload.kyc_front_url  = kycData.front;
+        if (kycData.back)   kycPayload.kyc_back_url   = kycData.back;
+        if (kycData.selfie) kycPayload.kyc_selfie_url = kycData.selfie;
+        return axios.post('/api/providers/me/kyc', kycPayload, { headers: headers })
+          .catch(function(err) {
+            console.warn('KYC upload warning:', err && err.response && err.response.data);
+          });
+      }
+    })
     .then(function() {
       // Step 2: save each valid service in sequence
       var serviceList = Array.from(entries).filter(function(e) {

@@ -203,7 +203,8 @@ providers.put('/me', async (c) => {
     const body = await c.req.json()
     const {
       bio, address, city, price_from, price_to, is_accepting_bookings, business_name, phone,
-      kyc_status, kyc_card_number, kyc_front_url, kyc_back_url, kyc_selfie_url,
+      kyc_status, kyc_card_number,
+      // NOTE: kyc_front_url/back/selfie are handled by POST /me/kyc to avoid D1 row size limits
       location_lat, location_lng, cover_url, logo_url
     } = body
 
@@ -218,9 +219,6 @@ providers.put('/me', async (c) => {
         is_accepting_bookings = COALESCE(?, is_accepting_bookings),
         kyc_status = COALESCE(?, kyc_status),
         kyc_card_number = COALESCE(?, kyc_card_number),
-        kyc_front_url = COALESCE(?, kyc_front_url),
-        kyc_back_url = COALESCE(?, kyc_back_url),
-        kyc_selfie_url = COALESCE(?, kyc_selfie_url),
         location_lat = COALESCE(?, location_lat),
         location_lng = COALESCE(?, location_lng),
         cover_url = COALESCE(?, cover_url),
@@ -232,7 +230,6 @@ providers.put('/me', async (c) => {
       price_from||null, price_to||null,
       is_accepting_bookings !== undefined ? (is_accepting_bookings ? 1 : 0) : null,
       kyc_status||null, kyc_card_number||null,
-      kyc_front_url||null, kyc_back_url||null, kyc_selfie_url||null,
       location_lat !== undefined ? location_lat : null,
       location_lng !== undefined ? location_lng : null,
       cover_url||null, logo_url||null,
@@ -245,6 +242,43 @@ providers.put('/me', async (c) => {
     }
 
     return c.json({ success: true, message: 'Profile updated' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// POST /api/providers/me/kyc — upload KYC images separately (avoids D1 row size issues)
+providers.post('/me/kyc', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user || user.role !== 'provider') return c.json({ success: false, error: 'Unauthorized' }, 401)
+
+    const { kyc_card_number, kyc_front_url, kyc_back_url, kyc_selfie_url } = await c.req.json()
+
+    // Validate sizes (max ~200KB each as base64 ~ 150KB raw)
+    const MAX_LEN = 270000
+    if (kyc_front_url && kyc_front_url.length > MAX_LEN) return c.json({ success: false, error: 'Front image too large. Please use a smaller photo.' }, 400)
+    if (kyc_back_url  && kyc_back_url.length  > MAX_LEN) return c.json({ success: false, error: 'Back image too large. Please use a smaller photo.' }, 400)
+    if (kyc_selfie_url && kyc_selfie_url.length > MAX_LEN) return c.json({ success: false, error: 'Selfie too large. Please retake.' }, 400)
+
+    const fields: string[] = []
+    const vals: any[] = []
+
+    if (kyc_card_number) { fields.push('kyc_card_number = ?'); vals.push(kyc_card_number) }
+    if (kyc_front_url)   { fields.push('kyc_front_url = ?');   vals.push(kyc_front_url) }
+    if (kyc_back_url)    { fields.push('kyc_back_url = ?');    vals.push(kyc_back_url) }
+    if (kyc_selfie_url)  { fields.push('kyc_selfie_url = ?');  vals.push(kyc_selfie_url) }
+
+    const allPresent = !!(kyc_front_url && kyc_back_url && kyc_selfie_url)
+    if (allPresent) { fields.push("kyc_status = 'submitted'") }
+    fields.push('updated_at = CURRENT_TIMESTAMP')
+
+    vals.push(user.sub)
+    await c.env.DB.prepare(
+      `UPDATE providers SET ${fields.join(', ')} WHERE user_id = ?`
+    ).bind(...vals).run()
+
+    return c.json({ success: true, submitted: allPresent })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
