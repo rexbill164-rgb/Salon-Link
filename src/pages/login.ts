@@ -5,22 +5,46 @@ export const loginPage = () => `<!DOCTYPE html>
 <head>
 ${baseHead('Sign In', `
 <style>
+  /* ── Full-screen split layout ── */
   .auth-split { display:grid; grid-template-columns:1fr 1fr; min-height:100vh; }
-  @media(max-width:768px){ .auth-split{ grid-template-columns:1fr; } .auth-left{ display:none!important; } }
+  @media(max-width:800px){ .auth-split{ grid-template-columns:1fr; } .auth-left{ display:none!important; } }
+
+  /* ── Left: immersive video hero ── */
   .auth-left {
-    background:linear-gradient(160deg, #F5EDD8 0%, #EAD8A8 40%, #D4B870 100%);
     position:relative; overflow:hidden;
-    display:flex; flex-direction:column; justify-content:flex-end; padding:60px;
+    display:flex; flex-direction:column; justify-content:space-between; padding:44px 52px;
   }
+  .auth-left video {
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; z-index:0;
+  }
+  /* Dark gradient overlay — dark at top & bottom, slightly lighter in centre */
+  .auth-left::after {
+    content:''; position:absolute; inset:0; z-index:1;
+    background: linear-gradient(to bottom,
+      rgba(10,8,5,0.72) 0%,
+      rgba(10,8,5,0.30) 40%,
+      rgba(10,8,5,0.55) 75%,
+      rgba(10,8,5,0.88) 100%);
+  }
+  .auth-left-content { position:relative; z-index:2; }
+
+  /* ── Right: clean white form ── */
   .auth-right {
-    display:flex; flex-direction:column; justify-content:center; padding:60px;
-    background:#FFFFFF; overflow-y:auto;
+    display:flex; flex-direction:column; justify-content:center;
+    padding:60px 56px; background:#FFFFFF; overflow-y:auto;
   }
+  @media(max-width:1000px){ .auth-right { padding:48px 36px; } }
+
   .tab-pill { flex:1; padding:11px 12px; border-radius:8px; font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; transition:all 0.3s; border:none; }
   .tab-pill.active { background:#FFFFFF; color:var(--t-primary); border:1px solid var(--i-faint); box-shadow:0 2px 12px rgba(58,47,30,0.1); }
   .tab-pill.inactive { background:transparent; color:var(--t-muted); }
   .demo-chip { display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:12px; background:var(--c-raise); border:1.5px solid var(--i-faint); cursor:pointer; transition:all 0.25s; width:100%; text-align:left; }
   .demo-chip:hover { border-color:var(--g-border); background:var(--g-dim); }
+
+  /* Gold shimmer on logo icon */
+  @keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:0.6} }
+  .logo-icon-glow { animation: shimmer 3s ease-in-out infinite; }
 </style>
 `)}
 </head>
@@ -28,48 +52,51 @@ ${baseHead('Sign In', `
 
 <div class="auth-split">
 
-  <!-- ── LEFT PANEL (Gold Hero) ── -->
+  <!-- ── LEFT PANEL: Full-screen video hero ── -->
   <div class="auth-left">
-    <!-- Background beauty image -->
-    <div style="position:absolute;inset:0;overflow:hidden;">
-      <img src="https://images.unsplash.com/photo-1560869713-7d0a29430803?w=800&q=80" alt="Beauty" style="width:100%;height:100%;object-fit:cover;opacity:0.3;" loading="lazy"/>
-    </div>
-    <div style="position:absolute;inset:0;background:linear-gradient(160deg,rgba(245,237,216,0.9) 0%,rgba(212,184,112,0.85) 60%,rgba(160,120,48,0.92) 100%);"></div>
 
-    <!-- Brand -->
-    <a href="/" style="position:absolute;top:40px;left:60px;display:flex;align-items:center;gap:12px;text-decoration:none;z-index:1;">
-      <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.2);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;">
-        <i class="fas fa-star" style="color:#FFFFFF;font-size:13px;"></i>
+    <!-- Autoplay muted video loop — beauty salon ambience -->
+    <video autoplay muted loop playsinline preload="auto"
+      poster="https://images.unsplash.com/photo-1560869713-7d0a29430803?w=1000&q=80">
+      <source src="https://cdn.coverr.co/videos/coverr-woman-getting-hair-styled-8163/1080p.mp4" type="video/mp4"/>
+      <!-- Fallback: static image if video fails -->
+    </video>
+
+    <!-- TOP: Logo -->
+    <a href="/" class="auth-left-content" style="display:flex;align-items:center;gap:14px;text-decoration:none;">
+      <!-- Icon badge -->
+      <div style="width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#C9922A,#E4B55A);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(201,146,42,0.5);flex-shrink:0;">
+        <i class="fas fa-cut logo-icon-glow" style="color:#FFFFFF;font-size:16px;"></i>
       </div>
-      <span style="font-family:'Playfair Display',serif;font-size:19px;letter-spacing:0.1em;color:#FFFFFF;">SALONLINK</span>
+      <div>
+        <div style="font-family:'Poppins',sans-serif;font-size:20px;font-weight:800;letter-spacing:0.08em;color:#FFFFFF;line-height:1;">SALONLINK</div>
+        <div style="font-size:10px;font-weight:500;letter-spacing:0.18em;color:rgba(255,255,255,0.55);text-transform:uppercase;margin-top:3px;">Ghana&rsquo;s Beauty Network</div>
+      </div>
     </a>
 
-    <!-- Big display text -->
-    <div style="position:relative;z-index:1;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:0.25em;text-transform:uppercase;color:rgba(255,255,255,0.7);margin-bottom:20px;">Welcome Back</div>
-      <h2 style="font-family:'Playfair Display',serif;font-size:clamp(28px,4vw,46px);font-weight:400;line-height:1.1;margin-bottom:18px;color:#FFFFFF;font-style:italic;">
-        Your beauty<br/>journey continues.
+    <!-- BOTTOM: tagline + stats -->
+    <div class="auth-left-content">
+      <h2 style="font-family:'Poppins',sans-serif;font-size:clamp(26px,3.2vw,42px);font-weight:800;line-height:1.15;color:#FFFFFF;margin-bottom:16px;">
+        Your beauty,<br/><span style="color:#E4B55A;">your time.</span>
       </h2>
-      <p style="font-size:14px;color:rgba(255,255,255,0.75);line-height:1.9;margin-bottom:48px;font-weight:300;max-width:300px;">
-        Sign in to manage bookings, view your style history, and discover new professionals.
+      <p style="font-size:13px;color:rgba(255,255,255,0.65);line-height:1.8;margin-bottom:36px;max-width:320px;">
+        Book Ghana&rsquo;s top salons, barbershops &amp; beauty pros — anytime, anywhere.
       </p>
-
-      <!-- Feature list -->
-      <div style="display:flex;flex-direction:column;gap:16px;">
+      <!-- Social proof stats -->
+      <div style="display:flex;gap:28px;">
         ${[
-          {icon:'far fa-calendar-check', text:'Manage all your appointments'},
-          {icon:'fas fa-images',          text:'View your complete style history'},
-          {icon:'fas fa-star',            text:'Leave reviews for providers'},
-        ].map(f=>`
-          <div style="display:flex;align-items:center;gap:14px;">
-            <div style="width:36px;height:36px;border-radius:11px;background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <i class="${f.icon}" style="color:#FFFFFF;font-size:14px;"></i>
-            </div>
-            <span style="font-size:13px;color:rgba(255,255,255,0.8);font-weight:300;">${f.text}</span>
+          {n:'500+', l:'Providers'},
+          {n:'5K+',  l:'Bookings'},
+          {n:'4.9★', l:'Avg Rating'},
+        ].map(s=>`
+          <div>
+            <div style="font-size:20px;font-weight:800;color:#E4B55A;line-height:1;">${s.n}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.5);margin-top:3px;letter-spacing:0.06em;">${s.l}</div>
           </div>
         `).join('')}
       </div>
     </div>
+
   </div>
 
   <!-- ── RIGHT PANEL ── -->
@@ -77,11 +104,14 @@ ${baseHead('Sign In', `
     <div style="max-width:400px;width:100%;margin:0 auto;">
 
       <!-- Mobile logo -->
-      <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;margin-bottom:40px;">
-        <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--g-deep),var(--g-main));display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(160,120,48,0.3);">
-          <i class="fas fa-star" style="color:#FFFFFF;font-size:12px;"></i>
+      <a href="/" style="display:flex;align-items:center;gap:12px;text-decoration:none;margin-bottom:40px;">
+        <div style="width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#C9922A,#E4B55A);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(201,146,42,0.35);">
+          <i class="fas fa-cut" style="color:#FFFFFF;font-size:14px;"></i>
         </div>
-        <span style="font-family:'Playfair Display',serif;font-size:18px;letter-spacing:0.1em;color:var(--t-primary);">SALONLINK</span>
+        <div>
+          <div style="font-family:'Poppins',sans-serif;font-size:17px;font-weight:800;letter-spacing:0.07em;color:var(--t-primary);line-height:1;">SALONLINK</div>
+          <div style="font-size:9px;color:var(--t-muted);letter-spacing:0.14em;text-transform:uppercase;margin-top:2px;">Ghana's Beauty Network</div>
+        </div>
       </a>
 
       <h1 class="font-display" style="font-size:34px;font-weight:400;margin-bottom:8px;color:var(--t-primary);">Sign In</h1>

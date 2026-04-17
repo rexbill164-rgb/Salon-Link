@@ -551,8 +551,8 @@ function loadProviders() {
         '<td style="font-size:11px;">' + (p.city||'') + '</td>' +
         '<td>' +
           '<button onclick="viewProviderKyc(' + p.id + ')" style="padding:5px 10px;font-size:10px;background:rgba(160,120,48,0.1);border:1px solid rgba(160,120,48,0.3);color:#a0793c;border-radius:8px;cursor:pointer;margin-bottom:4px;display:block;width:100%;">🪪 View KYC</button>' +
-          '<button onclick="approveKyc(' + p.id + ')" class="btn-primary" style="padding:5px 10px;font-size:10px;margin-bottom:4px;display:block;width:100%;">✓ Approve</button>' +
-          '<button onclick="rejectKyc(' + p.id + ')" style="padding:5px 10px;font-size:10px;background:none;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);border-radius:8px;cursor:pointer;display:block;width:100%;">✗ Reject</button>' +
+          (p.kyc_status !== 'approved' ? '<button onclick="approveKyc(' + p.id + ')" class="btn-primary" style="padding:5px 10px;font-size:10px;margin-bottom:4px;display:block;width:100%;">✓ Approve</button>' : '<span style="font-size:10px;color:var(--s-green);display:block;text-align:center;margin-bottom:4px;">✓ Approved</span>') +
+          (p.kyc_status !== 'rejected' && p.kyc_status !== 'approved' ? '<button onclick="rejectKyc(' + p.id + ')" style="padding:5px 10px;font-size:10px;background:none;border:1px solid rgba(192,72,72,0.3);color:var(--s-red);border-radius:8px;cursor:pointer;display:block;width:100%;">✗ Reject</button>' : '') +
         '</td>' +
       '</tr>';
     }).join('') : '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--t-muted);">No providers found</td></tr>';
@@ -703,7 +703,9 @@ function viewProviderKyc(providerId) {
       var hasAny = imgs.kyc_front_url || imgs.kyc_back_url || imgs.kyc_selfie_url;
       if (!hasAny && !imgs.kyc_card_number) {
         ct.style.textAlign = 'center'; ct.style.padding = '32px';
-        ct.textContent = '📋 No documents uploaded yet by this provider.';
+        var noDocDiv = document.createElement('div');
+        noDocDiv.innerHTML = '<div style="font-size:40px;margin-bottom:12px;">📋</div><div style="font-size:14px;color:#ccc;margin-bottom:8px;">No documents uploaded yet</div><div style="font-size:12px;color:#888;">This provider has not submitted KYC documents.<br>Ask them to complete verification from their dashboard.</div>';
+        ct.appendChild(noDocDiv);
         return;
       }
       if (imgs.kyc_card_number) {
@@ -747,14 +749,26 @@ function viewImg(src, title) {
 function approveKyc(id) {
   var token = localStorage.getItem('sl_token');
   axios.patch('/api/admin/providers/' + id + '/kyc', { kyc_status: 'approved', is_verified: true }, { headers: { Authorization: 'Bearer ' + token } })
-    .then(function() { showToast('Provider approved ✦', 'success'); setTimeout(function(){location.reload();},1000); })
+    .then(function() {
+      showToast('Provider approved ✦', 'success');
+      // Remove from KYC queue immediately
+      var row = document.getElementById('kyc-row-' + id);
+      if (row) row.remove();
+      // Update provider table action buttons without full reload
+      loadProviders();
+    })
     .catch(function() { showToast('Action failed', 'error'); });
 }
 
 function rejectKyc(id) {
   var token = localStorage.getItem('sl_token');
   axios.patch('/api/admin/providers/' + id + '/kyc', { kyc_status: 'rejected', is_verified: false }, { headers: { Authorization: 'Bearer ' + token } })
-    .then(function() { showToast('Provider rejected', 'info'); setTimeout(function(){location.reload();},1000); })
+    .then(function() {
+      showToast('Provider rejected', 'info');
+      var row = document.getElementById('kyc-row-' + id);
+      if (row) row.remove();
+      loadProviders();
+    })
     .catch(function() { showToast('Action failed', 'error'); });
 }
 

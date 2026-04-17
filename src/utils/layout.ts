@@ -15,8 +15,8 @@ export const baseHead = (title: string, extra = '') => `
   <meta name="apple-mobile-web-app-title" content="SalonLink"/>
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="application-name" content="SalonLink"/>
-  <meta name="theme-color" content="#6C47FF"/>
-  <meta name="msapplication-TileColor" content="#6C47FF"/>
+  <meta name="theme-color" content="#C9922A"/>
+  <meta name="msapplication-TileColor" content="#C9922A"/>
   <meta name="msapplication-TileImage" content="/icon-192.png"/>
   <!-- Open Graph -->
   <meta property="og:title" content="SalonLink"/>
@@ -46,21 +46,21 @@ export const baseHead = (title: string, extra = '') => `
       --c-lift:     #F5F5F5;
       --c-mist:     #EEEEEE;
 
-      /* Fresha Purple – primary brand */
-      --g-main:     #6C47FF;
-      --g-deep:     #4F2FD9;
-      --g-light:    #9B7BFF;
-      --g-pale:     #F0ECFF;
-      --g-dim:      rgba(108,71,255,0.08);
-      --g-glow:     rgba(108,71,255,0.12);
-      --g-border:   rgba(108,71,255,0.20);
-      --g-border-s: rgba(108,71,255,0.40);
+      /* SalonLink Gold – primary brand */
+      --g-main:     #C9922A;
+      --g-deep:     #A5721A;
+      --g-light:    #E4B55A;
+      --g-pale:     #FDF6E8;
+      --g-dim:      rgba(201,146,42,0.08);
+      --g-glow:     rgba(201,146,42,0.12);
+      --g-border:   rgba(201,146,42,0.22);
+      --g-border-s: rgba(201,146,42,0.45);
 
       /* Legacy aliases (keep backward compat) */
-      --ig-purple:  #6C47FF;
-      --ig-pink:    #9B7BFF;
-      --ig-orange:  #6C47FF;
-      --ig-yellow:  #9B7BFF;
+      --ig-purple:  #C9922A;
+      --ig-pink:    #E4B55A;
+      --ig-orange:  #C9922A;
+      --ig-yellow:  #E4B55A;
 
       /* Neutrals */
       --i-full:     #1A1A1A;
@@ -114,7 +114,7 @@ export const baseHead = (title: string, extra = '') => `
     ::-webkit-scrollbar-thumb { background: var(--g-main); border-radius: 2px; }
 
     /* ── SELECTION ── */
-    ::selection { background: rgba(108,71,255,0.15); color: var(--g-deep); }
+    ::selection { background: rgba(201,146,42,0.18); color: var(--g-deep); }
 
     /* ── TYPOGRAPHY ── */
     .font-display   { font-family: 'Poppins', sans-serif; }
@@ -167,7 +167,7 @@ export const baseHead = (title: string, extra = '') => `
       position: relative;
       overflow: hidden;
     }
-    .card:hover { border-color: var(--g-border); transform: translateY(-4px); box-shadow: 0 16px 48px rgba(108,71,255,0.10); }
+    .card:hover { border-color: var(--g-border); transform: translateY(-4px); box-shadow: 0 16px 48px rgba(201,146,42,0.10); }
 
     .card-provider {
       background: var(--c-surface);
@@ -200,7 +200,7 @@ export const baseHead = (title: string, extra = '') => `
       text-decoration: none; white-space: nowrap;
       position: relative; overflow: hidden;
     }
-    .btn-primary:hover { background: var(--g-deep); transform: translateY(-2px); box-shadow: 0 12px 32px rgba(108,71,255,0.35); }
+    .btn-primary:hover { background: var(--g-deep); transform: translateY(-2px); box-shadow: 0 12px 32px rgba(201,146,42,0.35); }
     .btn-primary:active { transform: translateY(0); }
 
     .btn-outline {
@@ -216,7 +216,7 @@ export const baseHead = (title: string, extra = '') => `
       transition: all 0.3s var(--ease-luxury);
       text-decoration: none; white-space: nowrap;
     }
-    .btn-outline:hover { background: var(--g-dim); border-color: var(--g-main); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(108,71,255,0.15); }
+    .btn-outline:hover { background: var(--g-dim); border-color: var(--g-main); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(201,146,42,0.15); }
 
     .btn-ghost {
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
