@@ -470,7 +470,7 @@ function buildCard(p) {
         '</div>' +
         '<div style="font-size:13px;font-weight:700;color:var(--g-main);">' + priceFrom + '</div>' +
       '</div>' +
-      '<a href="/book/'+p.id+'" onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;background:var(--g-main);color:#FFFFFF;border:none;border-radius:100px;padding:10px;font-size:12px;font-weight:700;text-decoration:none;transition:background 0.2s;" onmouseover="this.style.background=\'var(--g-deep)\'" onmouseout="this.style.background=\'var(--g-main)\'">' +
+      '<a href="/book/'+p.id+'" onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;background:var(--g-main);color:#FFFFFF;border:none;border-radius:100px;padding:10px;font-size:12px;font-weight:700;text-decoration:none;transition:background 0.2s;">' +
         '<i class="far fa-calendar-check" style="font-size:11px;"></i> Book Now' +
       '</a>' +
     '</div>' +

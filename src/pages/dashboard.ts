@@ -232,10 +232,10 @@ function renderBookings(list) {
             '</div>' +
           '</div>' +
           '<div style="display:flex;gap:8px;padding:12px 0;border-top:1px solid var(--i-faint);flex-wrap:wrap;">' +
-            '<a href="/provider/'+b.provider_id+'" style="padding:8px 14px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid var(--i-faint);background:transparent;color:var(--t-secondary);text-decoration:none;transition:all 0.2s;" onmouseover="this.style.borderColor=\'var(--g-border)\';this.style.color=\'var(--g-main)\'" onmouseout="this.style.borderColor=\'var(--i-faint)\';this.style.color=\'var(--t-secondary)\'">View Venue</a>' +
-            (isUnpaid?'<a href="/payment/pay?booking_id='+b.id+'" style="padding:8px 16px;border-radius:100px;font-size:11px;font-weight:700;background:var(--g-main);color:#FFFFFF;text-decoration:none;transition:background 0.2s;" onmouseover="this.style.background=\'var(--g-deep)\'" onmouseout="this.style.background=\'var(--g-main)\'">💳 Pay Now</a>':'') +
-            (canCancel?'<button onclick="cancelBooking('+b.id+')" style="padding:8px 14px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid rgba(255,59,48,0.2);background:transparent;color:#FF3B30;transition:all 0.2s;" onmouseover="this.style.background=\'rgba(255,59,48,0.08)\'" onmouseout="this.style.background=\'transparent\'">Cancel</button>':'') +
-            (canRate?'<button onclick="openReview('+b.id+')" style="padding:8px 16px;border-radius:100px;font-size:11px;font-weight:700;cursor:pointer;background:var(--g-main);color:#FFFFFF;border:none;transition:background 0.2s;" onmouseover="this.style.background=\'var(--g-deep)\'" onmouseout="this.style.background=\'var(--g-main)\'">⭐ Rate</button>':'') +
+            '<a href="/provider/'+b.provider_id+'" style="padding:8px 14px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid var(--i-faint);background:transparent;color:var(--t-secondary);text-decoration:none;transition:all 0.2s;">View Venue</a>' +
+            (isUnpaid?'<a href="/payment/pay?booking_id='+b.id+'" style="padding:8px 16px;border-radius:100px;font-size:11px;font-weight:700;background:var(--g-main);color:#FFFFFF;text-decoration:none;transition:background 0.2s;">💳 Pay Now</a>':'') +
+            (canCancel?'<button onclick="cancelBooking('+b.id+')" style="padding:8px 14px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid rgba(255,59,48,0.2);background:transparent;color:#FF3B30;transition:all 0.2s;">Cancel</button>':'') +
+            (canRate?'<button onclick="openReview('+b.id+')" style="padding:8px 16px;border-radius:100px;font-size:11px;font-weight:700;cursor:pointer;background:var(--g-main);color:#FFFFFF;border:none;transition:background 0.2s;">⭐ Rate</button>':'') +
           '</div>' +
         '</div>' +
       '</div>' +

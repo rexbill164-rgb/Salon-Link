@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
     grid.innerHTML = hist.map(function(h) {
-      return '<div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;transition:all 0.3s;" onmouseover="this.style.borderColor=\'var(--g-border)\'" onmouseout="this.style.borderColor=\'var(--i-faint)\'">' +
+      return '<div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);overflow:hidden;transition:all 0.3s;">' +
         '<div style="height:200px;background:linear-gradient(135deg,var(--c-dark),var(--c-mist));display:flex;align-items:center;justify-content:center;font-size:60px;">💇‍♀️</div>' +
         '<div style="padding:18px;">' +
           '<div style="font-size:14px;font-weight:700;margin-bottom:4px;">' + (h.style_name || 'Hairstyle') + '</div>' +
