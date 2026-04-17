@@ -84,7 +84,7 @@ ${baseHead('Create Account', `
           <label class="form-label">Email Address</label>
           <div class="input-wrap">
             <i class="fas fa-envelope input-icon"></i>
-            <input type="email" id="email" class="input has-icon-left" placeholder="you@example.com" required/>
+            <input type="email" id="email" class="input has-icon-left" placeholder="you@example.com" autocomplete="username" required/>
           </div>
         </div>
 
