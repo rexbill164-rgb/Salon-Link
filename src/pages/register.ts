@@ -68,14 +68,14 @@ ${baseHead('Create Account', `
             <label class="form-label">First Name</label>
             <div class="input-wrap">
               <i class="fas fa-user input-icon" style="font-size:13px;"></i>
-              <input type="text" id="firstName" class="input has-icon-left" placeholder="Kwame" required/>
+              <input type="text" id="firstName" class="input has-icon-left" placeholder="Kwame" autocomplete="given-name" required/>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Last Name</label>
             <div class="input-wrap">
               <i class="fas fa-user input-icon" style="font-size:13px;"></i>
-              <input type="text" id="lastName" class="input has-icon-left" placeholder="Mensah" required/>
+              <input type="text" id="lastName" class="input has-icon-left" placeholder="Mensah" autocomplete="family-name" required/>
             </div>
           </div>
         </div>
