@@ -214,11 +214,13 @@ async function handleLogin(e) {
       password: document.getElementById('password').value
     });
     if (res.data.token) {
+      var u = res.data.user;
+      if (!u.name) u.name = (u.first_name || '') + (u.last_name ? ' ' + u.last_name : '');
+      u.name = u.name.trim() || 'User';
       localStorage.setItem('sl_token', res.data.token);
-      localStorage.setItem('sl_user', JSON.stringify(res.data.user));
-      showToast('Welcome back, ' + res.data.user.name + ' \u2726', 'success');
+      localStorage.setItem('sl_user', JSON.stringify(u));
+      showToast('Welcome back, ' + u.name + ' \u2726', 'success');
       setTimeout(function() {
-        var u = res.data.user;
         window.location.href = u.role==='admin' ? '/admin' : u.role==='provider' ? '/provider/dashboard' : '/discover';
       }, 800);
     }
@@ -278,12 +280,13 @@ async function verifyOtp() {
   try {
     var res = await axios.post('/api/auth/otp/verify', { phone: _otpPhone, otp: otp });
     if (res.data.token) {
+      var uOtp = res.data.user;
+      if (!uOtp.name) uOtp.name = ((uOtp.first_name||'') + (uOtp.last_name ? ' '+uOtp.last_name : '')).trim() || 'User';
       localStorage.setItem('sl_token', res.data.token);
-      localStorage.setItem('sl_user', JSON.stringify(res.data.user));
+      localStorage.setItem('sl_user', JSON.stringify(uOtp));
       showToast('Welcome to SalonLink \u2726', 'success');
       setTimeout(function() {
-        var u = res.data.user;
-        window.location.href = u.role==='admin' ? '/admin' : u.role==='provider' ? '/provider/dashboard' : '/discover';
+        window.location.href = uOtp.role==='admin' ? '/admin' : uOtp.role==='provider' ? '/provider/dashboard' : '/discover';
       }, 800);
     }
   } catch(err) {

@@ -125,6 +125,8 @@ auth.post('/register', async (c) => {
     `
     await sendAdminEmail(c, emailSubject, emailBody)
 
+    // Ensure name field always present
+    if (user) (user as any).name = (((user as any).first_name || '') + ' ' + ((user as any).last_name || '')).trim()
     return c.json({ success: true, token, user })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
@@ -169,6 +171,7 @@ auth.post('/login', async (c) => {
       token,
       user: {
         id: user.id,
+        name: ((user.first_name || '') + ' ' + (user.last_name || '')).trim(),
         email: user.email,
         phone: user.phone,
         first_name: user.first_name,

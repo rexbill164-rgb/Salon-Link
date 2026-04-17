@@ -264,8 +264,10 @@ async function handleRegister(e) {
   try {
     var res = await axios.post('/api/auth/register', payload);
     if (res.data.token) {
+      var uReg = res.data.user;
+      if (!uReg.name) uReg.name = ((uReg.first_name||'') + (uReg.last_name ? ' '+uReg.last_name : '')).trim() || 'User';
       localStorage.setItem('sl_token', res.data.token);
-      localStorage.setItem('sl_user', JSON.stringify(res.data.user));
+      localStorage.setItem('sl_user', JSON.stringify(uReg));
       showToast('Account created! Welcome to SalonLink ✦', 'success');
       setTimeout(function() {
         window.location.href = role==='provider' ? '/provider/onboarding' : '/discover';

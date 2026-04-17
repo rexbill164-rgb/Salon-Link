@@ -1,5 +1,5 @@
 // SalonLink Service Worker — Push Notifications + Offline Cache
-const CACHE_NAME = 'salonlink-v2';
+const CACHE_NAME = 'salonlink-v3';
 
 self.addEventListener('install', e => {
   self.skipWaiting();

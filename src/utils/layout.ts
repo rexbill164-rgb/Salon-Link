@@ -598,7 +598,9 @@ function logout()   { localStorage.removeItem('sl_token'); localStorage.removeIt
 document.addEventListener('DOMContentLoaded', () => {
   var user = getUser(), token = getToken();
   var nav = document.getElementById('nav-auth');
-  if (token && user && user.name && nav) {
+  if (!user.name && (user.first_name || user.last_name)) user.name = ((user.first_name||'') + (user.last_name ? ' '+user.last_name : '')).trim();
+  if (token && user && (user.name || user.id) && nav) {
+    if (!user.name) user.name = 'User';
     var dashLink = user.role === 'provider' ? '/provider/dashboard' : user.role === 'admin' ? '/admin' : '/dashboard';
     nav.innerHTML = \`
       <a href="/notifications" class="btn-icon" title="Notifications" style="position:relative;">
