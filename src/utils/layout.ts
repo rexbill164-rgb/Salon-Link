@@ -15,8 +15,8 @@ export const baseHead = (title: string, extra = '') => `
   <meta name="apple-mobile-web-app-title" content="SalonLink"/>
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="application-name" content="SalonLink"/>
-  <meta name="theme-color" content="#C9922A"/>
-  <meta name="msapplication-TileColor" content="#C9922A"/>
+  <meta name="theme-color" content="#111111"/>
+  <meta name="msapplication-TileColor" content="#111111"/>
   <meta name="msapplication-TileImage" content="/icon-192.png"/>
   <!-- Open Graph -->
   <meta property="og:title" content="SalonLink"/>
@@ -46,21 +46,21 @@ export const baseHead = (title: string, extra = '') => `
       --c-lift:     #F5F5F5;
       --c-mist:     #EEEEEE;
 
-      /* SalonLink Gold – primary brand */
-      --g-main:     #C9922A;
-      --g-deep:     #A5721A;
-      --g-light:    #E4B55A;
-      --g-pale:     #FDF6E8;
-      --g-dim:      rgba(201,146,42,0.08);
-      --g-glow:     rgba(201,146,42,0.12);
-      --g-border:   rgba(201,146,42,0.22);
-      --g-border-s: rgba(201,146,42,0.45);
+      /* SalonLink — Monochrome Black & White brand */
+      --g-main:     #111111;
+      --g-deep:     #000000;
+      --g-light:    #444444;
+      --g-pale:     #F5F5F5;
+      --g-dim:      rgba(0,0,0,0.05);
+      --g-glow:     rgba(0,0,0,0.08);
+      --g-border:   rgba(0,0,0,0.14);
+      --g-border-s: rgba(0,0,0,0.30);
 
       /* Legacy aliases (keep backward compat) */
-      --ig-purple:  #C9922A;
-      --ig-pink:    #E4B55A;
-      --ig-orange:  #C9922A;
-      --ig-yellow:  #E4B55A;
+      --ig-purple:  #111111;
+      --ig-pink:    #444444;
+      --ig-orange:  #111111;
+      --ig-yellow:  #666666;
 
       /* Neutrals */
       --i-full:     #1A1A1A;
@@ -182,7 +182,7 @@ export const baseHead = (title: string, extra = '') => `
     .card-provider:hover {
       border-color: var(--g-border);
       transform: translateY(-6px);
-      box-shadow: 0 24px 56px rgba(108,71,255,0.14);
+      box-shadow: 0 24px 56px rgba(0,0,0,0.12);
     }
 
     /* ── BUTTONS ── */
@@ -200,7 +200,7 @@ export const baseHead = (title: string, extra = '') => `
       text-decoration: none; white-space: nowrap;
       position: relative; overflow: hidden;
     }
-    .btn-primary:hover { background: var(--g-deep); transform: translateY(-2px); box-shadow: 0 12px 32px rgba(201,146,42,0.35); }
+    .btn-primary:hover { background: #333333; transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,0,0,0.25); }
     .btn-primary:active { transform: translateY(0); }
 
     .btn-outline {
@@ -216,7 +216,7 @@ export const baseHead = (title: string, extra = '') => `
       transition: all 0.3s var(--ease-luxury);
       text-decoration: none; white-space: nowrap;
     }
-    .btn-outline:hover { background: var(--g-dim); border-color: var(--g-main); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(201,146,42,0.15); }
+    .btn-outline:hover { background: var(--g-dim); border-color: var(--g-main); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.10); }
 
     .btn-ghost {
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -261,7 +261,7 @@ export const baseHead = (title: string, extra = '') => `
       -webkit-appearance: none;
     }
     .input::placeholder { color: var(--t-faint); }
-    .input:focus { border-color: var(--g-main); box-shadow: 0 0 0 3px rgba(108,71,255,0.10); background: #FFFFFF; }
+    .input:focus { border-color: var(--g-main); box-shadow: 0 0 0 3px rgba(0,0,0,0.07); background: #FFFFFF; }
     .input:hover:not(:focus) { border-color: rgba(0,0,0,0.18); }
     select.input option { background: #FFFFFF; color: var(--t-primary); }
 
@@ -299,7 +299,7 @@ export const baseHead = (title: string, extra = '') => `
     @keyframes fadeIn    { from{opacity:0} to{opacity:1} }
     @keyframes float     { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
     @keyframes spin-slow { to{transform:rotate(360deg)} }
-    @keyframes pulse-ring{ 0%,100%{box-shadow:0 0 0 0 rgba(108,71,255,0.35)} 50%{box-shadow:0 0 0 12px rgba(108,71,255,0)} }
+    @keyframes pulse-ring{ 0%,100%{box-shadow:0 0 0 0 rgba(0,0,0,0.25)} 50%{box-shadow:0 0 0 12px rgba(0,0,0,0)} }
     @keyframes marquee   { from{transform:translateX(0)} to{transform:translateX(-50%)} }
     @keyframes shimmer   { 0%{background-position:-200%} 100%{background-position:200%} }
 
@@ -445,7 +445,7 @@ export const baseHead = (title: string, extra = '') => `
     /* ── SELECT CARD ── */
     .select-card { background: var(--c-raise); border: 1.5px solid var(--i-faint); border-radius: var(--r-md); padding: 16px; cursor: pointer; transition: all 0.25s var(--ease-luxury); }
     .select-card:hover { border-color: var(--g-border); background: var(--g-dim); }
-    .select-card.selected { border-color: var(--g-main); background: var(--g-dim); box-shadow: 0 0 0 3px rgba(108,71,255,0.08); }
+    .select-card.selected { border-color: var(--g-main); background: var(--g-dim); box-shadow: 0 0 0 3px rgba(0,0,0,0.06); }
 
     /* ── SECTION DIVIDER ── */
     .section-divider { height: 1px; background: var(--i-faint); margin: 0 auto; }
@@ -487,7 +487,7 @@ export const navbar = (active = '') => `
 
     <!-- Logo -->
     <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;">
-      <div style="width:36px;height:36px;border-radius:10px;background:var(--g-main);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(108,71,255,0.35);flex-shrink:0;">
+      <div style="width:36px;height:36px;border-radius:10px;background:#111111;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,0.25);flex-shrink:0;">
         <svg width="20" height="20" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
           <ellipse cx="16" cy="10" rx="5.5" ry="6" fill="rgba(255,255,255,0.95)"/>
           <path d="M8 26c0-5 3.6-8 8-8s8 3 8 8" fill="rgba(255,255,255,0.95)"/>

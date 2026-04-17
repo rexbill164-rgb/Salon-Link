@@ -5,9 +5,9 @@ export const discoveryPage = () => `<!DOCTYPE html>
 <head>
 ${baseHead('Discover Services', `
 <style>
-  /* ── Dark gradient header – Fresha Explore style ── */
+  /* ── Clean B&W header ── */
   .disc-header {
-    background: linear-gradient(160deg, #1A1040 0%, #2D1B80 40%, #4A2FC0 70%, #6C47FF 100%);
+    background: #111111;
     padding: 28px 0 80px;
     position: relative;
     overflow: hidden;
@@ -15,7 +15,7 @@ ${baseHead('Discover Services', `
   .disc-header::before {
     content:'';
     position:absolute;inset:0;
-    background: radial-gradient(ellipse 80% 60% at 60% 50%, rgba(155,123,255,0.25) 0%, transparent 60%);
+    background: radial-gradient(ellipse 70% 50% at 50% 50%, rgba(255,255,255,0.04) 0%, transparent 70%);
     pointer-events:none;
   }
 
@@ -49,8 +49,8 @@ ${baseHead('Discover Services', `
     background:#FFFFFF; border:1.5px solid var(--i-faint); color:var(--t-secondary);
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   }
-  .fchip:hover { border-color:var(--g-border); color:var(--g-main); }
-  .fchip.active { background:var(--g-main); color:#FFFFFF; border-color:var(--g-main); box-shadow:0 4px 14px rgba(108,71,255,0.30); }
+  .fchip:hover { border-color:#111111; color:#111111; }
+  .fchip.active { background:#111111; color:#FFFFFF; border-color:#111111; box-shadow:0 4px 14px rgba(0,0,0,0.20); }
 
   /* ── 2-column provider grid (Fresha style) ── */
   .prov-grid {
@@ -113,7 +113,7 @@ ${baseHead('Discover Services', `
     </a>
     <div id="nav-auth" style="display:flex;align-items:center;gap:10px;">
       <a href="/login" style="padding:9px 20px;font-size:13px;background:rgba(255,255,255,0.15);color:#FFFFFF;border:1.5px solid rgba(255,255,255,0.35);border-radius:100px;text-decoration:none;font-weight:600;backdrop-filter:blur(10px);">Sign In</a>
-      <a href="/register" style="padding:10px 20px;font-size:13px;background:#FFFFFF;color:var(--g-main);border:none;border-radius:100px;text-decoration:none;font-weight:700;">Join Free</a>
+      <a href="/register" style="padding:10px 20px;font-size:13px;background:#FFFFFF;color:#111111;border:none;border-radius:100px;text-decoration:none;font-weight:700;">Join Free</a>
     </div>
   </div>
 </nav>

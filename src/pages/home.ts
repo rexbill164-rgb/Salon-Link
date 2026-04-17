@@ -9,16 +9,31 @@ ${baseHead('Ghana\'s Top Beauty Booking App', `
   .hero-wrap { position:relative; background:#FFFFFF; overflow:hidden; }
   .hero-search-bar {
     display:flex; align-items:center; gap:12px;
-    background:#F5F5F5; border-radius:100px; padding:14px 20px;
-    width:100%; max-width:520px; cursor:pointer;
+    background:#FFFFFF; border-radius:16px; padding:0;
+    width:100%; max-width:620px; cursor:pointer;
     transition: box-shadow 0.25s;
+    border: 1.5px solid #E0E0E0;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    overflow: hidden;
   }
-  .hero-search-bar:hover { box-shadow: 0 4px 20px rgba(108,71,255,0.15); background:#EFEFEF; }
+  .hero-search-bar:hover { box-shadow: 0 4px 24px rgba(0,0,0,0.13); border-color: #BDBDBD; }
+  .search-field {
+    flex:1; display:flex; align-items:center; gap:10px;
+    padding:16px 20px; border-right:1.5px solid #E8E8E8;
+  }
+  .search-field:last-of-type { border-right: none; }
+  .search-btn {
+    background:#111111; color:#FFFFFF; border:none; border-radius:12px;
+    padding:12px 24px; font-size:14px; font-weight:700; cursor:pointer;
+    margin:6px; white-space:nowrap; transition:background 0.2s;
+    display:flex; align-items:center; gap:8px;
+  }
+  .search-btn:hover { background:#333333; }
 
   /* ── Section titles ── */
   .section-title { font-size:20px; font-weight:700; color:var(--t-primary); }
-  .see-all { font-size:13px; font-weight:600; color:var(--g-main); text-decoration:none; }
-  .see-all:hover { text-decoration:underline; }
+  .see-all { font-size:13px; font-weight:600; color:#111111; text-decoration:none; border-bottom:1.5px solid #111111; padding-bottom:1px; }
+  .see-all:hover { opacity:0.7; }
 
   /* ── Category tiles (large rectangles like Fresha) ── */
   .cat-tiles-grid {
@@ -84,7 +99,7 @@ ${baseHead('Ghana\'s Top Beauty Booking App', `
 
   /* ── Stats strip ── */
   .stats-strip {
-    background: var(--g-main);
+    background: #111111;
     border-radius: 24px;
     padding: 32px 40px;
     display: flex; align-items: center; justify-content: space-around;
@@ -92,7 +107,7 @@ ${baseHead('Ghana\'s Top Beauty Booking App', `
   }
   .stat-item { text-align:center; }
   .stat-num { font-size: 32px; font-weight:800; color:#FFFFFF; }
-  .stat-lbl { font-size: 12px; color:rgba(255,255,255,0.75); font-weight:500; margin-top:4px; }
+  .stat-lbl { font-size: 12px; color:rgba(255,255,255,0.6); font-weight:500; margin-top:4px; }
 </style>
 `)}
 </head>
@@ -106,45 +121,48 @@ ${navbar('home')}
   <div class="container" style="padding-bottom:0;">
 
     <!-- Top greeting + search -->
-    <div style="max-width:680px;margin:0 auto;text-align:center;padding:0 0 40px;">
-      <div class="afu" style="display:inline-flex;align-items:center;gap:8px;background:var(--g-dim);border:1px solid var(--g-border);border-radius:100px;padding:6px 16px;margin-bottom:24px;">
-        <span style="font-size:14px;">✨</span>
-        <span style="font-size:12px;font-weight:700;color:var(--g-main);letter-spacing:0.06em;text-transform:uppercase;">Ghana's #1 Beauty Platform</span>
+    <div style="max-width:720px;margin:0 auto;text-align:center;padding:0 0 48px;">
+      <div class="afu" style="display:inline-flex;align-items:center;gap:8px;background:#F0F0F0;border:1px solid #E0E0E0;border-radius:100px;padding:6px 16px;margin-bottom:24px;">
+        <span style="font-size:14px;">✂️</span>
+        <span style="font-size:12px;font-weight:700;color:#111111;letter-spacing:0.06em;text-transform:uppercase;">Ghana's #1 Beauty Platform</span>
       </div>
 
-      <h1 class="afu-1" style="font-size:clamp(32px,6vw,52px);font-weight:800;line-height:1.15;letter-spacing:-0.02em;margin-bottom:16px;color:var(--t-primary);">
-        Book beauty services<br/>
-        <span style="color:var(--g-main);">you'll love</span>
+      <h1 class="afu-1" style="font-size:clamp(32px,6vw,54px);font-weight:800;line-height:1.12;letter-spacing:-0.025em;margin-bottom:16px;color:#111111;">
+        Find &amp; book beauty<br/>
+        <span style="color:#111111;border-bottom:4px solid #111111;">services you'll love</span>
       </h1>
 
-      <p class="afu-2" style="font-size:16px;color:var(--t-secondary);line-height:1.7;margin-bottom:32px;max-width:460px;margin-left:auto;margin-right:auto;">
+      <p class="afu-2" style="font-size:16px;color:#666666;line-height:1.7;margin-bottom:36px;max-width:480px;margin-left:auto;margin-right:auto;">
         Discover verified beauty professionals near you. Book instantly, pay securely.
       </p>
 
-      <!-- Search bar -->
-      <div class="afu-3" style="display:flex;gap:10px;align-items:center;max-width:520px;margin:0 auto 40px;">
-        <a href="/discover" style="flex:1;text-decoration:none;" class="hero-search-bar">
-          <i class="fas fa-search" style="color:var(--t-muted);font-size:16px;flex-shrink:0;"></i>
-          <span style="font-size:14px;color:var(--t-muted);">Search salons, barbers, nail techs...</span>
+      <!-- Airbnb-style search bar -->
+      <div class="afu-3 hero-search-bar" style="max-width:620px;margin:0 auto 36px;">
+        <a href="/discover" class="search-field" style="text-decoration:none;flex:1.5;">
+          <i class="fas fa-search" style="color:#111111;font-size:14px;flex-shrink:0;"></i>
+          <div style="text-align:left;">
+            <div style="font-size:11px;font-weight:700;color:#111111;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:2px;">Service</div>
+            <div style="font-size:13px;color:#888888;">Hair, nails, barber...</div>
+          </div>
         </a>
-        <a href="/discover" class="btn-primary" style="padding:14px 24px;white-space:nowrap;flex-shrink:0;">
-          <i class="fas fa-map-marker-alt" style="font-size:12px;"></i>
-          Near Me
+        <a href="/discover" class="search-field" style="text-decoration:none;flex:1;">
+          <i class="fas fa-map-marker-alt" style="color:#111111;font-size:14px;flex-shrink:0;"></i>
+          <div style="text-align:left;">
+            <div style="font-size:11px;font-weight:700;color:#111111;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:2px;">Location</div>
+            <div style="font-size:13px;color:#888888;">Accra, Ghana</div>
+          </div>
+        </a>
+        <a href="/discover" class="search-btn">
+          <i class="fas fa-search" style="font-size:13px;"></i>
+          Search
         </a>
       </div>
 
-      <!-- Trust badges -->
-      <div class="afu-4" style="display:flex;align-items:center;justify-content:center;gap:28px;flex-wrap:wrap;">
-        ${[
-          {icon:'fas fa-shield-alt', text:'ID Verified'},
-          {icon:'fas fa-lock', text:'Secure Payments'},
-          {icon:'fas fa-star', text:'4.9 Rated'},
-          {icon:'fas fa-bolt', text:'Instant Booking'},
-        ].map(b=>`
-          <div style="display:flex;align-items:center;gap:7px;color:var(--t-muted);font-size:12px;font-weight:500;">
-            <i class="${b.icon}" style="color:var(--g-main);font-size:13px;"></i>
-            ${b.text}
-          </div>
+      <!-- Popular searches -->
+      <div class="afu-4" style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:#888888;">Popular:</span>
+        ${['Hair Braiding','Nail Art','Fade Haircut','Facial','Makeup'].map(s=>`
+          <a href="/discover?service=${encodeURIComponent(s)}" style="font-size:12px;font-weight:600;color:#111111;background:#F5F5F5;border:1px solid #E0E0E0;border-radius:100px;padding:4px 14px;text-decoration:none;transition:background 0.2s;" onmouseover="this.style.background='#E8E8E8'" onmouseout="this.style.background='#F5F5F5'">${s}</a>
         `).join('')}
       </div>
     </div>
@@ -201,17 +219,17 @@ ${navbar('home')}
 
     <div class="cat-tiles-grid">
       ${[
-        {label:'Hair Salons',  color:'#E8933A', url:'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=600&q=80', cat:'Hair Styling'},
-        {label:'Barbers',      color:'#3A6BE8', url:'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&q=80', cat:'Barbing'},
-        {label:'Nails',        color:'#E83A8B', url:'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=600&q=80', cat:'Nail Care'},
-        {label:'Massage',      color:'#3AB8E8', url:'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&q=80', cat:'Massage'},
-        {label:'Medspa',       color:'#9E5DE8', url:'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600&q=80', cat:'Facials'},
-        {label:'Spa & Sauna',  color:'#3AE88C', url:'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&q=80', cat:'Facials'},
+        {label:'Hair Salons',  url:'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800&q=85', cat:'Hair Styling'},
+        {label:'Barbers',      url:'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&q=85', cat:'Barbing'},
+        {label:'Nails',        url:'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=800&q=85', cat:'Nail Care'},
+        {label:'Massage',      url:'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=85', cat:'Massage'},
+        {label:'Facials',      url:'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800&q=85', cat:'Facials'},
+        {label:'Makeup',       url:'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=800&q=85', cat:'Makeup'},
       ].map(c=>`
-        <a href="/discover?service=${encodeURIComponent(c.cat)}" class="cat-tile" style="background:${c.color};">
+        <a href="/discover?service=${encodeURIComponent(c.cat)}" class="cat-tile">
           <img src="${c.url}" alt="${c.label}" loading="lazy" style="object-position:center top;"/>
-          <div class="cat-tile-overlay" style="background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,rgba(0,0,0,0.05) 60%,transparent 100%);"></div>
-          <div class="cat-tile-label">${c.label}</div>
+          <div class="cat-tile-overlay" style="background:linear-gradient(to top,rgba(0,0,0,0.72) 0%,rgba(0,0,0,0.08) 55%,transparent 100%);"></div>
+          <div class="cat-tile-label" style="font-size:16px;font-weight:800;letter-spacing:-0.01em;">${c.label}</div>
         </a>
       `).join('')}
     </div>
@@ -230,23 +248,23 @@ ${navbar('home')}
 
     <div class="circles-grid">
       ${[
-        {icon:'✂️', label:'Hair & Styling',    cat:'Hair Styling',  bg:'#FFF3E0'},
-        {icon:'💅', label:'Nails',             cat:'Nail Care',     bg:'#FCE4EC'},
-        {icon:'👁️', label:'Brows & Lashes',   cat:'Lashes',        bg:'#EDE7F6'},
-        {icon:'💄', label:'Makeup',            cat:'Makeup',        bg:'#FFEBEE'},
-        {icon:'🪒', label:'Barbing',           cat:'Barbing',       bg:'#E3F2FD'},
-        {icon:'💆', label:'Massage',           cat:'Massage',       bg:'#E8F5E9'},
-        {icon:'🌿', label:'Facials',           cat:'Facials',       bg:'#F3E5F5'},
-        {icon:'💍', label:'Bridal',            cat:'Bridal',        bg:'#FFF8E1'},
-        {icon:'🧖', label:'Spa & Sauna',       cat:'Facials',       bg:'#E0F7FA'},
-        {icon:'🪞', label:'Skin Care',         cat:'Facials',       bg:'#FBE9E7'},
+        {icon:'✂️', label:'Hair',          cat:'Hair Styling'},
+        {icon:'💅', label:'Nails',         cat:'Nail Care'},
+        {icon:'👁️', label:'Lashes',       cat:'Lashes'},
+        {icon:'💄', label:'Makeup',        cat:'Makeup'},
+        {icon:'🪒', label:'Barbing',       cat:'Barbing'},
+        {icon:'💆', label:'Massage',       cat:'Massage'},
+        {icon:'🌿', label:'Facials',       cat:'Facials'},
+        {icon:'💍', label:'Bridal',        cat:'Bridal'},
+        {icon:'🧖', label:'Spa',           cat:'Facials'},
+        {icon:'🪞', label:'Skin Care',     cat:'Facials'},
       ].map(c=>`
         <a href="/discover?service=${encodeURIComponent(c.cat)}" class="cat-circle">
-          <div class="cat-circle-icon" style="background:${c.bg};">${c.icon}</div>
-          <span class="cat-circle-label">${c.label}</span>
+          <div class="cat-circle-icon" style="background:#F5F5F5;border:1.5px solid #E8E8E8;">${c.icon}</div>
+          <span class="cat-circle-label" style="color:#111111;font-weight:600;">${c.label}</span>
         </a>
       `).join('')}
-    </div>
+    </div>    </div>
   </div>
 </section>
 

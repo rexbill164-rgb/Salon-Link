@@ -30,7 +30,7 @@ body { background: #F5F5F5; }
   background: linear-gradient(135deg, #F0ECFF 0%, #E8E0FF 100%);
   display: flex; align-items: center; justify-content: center;
   margin: 0 auto 24px; font-size: 38px;
-  box-shadow: 0 4px 20px rgba(108,71,255,0.15);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.10);
 }
 
 /* Tab row */
@@ -44,7 +44,7 @@ body { background: #F5F5F5; }
   color:var(--t-secondary); white-space:nowrap;
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
-.atab.active { background:var(--g-main); border-color:var(--g-main); color:#FFFFFF; box-shadow:0 4px 14px rgba(108,71,255,0.28); }
+.atab.active { background:var(--g-main); border-color:var(--g-main); color:#FFFFFF; box-shadow:0 4px 14px rgba(0,0,0,0.18); }
 
 /* Booking card – Fresha style */
 .bk-card {

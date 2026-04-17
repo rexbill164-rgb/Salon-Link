@@ -20,7 +20,7 @@ ${baseHead('Provider Profile', `
 
   /* Time slots – Fresha pill style */
   .time-slot { padding:9px 16px; border-radius:100px; background:#FFFFFF; border:1.5px solid var(--i-faint); font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,0.05); }
-  .time-slot:hover, .time-slot.selected { background:var(--g-main); border-color:var(--g-main); color:#FFFFFF; box-shadow:0 4px 14px rgba(108,71,255,0.28); }
+  .time-slot:hover, .time-slot.selected { background:var(--g-main); border-color:var(--g-main); color:#FFFFFF; box-shadow:0 4px 14px rgba(0,0,0,0.18); }
   .time-slot.disabled { opacity:0.3; cursor:not-allowed; background:var(--c-dark); }
 
   /* Portfolio */

@@ -13,23 +13,23 @@ ${baseHead('Book Appointment', `
   /* Time chips */
   .time-chip { padding:10px 16px; border-radius:100px; background:#FFFFFF; border:1.5px solid var(--i-faint); font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; text-align:center; white-space:nowrap; box-shadow:0 1px 4px rgba(0,0,0,0.05); }
   .time-chip:hover { border-color:var(--g-main); color:var(--g-main); }
-  .time-chip.selected { background:var(--g-main); border-color:var(--g-main); color:#FFFFFF; box-shadow:0 4px 14px rgba(108,71,255,0.28); }
+  .time-chip.selected { background:var(--g-main); border-color:var(--g-main); color:#FFFFFF; box-shadow:0 4px 14px rgba(0,0,0,0.18); }
   .time-chip.busy { opacity:0.35; cursor:not-allowed; text-decoration:line-through; }
 
   /* Service items */
   .service-select-item { display:flex; align-items:center; gap:16px; padding:16px 20px; background:#FFFFFF; border:1.5px solid var(--i-faint); border-radius:18px; cursor:pointer; transition:all 0.25s; margin-bottom:10px; box-shadow:0 1px 6px rgba(0,0,0,0.05); }
-  .service-select-item:hover { border-color:var(--g-border); box-shadow:0 4px 16px rgba(108,71,255,0.10); }
-  .service-select-item.selected { border-color:var(--g-main); background:var(--g-dim); box-shadow:0 0 0 3px rgba(108,71,255,0.08); }
+  .service-select-item:hover { border-color:var(--g-border); box-shadow:0 4px 16px rgba(0,0,0,0.06); }
+  .service-select-item.selected { border-color:var(--g-main); background:var(--g-dim); box-shadow:0 0 0 3px rgba(0,0,0,0.05); }
 
   /* Payment methods */
   .pay-method { display:flex; align-items:center; gap:16px; padding:18px 20px; background:#FFFFFF; border:1.5px solid var(--i-faint); border-radius:18px; cursor:pointer; transition:all 0.25s; margin-bottom:10px; box-shadow:0 1px 6px rgba(0,0,0,0.05); }
   .pay-method:hover { border-color:var(--g-border); }
-  .pay-method.selected { border-color:var(--g-main); background:var(--g-dim); box-shadow:0 0 0 3px rgba(108,71,255,0.08); }
+  .pay-method.selected { border-color:var(--g-main); background:var(--g-dim); box-shadow:0 0 0 3px rgba(0,0,0,0.05); }
 
   /* Calendar days */
   .cal-day { width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; }
   .cal-day:hover { background:var(--g-dim); color:var(--g-main); }
-  .cal-day.selected { background:var(--g-main); color:#FFFFFF; box-shadow:0 4px 14px rgba(108,71,255,0.30); }
+  .cal-day.selected { background:var(--g-main); color:#FFFFFF; box-shadow:0 4px 14px rgba(0,0,0,0.18); }
   .cal-day.today { border:2px solid var(--g-main); color:var(--g-main); }
   .cal-day.past { opacity:0.3; cursor:not-allowed; }
 
