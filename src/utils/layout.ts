@@ -30,7 +30,6 @@ export const baseHead = (title: string, extra = '') => `
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.0/css/all.min.css"/>
   <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -585,7 +584,7 @@ function showToast(msg, type='info') {
   t.className = 'toast toast-' + type;
   t.innerHTML = '<div class="toast-icon">' + (icons[type]||'✦') + '</div><span style="flex:1;line-height:1.5;color:var(--t-primary);">' + msg + '</span><button onclick="this.parentElement.remove()" style="background:none;border:none;color:var(--t-faint);cursor:pointer;font-size:18px;line-height:1;padding:2px;margin-left:4px;">×</button>';
   wrap.appendChild(t);
-  setTimeout(() => { t.style.transition='opacity 0.4s,transform 0.4s'; t.style.opacity='0'; t.style.transform='translateX(20px)'; setTimeout(()=>t.remove(), 400); }, 4000);
+  setTimeout(function() { t.style.transition='opacity 0.4s,transform 0.4s'; t.style.opacity='0'; t.style.transform='translateX(20px)'; setTimeout(function(){t.remove();}, 400); }, 4000);
 }
 
 // ── Auth helpers
@@ -595,37 +594,39 @@ function isLoggedIn(){ return !!getToken(); }
 function logout()   { localStorage.removeItem('sl_token'); localStorage.removeItem('sl_user'); window.location.href = '/'; }
 
 // ── Update nav on load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
   var user = getUser(), token = getToken();
   var nav = document.getElementById('nav-auth');
   if (!user.name && (user.first_name || user.last_name)) user.name = ((user.first_name||'') + (user.last_name ? ' '+user.last_name : '')).trim();
   if (token && user && (user.name || user.id) && nav) {
     if (!user.name) user.name = 'User';
     var dashLink = user.role === 'provider' ? '/provider/dashboard' : user.role === 'admin' ? '/admin' : '/dashboard';
-    nav.innerHTML = \`
-      <a href="/notifications" class="btn-icon" title="Notifications" style="position:relative;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-        <span style="position:absolute;top:8px;right:8px;width:7px;height:7px;background:var(--g-main);border-radius:50%;border:2px solid white;"></span>
-      </a>
-      <div style="position:relative;" id="user-menu-wrap">
-        <button onclick="toggleDD()" style="display:flex;align-items:center;gap:9px;background:var(--g-dim);border:1.5px solid var(--g-border);border-radius:100px;padding:6px 14px 6px 6px;cursor:pointer;transition:all 0.25s;" onmouseover="this.style.background='rgba(108,71,255,0.12)'" onmouseout="this.style.background='var(--g-dim)'">
-          <div style="width:28px;height:28px;border-radius:50%;background:var(--g-main);display:flex;align-items:center;justify-content:center;font-size:13px;color:#FFFFFF;font-weight:700;">\${(user.name||'U')[0].toUpperCase()}</div>
-          <span style="font-size:13px;font-weight:600;color:var(--t-primary);">\${user.name.split(' ')[0]}</span>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted)" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </button>
-        <div id="user-dd" style="display:none;position:absolute;right:0;top:calc(100% + 8px);min-width:210px;background:#FFFFFF;border:1px solid var(--i-faint);border-radius:20px;padding:8px;z-index:900;box-shadow:0 16px 48px rgba(0,0,0,0.12);">
-          \${user.role==='provider'?'<a href="/provider/dashboard" class="sidebar-item"><span class="icon"><i class="fas fa-chart-bar"></i></span> Provider Dashboard</a>':''}
-          \${user.role==='admin'?'<a href="/admin" class="sidebar-item"><span class="icon"><i class="fas fa-shield-alt"></i></span> Admin Panel</a>':''}
-          <a href="\${dashLink}" class="sidebar-item"><span class="icon"><i class="far fa-calendar-alt"></i></span> My Bookings</a>
-          <a href="/hairstyle-history" class="sidebar-item"><span class="icon"><i class="fas fa-images"></i></span> Style History</a>
-          <a href="/settings" class="sidebar-item"><span class="icon"><i class="fas fa-cog"></i></span> Settings</a>
-          <div style="height:1px;background:var(--i-faint);margin:6px 0;"></div>
-          <button onclick="logout()" class="sidebar-item" style="color:var(--s-red)!important;"><span class="icon"><i class="fas fa-sign-out-alt"></i></span> Sign Out</button>
-        </div>
-      </div>
-    \`;
+    var initLetter = (user.name||'U')[0].toUpperCase();
+    var firstName = user.name.split(' ')[0];
+    var provLink = user.role==='provider' ? '<a href="/provider/dashboard" class="sidebar-item"><span class="icon"><i class="fas fa-chart-bar"></i></span> Provider Dashboard</a>' : '';
+    var adminLink = user.role==='admin' ? '<a href="/admin" class="sidebar-item"><span class="icon"><i class="fas fa-shield-alt"></i></span> Admin Panel</a>' : '';
+    nav.innerHTML =
+      '<a href="/notifications" class="btn-icon" title="Notifications" style="position:relative;">' +
+        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' +
+        '<span style="position:absolute;top:8px;right:8px;width:7px;height:7px;background:var(--g-main);border-radius:50%;border:2px solid white;"></span>' +
+      '</a>' +
+      '<div style="position:relative;" id="user-menu-wrap">' +
+        '<button onclick="toggleDD()" id="user-menu-btn" style="display:flex;align-items:center;gap:9px;background:var(--g-dim);border:1.5px solid var(--g-border);border-radius:100px;padding:6px 14px 6px 6px;cursor:pointer;transition:all 0.25s;">' +
+          '<div style="width:28px;height:28px;border-radius:50%;background:var(--g-main);display:flex;align-items:center;justify-content:center;font-size:13px;color:#FFFFFF;font-weight:700;">' + initLetter + '</div>' +
+          '<span style="font-size:13px;font-weight:600;color:var(--t-primary);">' + firstName + '</span>' +
+          '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted)" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '</button>' +
+        '<div id="user-dd" style="display:none;position:absolute;right:0;top:calc(100%+8px);min-width:210px;background:#FFFFFF;border:1px solid var(--i-faint);border-radius:20px;padding:8px;z-index:900;box-shadow:0 16px 48px rgba(0,0,0,0.12);">' +
+          provLink + adminLink +
+          '<a href="' + dashLink + '" class="sidebar-item"><span class="icon"><i class="far fa-calendar-alt"></i></span> My Bookings</a>' +
+          '<a href="/hairstyle-history" class="sidebar-item"><span class="icon"><i class="fas fa-images"></i></span> Style History</a>' +
+          '<a href="/settings" class="sidebar-item"><span class="icon"><i class="fas fa-cog"></i></span> Settings</a>' +
+          '<div style="height:1px;background:var(--i-faint);margin:6px 0;"></div>' +
+          '<button onclick="logout()" class="sidebar-item" style="color:var(--s-red)!important;"><span class="icon"><i class="fas fa-sign-out-alt"></i></span> Sign Out</button>' +
+        '</div>' +
+      '</div>';
   }
-  document.addEventListener('click', e => {
+  document.addEventListener('click', function(e) {
     var wrap = document.getElementById('user-menu-wrap');
     var dd   = document.getElementById('user-dd');
     if (wrap && dd && !wrap.contains(e.target)) dd.style.display = 'none';

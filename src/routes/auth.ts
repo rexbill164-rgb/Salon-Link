@@ -203,7 +203,9 @@ auth.get('/me', async (c) => {
 
     if (!user) return c.json({ success: false, error: 'User not found' }, 404)
 
-    return c.json({ success: true, user })
+    // Always include name field
+    const userWithName = { ...user, name: (((user as any).first_name || '') + ' ' + ((user as any).last_name || '')).trim() }
+    return c.json({ success: true, user: userWithName })
   } catch (e: any) {
     return c.json({ success: false, error: 'Invalid token' }, 401)
   }
