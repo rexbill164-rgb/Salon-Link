@@ -115,7 +115,7 @@ ${baseHead('Sign In', `
           </div>
           <div class="input-wrap">
             <i class="fas fa-lock input-icon"></i>
-            <input type="password" id="password" class="input has-icon-left has-icon-right" placeholder="••••••••" required/>
+            <input type="password" id="password" class="input has-icon-left has-icon-right" placeholder="••••••••" autocomplete="current-password" required/>
             <button type="button" onclick="togglePwd()" class="input-icon-right">
               <i id="eye-icon" class="fas fa-eye"></i>
             </button>

@@ -102,7 +102,7 @@ ${baseHead('Create Account', `
           <label class="form-label">Password</label>
           <div class="input-wrap">
             <i class="fas fa-lock input-icon"></i>
-            <input type="password" id="password" class="input has-icon-left has-icon-right" placeholder="Min. 8 characters" required minlength="8" oninput="checkStrength(this.value)"/>
+            <input type="password" id="password" class="input has-icon-left has-icon-right" placeholder="Min. 8 characters" autocomplete="new-password" required minlength="8" oninput="checkStrength(this.value)"/>
             <button type="button" onclick="togglePwd()" class="input-icon-right">
               <i id="eye-icon2" class="fas fa-eye"></i>
             </button>
