@@ -24,19 +24,19 @@ ${baseHead('Sign In', `
     content:'';
     position:absolute; inset:0;
     background: linear-gradient(135deg,
-      rgba(10,8,5,0.82) 0%,
-      rgba(30,20,5,0.65) 50%,
-      rgba(10,8,5,0.88) 100%);
+      rgba(5,5,5,0.88) 0%,
+      rgba(20,20,20,0.60) 45%,
+      rgba(5,5,5,0.84) 100%);
   }
   /* Card */
   .auth-card {
     position:relative; z-index:10;
     background:rgba(255,255,255,0.97);
-    backdrop-filter:blur(24px);
-    border-radius:24px;
+    backdrop-filter:blur(28px);
+    border-radius:26px;
     padding:44px 48px;
     width:100%; max-width:440px;
-    box-shadow:0 32px 80px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.08);
+    box-shadow:0 40px 100px rgba(0,0,0,0.50), 0 0 0 1px rgba(255,255,255,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
     overflow-y:auto; max-height:92vh;
   }
   @media(max-width:520px){
@@ -50,10 +50,10 @@ ${baseHead('Sign In', `
     text-decoration:none;
   }
   .auth-logo-icon {
-    width:44px; height:44px; border-radius:14px;
-    background:#111111;
+    width:48px; height:48px; border-radius:15px;
+    background:linear-gradient(145deg,#2e2e2e,#0f0f0f);
     display:flex; align-items:center; justify-content:center;
-    box-shadow:0 6px 20px rgba(0,0,0,0.35);
+    box-shadow:0 8px 24px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.12);
   }
   .auth-logo-text {
     font-family:'Poppins',sans-serif; font-size:20px; font-weight:800;
@@ -64,8 +64,8 @@ ${baseHead('Sign In', `
     font-size:10px; color:rgba(255,255,255,0.6);
     letter-spacing:0.18em; text-transform:uppercase; margin-top:1px;
   }
-  .tab-pill { flex:1; padding:11px 12px; border-radius:8px; font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; transition:all 0.3s; border:none; background:transparent; color:var(--t-muted); }
-  .tab-pill.active { background:#FFFFFF; color:var(--t-primary); border:1px solid var(--i-faint); box-shadow:0 2px 12px rgba(0,0,0,0.08); }
+  .tab-pill { flex:1; padding:11px 12px; border-radius:8px; font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; transition:all 0.25s; border:none; background:transparent; color:#AAAAAA; }
+  .tab-pill.active { background:#FFFFFF; color:#111111; border:1px solid #EEEEEE; box-shadow:0 2px 14px rgba(0,0,0,0.09); }
 </style>
 `)}
 </head>

@@ -5,17 +5,23 @@ export const discoveryPage = () => `<!DOCTYPE html>
 <head>
 ${baseHead('Discover Services', `
 <style>
-  /* ── Clean B&W header ── */
+  /* ── Classy dark gradient header ── */
   .disc-header {
-    background: #111111;
-    padding: 28px 0 80px;
+    background: linear-gradient(160deg, #141414 0%, #222222 45%, #1a1a1a 100%);
+    padding: 28px 0 84px;
     position: relative;
     overflow: hidden;
   }
   .disc-header::before {
     content:'';
     position:absolute;inset:0;
-    background: radial-gradient(ellipse 70% 50% at 50% 50%, rgba(255,255,255,0.04) 0%, transparent 70%);
+    background: radial-gradient(ellipse 55% 70% at 75% 40%, rgba(255,255,255,0.055) 0%, transparent 65%);
+    pointer-events:none;
+  }
+  .disc-header::after {
+    content:'';
+    position:absolute;bottom:0;left:0;right:0;height:80px;
+    background:linear-gradient(to bottom,transparent,#F8F8F8);
     pointer-events:none;
   }
 
@@ -39,18 +45,23 @@ ${baseHead('Discover Services', `
     border: 1px solid rgba(255,255,255,0.8);
   }
 
-  /* ── Filter chips – horizontal scroll ── */
+  /* ── Filter chips – iPhone bubble style ── */
   .filter-chip-row { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; }
   .filter-chip-row::-webkit-scrollbar { display:none; }
   .fchip {
-    flex-shrink:0; padding:8px 16px; border-radius:100px;
+    flex-shrink:0; padding:8px 18px; border-radius:100px;
     font-size:12px; font-weight:600;
-    cursor:pointer; transition:all 0.25s; white-space:nowrap;
-    background:#FFFFFF; border:1.5px solid var(--i-faint); color:var(--t-secondary);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    cursor:pointer; transition:all 0.25s cubic-bezier(.34,1.56,.64,1); white-space:nowrap;
+    background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.20);
+    color:rgba(255,255,255,0.80); backdrop-filter:blur(12px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.12);
   }
-  .fchip:hover { border-color:#111111; color:#111111; }
-  .fchip.active { background:#111111; color:#FFFFFF; border-color:#111111; box-shadow:0 4px 14px rgba(0,0,0,0.20); }
+  .fchip:hover { background:rgba(255,255,255,0.22); color:#FFFFFF; transform:scale(1.04); }
+  .fchip.active {
+    background:#FFFFFF; color:#111111; border-color:#FFFFFF;
+    box-shadow:0 4px 16px rgba(0,0,0,0.22);
+    font-weight:700;
+  }
 
   /* ── 2-column provider grid (Fresha style) ── */
   .prov-grid {
@@ -61,20 +72,21 @@ ${baseHead('Discover Services', `
   @media(min-width:768px){ .prov-grid { grid-template-columns: repeat(3,1fr); gap:16px; } }
   @media(min-width:1200px){ .prov-grid { grid-template-columns: repeat(4,1fr); } }
 
-  /* ── Provider card – Fresha clean style ── */
+  /* ── Provider card – refined ── */
   .pcard {
-    background:#FFFFFF; border-radius:18px; overflow:hidden; cursor:pointer;
-    border:1px solid var(--i-faint); transition:all 0.3s var(--ease-luxury);
-    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    background:#FFFFFF; border-radius:20px; overflow:hidden; cursor:pointer;
+    border:1px solid #F0F0F0; transition:all 0.3s cubic-bezier(.34,1.56,.64,1);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
   }
-  .pcard:hover { transform:translateY(-5px); box-shadow:0 16px 40px rgba(0,0,0,0.12); border-color:#BBBBBB; }
+  .pcard:hover { transform:translateY(-6px); box-shadow:0 18px 44px rgba(0,0,0,0.13); border-color:#E0E0E0; }
   .pcard:hover .pcard-img { transform:scale(1.04); }
   .pcard-img { width:100%;height:160px;object-fit:cover;display:block;transition:transform 0.5s var(--ease-luxury); }
 
   /* ── Filter panel ── */
   .filter-panel {
-    background:#FFFFFF; border:1px solid var(--i-faint); border-radius:20px;
-    padding:28px; margin-bottom:20px; box-shadow:0 8px 32px rgba(0,0,0,0.08);
+    background:#FFFFFF; border:1px solid #EEEEEE; border-radius:22px;
+    padding:28px; margin-bottom:20px;
+    box-shadow:0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05);
     animation:fadeUp 0.25s var(--ease-luxury) both;
   }
   .radio-opt { display:flex; align-items:center; gap:10px; margin-bottom:10px; cursor:pointer; }
@@ -100,7 +112,7 @@ ${baseHead('Discover Services', `
 </style>
 `)}
 </head>
-<body style="background:#F5F5F5;">
+<body style="background:#F8F8F8;">
 
 <!-- ── Navbar (transparent on top) ── -->
 <nav id="nav-main" style="position:fixed;top:0;left:0;right:0;z-index:800;background:transparent;transition:all 0.3s ease;width:100%;max-width:100vw;">

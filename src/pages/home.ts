@@ -5,8 +5,8 @@ export const homePage = () => `<!DOCTYPE html>
 <head>
 ${baseHead('Ghana\'s Top Beauty Booking App', `
 <style>
-  /* ── Global B&W ── */
-  body { background:#FFFFFF; }
+  /* ── Base ── */
+  body { background:#F8F8F8; }
 
   /* ── Hero ── */
   .hero-wrap { position:relative; background:#FFFFFF; overflow:hidden; }
@@ -15,34 +15,35 @@ ${baseHead('Ghana\'s Top Beauty Booking App', `
   .hero-search-bar {
     display:flex; align-items:stretch; gap:0;
     background:#FFFFFF; border-radius:100px; padding:0;
-    width:100%; max-width:680px; cursor:pointer;
-    box-shadow: 0 4px 28px rgba(0,0,0,0.13);
-    border: 1px solid #E0E0E0;
+    width:100%; max-width:700px; cursor:pointer;
+    box-shadow: 0 6px 32px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+    border: 1px solid #E4E4E4;
     overflow: hidden;
   }
-  .hero-search-bar:hover { box-shadow: 0 6px 36px rgba(0,0,0,0.18); }
+  .hero-search-bar:hover { box-shadow: 0 10px 44px rgba(0,0,0,0.16); border-color:#C8C8C8; }
   .search-field {
     flex:1; display:flex; align-items:center; gap:10px;
-    padding:14px 22px; border-right:1px solid #E0E0E0;
+    padding:15px 22px; border-right:1px solid #EEEEEE;
     text-decoration:none; transition: background 0.2s;
   }
-  .search-field:hover { background:#F7F7F7; }
+  .search-field:hover { background:#FAFAFA; }
   .search-field:last-of-type { border-right: none; }
   .search-btn {
-    background:#111111; color:#FFFFFF; border:none; border-radius:0 100px 100px 0;
-    padding:14px 28px; font-size:14px; font-weight:700; cursor:pointer;
-    white-space:nowrap; transition:background 0.2s;
-    display:flex; align-items:center; gap:8px;
-    flex-shrink:0;
+    background:linear-gradient(135deg,#1a1a1a 0%,#3a3a3a 100%);
+    color:#FFFFFF; border:none; border-radius:0 100px 100px 0;
+    padding:15px 30px; font-size:14px; font-weight:700; cursor:pointer;
+    white-space:nowrap; transition:all 0.25s;
+    display:flex; align-items:center; gap:8px; flex-shrink:0;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
   }
-  .search-btn:hover { background:#333333; }
+  .search-btn:hover { background:linear-gradient(135deg,#2a2a2a 0%,#4a4a4a 100%); }
 
   /* ── Section titles ── */
-  .section-title { font-size:22px; font-weight:800; color:#111111; }
-  .see-all { font-size:13px; font-weight:600; color:#111111; text-decoration:none; border-bottom:1.5px solid #111111; padding-bottom:1px; }
-  .see-all:hover { opacity:0.6; }
+  .section-title { font-size:22px; font-weight:800; color:#111111; letter-spacing:-0.02em; }
+  .see-all { font-size:13px; font-weight:600; color:#555555; text-decoration:none; }
+  .see-all:hover { color:#111111; }
 
-  /* ── Top category circles ── */
+  /* ── Top category circles (iPhone bubble style) ── */
   .top-cats-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -51,17 +52,18 @@ ${baseHead('Ghana\'s Top Beauty Booking App', `
   @media(min-width:640px){ .top-cats-grid { grid-template-columns: repeat(7, 1fr); gap: 20px; } }
   @media(min-width:1024px){ .top-cats-grid { grid-template-columns: repeat(9, 1fr); } }
 
-  .cat-circle { display:flex; flex-direction:column; align-items:center; gap:8px; text-decoration:none; }
+  .cat-circle { display:flex; flex-direction:column; align-items:center; gap:10px; text-decoration:none; }
   .cat-circle-img {
-    width:72px; height:72px; border-radius:50%; overflow:hidden;
-    border: 2px solid #E8E8E8;
-    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    width:74px; height:74px; border-radius:50%; overflow:hidden;
+    border: 2.5px solid rgba(0,0,0,0.06);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.08);
+    transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.25s;
     flex-shrink: 0;
   }
-  @media(min-width:640px){ .cat-circle-img { width:88px; height:88px; } }
-  .cat-circle:hover .cat-circle-img { border-color:#111111; transform:scale(1.06); box-shadow: 0 6px 18px rgba(0,0,0,0.12); }
+  @media(min-width:640px){ .cat-circle-img { width:90px; height:90px; } }
+  .cat-circle:hover .cat-circle-img { transform:scale(1.08); box-shadow: 0 10px 28px rgba(0,0,0,0.16); }
   .cat-circle-img img { width:100%; height:100%; object-fit:cover; display:block; }
-  .cat-circle-label { font-size:11px; font-weight:700; color:#111111; text-align:center; line-height:1.2; }
+  .cat-circle-label { font-size:11px; font-weight:600; color:#222222; text-align:center; line-height:1.25; letter-spacing:0.01em; }
   @media(min-width:640px){ .cat-circle-label { font-size:12px; } }
 
   /* ── Category tiles ── */
@@ -74,33 +76,35 @@ ${baseHead('Ghana\'s Top Beauty Booking App', `
   @media(min-width:1024px){ .cat-tiles-grid { grid-template-columns: repeat(3,1fr); gap:14px; } }
 
   .cat-tile {
-    position:relative; border-radius:16px; overflow:hidden; display:block;
+    position:relative; border-radius:20px; overflow:hidden; display:block;
     text-decoration:none; aspect-ratio:4/3;
-    cursor:pointer; transition:transform 0.3s;
+    cursor:pointer; transition:transform 0.3s cubic-bezier(.34,1.56,.64,1), box-shadow 0.3s;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.10);
   }
-  .cat-tile:hover { transform:scale(1.02); }
+  .cat-tile:hover { transform:translateY(-4px) scale(1.01); box-shadow:0 14px 40px rgba(0,0,0,0.18); }
   .cat-tile img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.5s; }
-  .cat-tile:hover img { transform:scale(1.06); }
+  .cat-tile:hover img { transform:scale(1.05); }
   .cat-tile-overlay {
     position:absolute; inset:0;
-    background:linear-gradient(to top,rgba(0,0,0,0.68) 0%,rgba(0,0,0,0.10) 55%,transparent 100%);
+    background:linear-gradient(to top,rgba(0,0,0,0.72) 0%,rgba(0,0,0,0.14) 50%,transparent 100%);
   }
   .cat-tile-label {
-    position:absolute; bottom:14px; left:16px;
-    font-size:16px; font-weight:800; color:#FFFFFF;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    position:absolute; bottom:16px; left:18px;
+    font-size:16px; font-weight:800; color:#FFFFFF; letter-spacing:-0.01em;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
   }
 
   /* ── Provider cards ── */
   .prov-card-fresh {
-    background: #FFFFFF; border-radius:16px; overflow:hidden;
-    cursor:pointer; border:1px solid #EBEBEB;
-    transition:transform 0.3s, box-shadow 0.3s;
+    background: #FFFFFF; border-radius:18px; overflow:hidden;
+    cursor:pointer; border:1px solid #F0F0F0;
+    transition:transform 0.3s cubic-bezier(.34,1.56,.64,1), box-shadow 0.3s;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
     flex-shrink: 0;
   }
-  .prov-card-fresh:hover { transform:translateY(-4px); box-shadow:0 12px 36px rgba(0,0,0,0.11); }
+  .prov-card-fresh:hover { transform:translateY(-5px); box-shadow:0 16px 44px rgba(0,0,0,0.13); }
   .prov-card-fresh:hover .pcard-img { transform:scale(1.04); }
-  .pcard-img { width:100%; height:150px; object-fit:cover; transition:transform 0.5s; display:block; }
+  .pcard-img { width:100%; height:152px; object-fit:cover; transition:transform 0.5s; display:block; }
 
   /* ── Horizontal scroll ── */
   .h-scroll { display:flex; gap:14px; overflow-x:auto; padding-bottom:8px; }
@@ -108,31 +112,40 @@ ${baseHead('Ghana\'s Top Beauty Booking App', `
 
   /* ── Stats strip ── */
   .stats-strip {
-    background:#111111; border-radius:20px;
-    padding:28px 40px; display:flex; align-items:center;
-    justify-content:space-around; flex-wrap:wrap; gap:20px;
+    background:linear-gradient(135deg,#111111 0%,#2a2a2a 60%,#1a1a1a 100%);
+    border-radius:24px; padding:32px 48px;
+    display:flex; align-items:center; justify-content:space-around;
+    flex-wrap:wrap; gap:20px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.20);
   }
   .stat-item { text-align:center; }
-  .stat-num { font-size:28px; font-weight:800; color:#FFFFFF; }
-  .stat-lbl { font-size:11px; color:rgba(255,255,255,0.55); font-weight:500; margin-top:3px; }
+  .stat-num { font-size:30px; font-weight:800; color:#FFFFFF; letter-spacing:-0.02em; }
+  .stat-lbl { font-size:11px; color:rgba(255,255,255,0.50); font-weight:500; margin-top:4px; text-transform:uppercase; letter-spacing:0.06em; }
 
   /* ── How it works ── */
   .hiw-step {
     display:flex; align-items:flex-start; gap:16px;
-    padding:24px; background:#FFFFFF; border-radius:16px;
-    border:1px solid #EBEBEB; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    padding:24px; background:#FFFFFF; border-radius:20px;
+    border:1px solid #F0F0F0;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.05);
+    transition: transform 0.25s, box-shadow 0.25s;
   }
+  .hiw-step:hover { transform:translateY(-3px); box-shadow:0 10px 32px rgba(0,0,0,0.10); }
   .hiw-num {
-    width:40px; height:40px; border-radius:50%; background:#111111;
+    width:42px; height:42px; border-radius:50%;
+    background:linear-gradient(135deg,#1a1a1a 0%,#3d3d3d 100%);
     color:#FFFFFF; display:flex; align-items:center;
-    justify-content:center; font-weight:800; font-size:15px; flex-shrink:0;
+    justify-content:center; font-weight:800; font-size:16px; flex-shrink:0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
   }
 
   /* ── Testimonials ── */
   .testi-card {
-    background:#FFFFFF; border-radius:18px; padding:28px;
-    border:1px solid #EBEBEB; box-shadow:0 2px 10px rgba(0,0,0,0.05);
-    min-width:280px;
+    background:#FFFFFF; border-radius:20px; padding:28px;
+    border:1px solid #F0F0F0;
+    box-shadow:0 4px 20px rgba(0,0,0,0.07);
+    min-width:288px; max-width:340px;
+    flex-shrink:0;
   }
 </style>
 `)}
@@ -185,9 +198,9 @@ ${navbar('home')}
 
       <!-- Popular tags -->
       <div class="afu-4" style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;">
-        <span style="font-size:12px;color:#999999;">Popular:</span>
+        <span style="font-size:12px;color:#AAAAAA;font-weight:500;">Popular:</span>
         ${['Hair Braiding','Nail Art','Fade Haircut','Facial','Makeup'].map(s=>`
-          <a href="/discover?service=${encodeURIComponent(s)}" style="font-size:12px;font-weight:600;color:#111111;background:#F5F5F5;border:1px solid #E0E0E0;border-radius:100px;padding:5px 14px;text-decoration:none;">${s}</a>
+          <a href="/discover?service=${encodeURIComponent(s)}" style="font-size:12px;font-weight:600;color:#333333;background:linear-gradient(145deg,#F7F7F7,#EFEFEF);border:1px solid #E4E4E4;border-radius:100px;padding:5px 16px;text-decoration:none;box-shadow:0 1px 4px rgba(0,0,0,0.06);">${s}</a>
         `).join('')}
       </div>
     </div>
@@ -211,7 +224,7 @@ ${navbar('home')}
 </section>
 
 <!-- ══════════════════════════════════════════════
-     TOP CATEGORIES — Circular images (Fresha style)
+     TOP CATEGORIES — Circular images (iPhone bubble style)
 ══════════════════════════════════════════════ -->
 <section style="padding:56px 0 48px;background:#FFFFFF;">
   <div class="container">
@@ -246,7 +259,7 @@ ${navbar('home')}
 <!-- ══════════════════════════════════════════════
      BROWSE BY CATEGORY — Large tiles
 ══════════════════════════════════════════════ -->
-<section style="padding:0 0 56px;background:#FFFFFF;">
+<section style="padding:0 0 56px;background:#F8F8F8;">
   <div class="container">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
       <h2 class="section-title">Browse by category</h2>
@@ -296,7 +309,7 @@ ${navbar('home')}
 <!-- ══════════════════════════════════════════════
      RECOMMENDED — horizontal scroll
 ══════════════════════════════════════════════ -->
-<section style="padding:0 0 56px;background:#FFFFFF;">
+<section style="padding:0 0 56px;background:#FFFFFF;border-top:1px solid #F0F0F0;">
   <div class="container">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
       <div>
@@ -341,7 +354,7 @@ ${navbar('home')}
 <!-- ══════════════════════════════════════════════
      NEW TO SALONLINK
 ══════════════════════════════════════════════ -->
-<section style="padding:0 0 56px;background:#FAFAFA;">
+<section style="padding:0 0 56px;background:#F8F8F8;">
   <div class="container">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-top:40px;">
       <div>
@@ -380,7 +393,7 @@ ${navbar('home')}
 <!-- ══════════════════════════════════════════════
      HOW IT WORKS
 ══════════════════════════════════════════════ -->
-<section style="padding:56px 0;background:#FFFFFF;">
+<section style="padding:60px 0;background:linear-gradient(180deg,#FFFFFF 0%,#F5F5F5 100%);">
   <div class="container">
     <div style="text-align:center;margin-bottom:40px;" class="reveal">
       <h2 class="section-title" style="font-size:clamp(22px,3vw,32px);margin-bottom:10px;">How SalonLink works</h2>
@@ -404,7 +417,7 @@ ${navbar('home')}
     </div>
 
     <div style="text-align:center;margin-top:36px;">
-      <a href="/discover" style="display:inline-flex;align-items:center;gap:8px;background:#111111;color:#FFFFFF;border:none;border-radius:100px;padding:14px 36px;font-size:14px;font-weight:700;text-decoration:none;transition:background 0.2s;">
+      <a href="/discover" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1a1a1a,#3a3a3a);color:#FFFFFF;border:none;border-radius:100px;padding:14px 36px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,0.18);">
         <i class="fas fa-search" style="font-size:13px;"></i>
         Start Exploring
       </a>
@@ -415,7 +428,7 @@ ${navbar('home')}
 <!-- ══════════════════════════════════════════════
      FOR PROVIDERS
 ══════════════════════════════════════════════ -->
-<section style="padding:56px 0;background:#FAFAFA;">
+<section style="padding:60px 0;background:#FFFFFF;">
   <div class="container">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;" class="reveal">
 
@@ -439,8 +452,7 @@ ${navbar('home')}
             {icon:'fas fa-chart-line', title:'Growth Analytics', desc:'Track revenue and client retention in real-time.'},
           ].map(f=>`
             <div style="display:flex;align-items:center;gap:14px;">
-              <div style="width:40px;height:40px;border-radius:12px;background:#F0F0F0;border:1px solid #E0E0E0;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="${f.icon}" style="color:#111111;font-size:16px;"></i>
+              <div style="width:42px;height:42px;border-radius:13px;background:linear-gradient(145deg,#F2F2F2,#E8E8E8);border:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.08);"><i class="${f.icon}" style="color:#222222;font-size:16px;"></i>
               </div>
               <div>
                 <div style="font-size:14px;font-weight:600;margin-bottom:2px;color:#111111;">${f.title}</div>
@@ -449,7 +461,7 @@ ${navbar('home')}
             </div>
           `).join('')}
         </div>
-        <a href="/register?role=provider" style="display:inline-flex;align-items:center;gap:8px;background:#111111;color:#FFFFFF;border:none;border-radius:100px;padding:14px 36px;font-size:14px;font-weight:700;text-decoration:none;transition:background 0.2s;">
+        <a href="/register?role=provider" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1a1a1a,#3a3a3a);color:#FFFFFF;border:none;border-radius:100px;padding:14px 36px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,0.20);">
           Start for Free <i class="fas fa-arrow-right" style="font-size:12px;"></i>
         </a>
       </div>
@@ -499,7 +511,7 @@ ${navbar('home')}
 <!-- ══════════════════════════════════════════════
      TESTIMONIALS
 ══════════════════════════════════════════════ -->
-<section style="padding:56px 0;background:#FFFFFF;">
+<section style="padding:60px 0;background:linear-gradient(180deg,#F5F5F5 0%,#FFFFFF 100%);">
   <div class="container">
     <div style="text-align:center;margin-bottom:36px;" class="reveal">
       <h2 class="section-title" style="font-size:clamp(22px,3vw,32px);">What people are saying</h2>
@@ -533,9 +545,9 @@ ${navbar('home')}
 <!-- ══════════════════════════════════════════════
      CTA BAND
 ══════════════════════════════════════════════ -->
-<section style="padding:56px 0;background:#FAFAFA;">
+<section style="padding:60px 0;background:#F8F8F8;">
   <div class="container">
-    <div style="background:#111111;border-radius:24px;padding:60px 40px;text-align:center;" class="reveal">
+    <div style="background:linear-gradient(135deg,#111111 0%,#2d2d2d 50%,#181818 100%);border-radius:28px;padding:64px 48px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.22);" class="reveal">
       <h2 style="font-size:clamp(24px,4vw,40px);font-weight:800;color:#FFFFFF;margin-bottom:14px;">
         Your next look awaits
       </h2>
@@ -543,11 +555,11 @@ ${navbar('home')}
         Join 50,000+ Ghanaians who book through SalonLink every month.
       </p>
       <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
-        <a href="/discover" style="background:#FFFFFF;color:#111111;border:none;border-radius:100px;padding:15px 36px;font-size:14px;font-weight:700;text-decoration:none;">
+        <a href="/discover" style="background:#FFFFFF;color:#111111;border:none;border-radius:100px;padding:15px 36px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,0.25);">
           <i class="fas fa-search" style="font-size:13px;margin-right:6px;"></i>
           Discover Providers
         </a>
-        <a href="/register" style="background:rgba(255,255,255,0.12);color:#FFFFFF;border:1.5px solid rgba(255,255,255,0.35);border-radius:100px;padding:14px 34px;font-size:14px;font-weight:700;text-decoration:none;">
+        <a href="/register" style="background:rgba(255,255,255,0.10);color:rgba(255,255,255,0.90);border:1.5px solid rgba(255,255,255,0.28);border-radius:100px;padding:14px 34px;font-size:14px;font-weight:700;text-decoration:none;backdrop-filter:blur(8px);">
           Create Free Account
         </a>
       </div>
@@ -558,13 +570,13 @@ ${navbar('home')}
 <!-- ══════════════════════════════════════════════
      FOOTER
 ══════════════════════════════════════════════ -->
-<footer style="background:#111111;padding:56px 0 28px;">
+<footer style="background:linear-gradient(180deg,#141414 0%,#0d0d0d 100%);padding:60px 0 28px;">
   <div class="container">
     <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;margin-bottom:48px;">
       <div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-          <div style="width:32px;height:32px;border-radius:9px;background:#FFFFFF;display:flex;align-items:center;justify-content:center;">
-            <i class="fas fa-spa" style="color:#111111;font-size:14px;"></i>
+          <div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#3a3a3a,#1a1a1a);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.4);">
+            <i class="fas fa-spa" style="color:#FFFFFF;font-size:14px;"></i>
           </div>
           <span style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:800;color:#FFFFFF;">SalonLink</span>
         </div>
