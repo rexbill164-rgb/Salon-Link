@@ -636,16 +636,16 @@ function addKycImgSection(parent, label, src, isCircle) {
   var wrap = document.createElement('div');
   wrap.style.cssText = 'margin-bottom:20px;';
   var lbl = document.createElement('div');
-  lbl.style.cssText = 'font-size:11px;color:#888;margin-bottom:8px;text-align:left;letter-spacing:0.05em;';
+  lbl.style.cssText = 'font-size:10px;color:rgba(255,255,255,0.35);margin-bottom:10px;text-align:left;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;';
   lbl.textContent = label;
   wrap.appendChild(lbl);
   var img = document.createElement('img');
   img.src = src;
   img.title = 'Click to enlarge';
   if (isCircle) {
-    img.style.cssText = 'width:160px;height:160px;object-fit:cover;border-radius:50%;cursor:pointer;border:3px solid rgba(201,168,76,0.4);display:block;margin:0 auto;';
+    img.style.cssText = 'width:160px;height:160px;object-fit:cover;border-radius:50%;cursor:pointer;border:3px solid rgba(255,255,255,0.15);display:block;margin:0 auto;box-shadow:0 8px 32px rgba(0,0,0,0.4);';
   } else {
-    img.style.cssText = 'width:100%;max-height:240px;object-fit:contain;border-radius:12px;background:#111;cursor:pointer;border:1px solid rgba(255,255,255,0.08);';
+    img.style.cssText = 'width:100%;max-height:260px;object-fit:contain;border-radius:16px;background:#111;cursor:pointer;border:1px solid rgba(255,255,255,0.08);box-shadow:0 8px 32px rgba(0,0,0,0.4);';
   }
   img.addEventListener('click', function(){ viewImg(img.src, label); });
   wrap.appendChild(img);
@@ -665,19 +665,19 @@ function viewProviderKyc(providerId) {
 
   // Card
   var card = document.createElement('div');
-  card.style.cssText = 'background:#1a1a2e;border-radius:20px;padding:28px;max-width:680px;width:100%;max-height:90vh;overflow-y:auto;position:relative;';
+  card.style.cssText = 'background:linear-gradient(160deg,#18181f 0%,#1f1f2a 100%);border-radius:24px;padding:32px;max-width:720px;width:100%;max-height:92vh;overflow-y:auto;position:relative;border:1px solid rgba(255,255,255,0.06);box-shadow:0 40px 100px rgba(0,0,0,0.6);';
 
   // Close button — uses named function, no inline quote issues
   var closeBtn = document.createElement('button');
   closeBtn.textContent = '✕';
-  closeBtn.style.cssText = 'position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.1);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;';
+  closeBtn.style.cssText = 'position:absolute;top:18px;right:18px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:background 0.2s;';
   closeBtn.addEventListener('click', closeKycModal);
   card.appendChild(closeBtn);
 
   // Title
   var title = document.createElement('div');
-  title.style.cssText = 'font-size:16px;font-weight:700;color:#c9a84c;margin-bottom:20px;';
-  title.textContent = '🪪 KYC Documents';
+  title.style.cssText = 'font-size:17px;font-weight:700;color:#FFFFFF;margin-bottom:24px;display:flex;align-items:center;gap:10px;letter-spacing:-0.01em;';
+  title.innerHTML = '<span style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#2a2a2a,#111);display:inline-flex;align-items:center;justify-content:center;font-size:17px;">🪪</span> KYC Verification';
   card.appendChild(title);
 
   // Content area
@@ -703,19 +703,25 @@ function viewProviderKyc(providerId) {
       var hasAny = imgs.kyc_front_url || imgs.kyc_back_url || imgs.kyc_selfie_url;
       if (!hasAny && !imgs.kyc_card_number) {
         ct.style.textAlign = 'center'; ct.style.padding = '32px';
+        ct.style.textAlign = 'center'; ct.style.padding = '40px 20px';
         var noDocDiv = document.createElement('div');
-        noDocDiv.innerHTML = '<div style="font-size:40px;margin-bottom:12px;">📋</div><div style="font-size:14px;color:#ccc;margin-bottom:8px;">No documents uploaded yet</div><div style="font-size:12px;color:#888;">This provider has not submitted KYC documents.<br>Ask them to complete verification from their dashboard.</div>';
+        noDocDiv.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:12px;';
+        noDocDiv.innerHTML =
+          '<div style="width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:4px;">📋</div>' +
+          '<div style="font-size:16px;font-weight:700;color:#FFFFFF;">No documents uploaded</div>' +
+          '<div style="font-size:13px;color:rgba(255,255,255,0.45);line-height:1.6;max-width:300px;">This provider hasn\'t submitted KYC yet. Ask them to complete verification from their dashboard.</div>' +
+          '<div style="margin-top:8px;padding:10px 20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:100px;font-size:12px;color:rgba(255,255,255,0.5);">Status: No submission</div>';
         ct.appendChild(noDocDiv);
         return;
       }
       if (imgs.kyc_card_number) {
         var cardBox = document.createElement('div');
-        cardBox.style.cssText = 'margin-bottom:20px;padding:12px 16px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-radius:12px;';
+        cardBox.style.cssText = 'margin-bottom:24px;padding:16px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:16px;display:flex;align-items:center;gap:14px;';
         var cardLbl = document.createElement('div');
-        cardLbl.style.cssText = 'font-size:11px;color:#888;margin-bottom:4px;';
-        cardLbl.textContent = 'GHANA CARD NUMBER';
+        cardLbl.style.cssText = 'font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em;';
+        cardLbl.textContent = 'Ghana Card Number';
         var cardVal = document.createElement('div');
-        cardVal.style.cssText = 'font-size:15px;font-weight:700;color:#c9a84c;letter-spacing:0.05em;';
+        cardVal.style.cssText = 'font-size:16px;font-weight:700;color:#FFFFFF;letter-spacing:0.06em;font-family:monospace;';
         cardVal.textContent = imgs.kyc_card_number;
         cardBox.appendChild(cardLbl); cardBox.appendChild(cardVal);
         ct.appendChild(cardBox);

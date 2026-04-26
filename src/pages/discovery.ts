@@ -138,15 +138,15 @@ ${baseHead('Discover Services', `
 
     <!-- Title row -->
     <div style="margin-bottom:28px;">
-      <h1 style="font-size:clamp(26px,4vw,40px);font-weight:800;color:#FFFFFF;margin-bottom:8px;line-height:1.2;">
+      <h1 style="font-size:clamp(24px,4vw,38px);font-weight:800;color:#FFFFFF;margin-bottom:4px;line-height:1.15;letter-spacing:-0.02em;">
         Find beauty services
       </h1>
-      <p style="font-size:15px;color:rgba(255,255,255,0.70);">Verified professionals across Ghana</p>
+      <p style="font-size:13px;color:rgba(255,255,255,0.55);">Verified pros across Ghana</p>
     </div>
 
     <!-- Search + Near Me row -->
     <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;">
-      <div style="flex:1;background:rgba(255,255,255,0.15);backdrop-filter:blur(16px);border:1.5px solid rgba(255,255,255,0.25);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="document.getElementById('search-input-hidden').focus()">
+      <div style="flex:1;background:rgba(255,255,255,0.12);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1.5px solid rgba(255,255,255,0.22);border-radius:100px;padding:13px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,0.12),0 4px 16px rgba(0,0,0,0.15);" onclick="document.getElementById('search-input-hidden').focus()">
         <i class="fas fa-search" style="color:rgba(255,255,255,0.7);font-size:15px;"></i>
         <input id="search-input-hidden" type="text" oninput="filterCards()" placeholder="Search salons, services..." style="background:none;border:none;outline:none;color:#FFFFFF;font-family:'Poppins',sans-serif;font-size:14px;width:100%;" />
       </div>

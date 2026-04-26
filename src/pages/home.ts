@@ -43,6 +43,9 @@ ${baseHead('Ghana\'s Top Beauty Booking App', `
   .see-all { font-size:13px; font-weight:600; color:#555555; text-decoration:none; }
   .see-all:hover { color:#111111; }
 
+  /* ── 3D perspective wrapper ── */
+  .perspective-wrap { perspective: 800px; }
+
   /* ── Top category circles (iPhone bubble style) ── */
   .top-cats-grid {
     display: grid;
@@ -55,15 +58,19 @@ ${baseHead('Ghana\'s Top Beauty Booking App', `
   .cat-circle { display:flex; flex-direction:column; align-items:center; gap:10px; text-decoration:none; }
   .cat-circle-img {
     width:74px; height:74px; border-radius:50%; overflow:hidden;
-    border: 2.5px solid rgba(0,0,0,0.06);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.08);
-    transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.25s;
+    border: 2px solid rgba(0,0,0,0.06);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.13), 0 2px 6px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.5);
+    transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), box-shadow 0.3s;
     flex-shrink: 0;
+    transform-style: preserve-3d;
   }
   @media(min-width:640px){ .cat-circle-img { width:90px; height:90px; } }
-  .cat-circle:hover .cat-circle-img { transform:scale(1.08); box-shadow: 0 10px 28px rgba(0,0,0,0.16); }
-  .cat-circle-img img { width:100%; height:100%; object-fit:cover; display:block; }
-  .cat-circle-label { font-size:11px; font-weight:600; color:#222222; text-align:center; line-height:1.25; letter-spacing:0.01em; }
+  .cat-circle:hover .cat-circle-img {
+    transform: scale(1.10) rotateY(6deg) rotateX(-4deg);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.20), -4px 4px 16px rgba(0,0,0,0.10);
+  }
+  .cat-circle-img img { width:100%; height:100%; object-fit:cover; display:block; filter: contrast(1.05) saturate(1.1); }
+  .cat-circle-label { font-size:11px; font-weight:600; color:#333333; text-align:center; line-height:1.25; letter-spacing:0.01em; }
   @media(min-width:640px){ .cat-circle-label { font-size:12px; } }
 
   /* ── Category tiles ── */
@@ -78,12 +85,14 @@ ${baseHead('Ghana\'s Top Beauty Booking App', `
   .cat-tile {
     position:relative; border-radius:20px; overflow:hidden; display:block;
     text-decoration:none; aspect-ratio:4/3;
-    cursor:pointer; transition:transform 0.3s cubic-bezier(.34,1.56,.64,1), box-shadow 0.3s;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.10);
+    cursor:pointer;
+    transition:transform 0.4s cubic-bezier(.34,1.56,.64,1), box-shadow 0.4s;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+    transform-style: preserve-3d;
   }
-  .cat-tile:hover { transform:translateY(-4px) scale(1.01); box-shadow:0 14px 40px rgba(0,0,0,0.18); }
-  .cat-tile img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.5s; }
-  .cat-tile:hover img { transform:scale(1.05); }
+  .cat-tile:hover { transform:translateY(-6px) rotateX(3deg) scale(1.01); box-shadow:0 20px 50px rgba(0,0,0,0.22), 0 6px 16px rgba(0,0,0,0.10); }
+  .cat-tile img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.5s; filter: contrast(1.05) saturate(1.08); }
+  .cat-tile:hover img { transform:scale(1.06); }
   .cat-tile-overlay {
     position:absolute; inset:0;
     background:linear-gradient(to top,rgba(0,0,0,0.72) 0%,rgba(0,0,0,0.14) 50%,transparent 100%);
@@ -166,12 +175,12 @@ ${navbar('home')}
         <span style="font-size:12px;font-weight:700;color:#111111;letter-spacing:0.06em;text-transform:uppercase;">Ghana's #1 Beauty Platform</span>
       </div>
 
-      <h1 class="afu-1" style="font-size:clamp(34px,6vw,58px);font-weight:800;line-height:1.1;letter-spacing:-0.03em;margin-bottom:16px;color:#111111;">
-        Find &amp; book<br/>beauty services
+      <h1 class="afu-1" style="font-size:clamp(34px,6vw,58px);font-weight:800;line-height:1.1;letter-spacing:-0.03em;margin-bottom:12px;color:#111111;">
+        Book beauty<br/>you'll love
       </h1>
 
-      <p class="afu-2" style="font-size:16px;color:#666666;line-height:1.7;margin-bottom:40px;max-width:500px;margin-left:auto;margin-right:auto;">
-        Discover verified beauty professionals near you. Book instantly, pay securely.
+      <p class="afu-2" style="font-size:15px;color:#777777;line-height:1.6;margin-bottom:36px;max-width:420px;margin-left:auto;margin-right:auto;">
+        Verified professionals across Ghana. Instant booking.
       </p>
 
       <!-- Airbnb-style pill search bar -->
@@ -402,9 +411,9 @@ ${navbar('home')}
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">
       ${[
-        {n:'1', icon:'fas fa-search', title:'Discover', desc:'Search verified beauty professionals near you. Filter by service, price, and reviews.'},
-        {n:'2', icon:'far fa-calendar-check', title:'Book instantly', desc:'Pick a time slot, confirm your booking in under 60 seconds.'},
-        {n:'3', icon:'fas fa-star', title:'Enjoy & Review', desc:'Arrive, get treated, pay via MoMo or card, then leave a review.'},
+        {n:'1', icon:'fas fa-search', title:'Discover', desc:'Browse verified professionals near you.'},
+        {n:'2', icon:'far fa-calendar-check', title:'Book', desc:'Choose a time, confirm in seconds.'},
+        {n:'3', icon:'fas fa-star', title:'Enjoy', desc:'Get treated. Pay via MoMo or card.'},
       ].map(s=>`
         <div class="hiw-step reveal">
           <div class="hiw-num">${s.n}</div>
@@ -442,8 +451,8 @@ ${navbar('home')}
           Grow your salon business.<br/>
           <span style="color:#111111;border-bottom:3px solid #111111;">It's completely free.</span>
         </h2>
-        <p style="font-size:15px;color:#666666;line-height:1.8;margin-bottom:32px;">
-          Join thousands of beauty professionals on SalonLink. Get discovered, manage bookings effortlessly, and build a loyal clientele.
+        <p style="font-size:14px;color:#777777;line-height:1.7;margin-bottom:28px;">
+          Get discovered, manage bookings, and build a loyal clientele — free.
         </p>
         <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:36px;">
           ${[
@@ -462,7 +471,7 @@ ${navbar('home')}
           `).join('')}
         </div>
         <a href="/register?role=provider" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1a1a1a,#3a3a3a);color:#FFFFFF;border:none;border-radius:100px;padding:14px 36px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,0.20);">
-          Start for Free <i class="fas fa-arrow-right" style="font-size:12px;"></i>
+          Start Free <i class="fas fa-arrow-right" style="font-size:12px;"></i>
         </a>
       </div>
 
@@ -548,11 +557,11 @@ ${navbar('home')}
 <section style="padding:60px 0;background:#F8F8F8;">
   <div class="container">
     <div style="background:linear-gradient(135deg,#111111 0%,#2d2d2d 50%,#181818 100%);border-radius:28px;padding:64px 48px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.22);" class="reveal">
-      <h2 style="font-size:clamp(24px,4vw,40px);font-weight:800;color:#FFFFFF;margin-bottom:14px;">
+      <h2 style="font-size:clamp(24px,4vw,40px);font-weight:800;color:#FFFFFF;margin-bottom:10px;">
         Your next look awaits
       </h2>
-      <p style="font-size:16px;color:rgba(255,255,255,0.65);margin-bottom:36px;max-width:440px;margin-left:auto;margin-right:auto;">
-        Join 50,000+ Ghanaians who book through SalonLink every month.
+      <p style="font-size:15px;color:rgba(255,255,255,0.60);margin-bottom:32px;">
+        Join 50,000+ Ghanaians on SalonLink.
       </p>
       <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
         <a href="/discover" style="background:#FFFFFF;color:#111111;border:none;border-radius:100px;padding:15px 36px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,0.25);">

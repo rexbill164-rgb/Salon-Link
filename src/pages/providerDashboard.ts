@@ -1044,10 +1044,93 @@ function loadKyc(token) {
           '</div>';
       } else {
         var kycStatus = p.kyc_status||'not_submitted';
-        el.innerHTML='<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;"><div style="width:48px;height:48px;border-radius:14px;background:rgba(201,168,76,0.1);display:flex;align-items:center;justify-content:center;font-size:24px;">⏳</div><div><div style="font-size:16px;font-weight:700;color:var(--g-main);">'+(kycStatus==='pending'?'Under Review':'Pending Verification')+'</div><div style="font-size:12px;color:var(--t-secondary);">'+(kycStatus==='pending'?'Your documents are being reviewed by our team.':'Complete your Ghana Card verification to get verified.')+'</div></div></div>' +
-          (kycStatus==='not_submitted'?'<a href="/provider/onboarding" class="btn-primary" style="display:inline-flex;padding:12px 24px;font-size:13px;">Complete KYC Verification</a>':'<div style="font-size:12px;color:var(--t-muted);margin-top:8px;">Expected review time: 24-48 hours. You will receive an email once approved.</div>');
+        var statusLabel = kycStatus==='submitted'||kycStatus==='pending' ? 'Under Review' : kycStatus==='rejected' ? 'Rejected' : 'Not Submitted';
+        var statusColor = kycStatus==='submitted'||kycStatus==='pending' ? '#FFB800' : kycStatus==='rejected' ? '#FF4444' : 'var(--t-muted)';
+        el.innerHTML=
+          '<div style="padding:20px;background:rgba(0,0,0,0.03);border-radius:16px;border:1px solid var(--i-faint);margin-bottom:20px;">' +
+            '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--t-muted);margin-bottom:8px;">KYC Status</div>' +
+            '<div style="font-size:18px;font-weight:800;color:'+statusColor+';">'+statusLabel+'</div>' +
+            (kycStatus==='submitted'||kycStatus==='pending' ? '<div style="font-size:12px;color:var(--t-muted);margin-top:6px;">Review takes 24–48 hrs. We\'ll email you.</div>' : '') +
+            (kycStatus==='rejected' ? '<div style="font-size:12px;color:#FF4444;margin-top:6px;">Your submission was rejected. Please resubmit.</div>' : '') +
+          '</div>' +
+          '<div style="margin-bottom:16px;font-size:13px;color:var(--t-secondary);line-height:1.6;">Upload your Ghana Card and a live selfie to get the verified badge on your profile.</div>' +
+          '<div id="kyc-upload-section">' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">' +
+              '<div>' +
+                '<div style="font-size:11px;font-weight:600;color:var(--t-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">Card Front</div>' +
+                '<label style="display:flex;align-items:center;justify-content:center;height:80px;border:1.5px dashed var(--i-faint);border-radius:12px;cursor:pointer;background:var(--c-deep);font-size:12px;color:var(--t-muted);gap:6px;" for="kyc-front-inp"><i class="fas fa-camera"></i> Upload</label>' +
+                '<input type="file" id="kyc-front-inp" accept="image/*" style="display:none;" onchange="kycPreview(this,\'front\')">' +
+                '<div id="kyc-front-prev" style="display:none;margin-top:6px;"></div>' +
+              '</div>' +
+              '<div>' +
+                '<div style="font-size:11px;font-weight:600;color:var(--t-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">Card Back</div>' +
+                '<label style="display:flex;align-items:center;justify-content:center;height:80px;border:1.5px dashed var(--i-faint);border-radius:12px;cursor:pointer;background:var(--c-deep);font-size:12px;color:var(--t-muted);gap:6px;" for="kyc-back-inp"><i class="fas fa-camera"></i> Upload</label>' +
+                '<input type="file" id="kyc-back-inp" accept="image/*" style="display:none;" onchange="kycPreview(this,\'back\')">' +
+                '<div id="kyc-back-prev" style="display:none;margin-top:6px;"></div>' +
+              '</div>' +
+            '</div>' +
+            '<div style="margin-bottom:12px;">' +
+              '<div style="font-size:11px;font-weight:600;color:var(--t-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">Selfie</div>' +
+              '<label style="display:flex;align-items:center;justify-content:center;height:80px;border:1.5px dashed var(--i-faint);border-radius:12px;cursor:pointer;background:var(--c-deep);font-size:12px;color:var(--t-muted);gap:6px;" for="kyc-selfie-inp"><i class="fas fa-user-circle"></i> Upload Selfie</label>' +
+              '<input type="file" id="kyc-selfie-inp" accept="image/*" style="display:none;" onchange="kycPreview(this,\'selfie\')">' +
+              '<div id="kyc-selfie-prev" style="display:none;margin-top:6px;"></div>' +
+            '</div>' +
+            '<input type="text" id="kyc-card-num" placeholder="Ghana Card Number (e.g. GHA-000000000-0)" style="width:100%;padding:12px 16px;border:1.5px solid var(--i-faint);border-radius:12px;font-size:13px;margin-bottom:12px;outline:none;font-family:\'Poppins\',sans-serif;"/>' +
+            '<button onclick="submitKycDash()" style="width:100%;background:var(--g-main);color:#FFF;border:none;border-radius:100px;padding:13px;font-size:13px;font-weight:700;cursor:pointer;">Submit KYC Documents</button>' +
+          '</div>';
       }
     }).catch(function(){ el.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:32px;font-size:13px;">Could not load KYC data.</div>'; });
+}
+
+/* ── KYC dashboard helpers ── */
+var kycFiles = { front: null, back: null, selfie: null };
+
+function kycPreview(input, target) {
+  var file = input.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    // Compress
+    var img2 = new Image();
+    img2.onload = function() {
+      var MAX = 800, w = img2.width, h = img2.height;
+      if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+      var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img2, 0, 0, w, h);
+      var dataUrl = cv.toDataURL('image/jpeg', 0.72);
+      kycFiles[target] = dataUrl;
+      var prev = document.getElementById('kyc-'+target+'-prev');
+      if (prev) {
+        var isCircle = target === 'selfie';
+        prev.style.display = 'block';
+        prev.innerHTML = '<img src="'+dataUrl+'" style="width:100%;'+(isCircle?'border-radius:50%;height:80px;object-fit:cover;':'border-radius:8px;max-height:80px;object-fit:contain;')+'border:1px solid var(--i-faint);"/>';
+      }
+    };
+    img2.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function submitKycDash() {
+  var token = localStorage.getItem('sl_token');
+  var cardNum = document.getElementById('kyc-card-num');
+  if (!kycFiles.front && !kycFiles.back && !kycFiles.selfie) {
+    showToast('Please upload at least one document', 'error'); return;
+  }
+  var payload = { kyc_card_number: cardNum ? cardNum.value.trim() : undefined };
+  if (kycFiles.front)  payload.kyc_front_url  = kycFiles.front;
+  if (kycFiles.back)   payload.kyc_back_url   = kycFiles.back;
+  if (kycFiles.selfie) payload.kyc_selfie_url = kycFiles.selfie;
+  var btn = document.querySelector('#kyc-upload-section button');
+  if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+  axios.post('/api/providers/me/kyc', payload, { headers: { Authorization: 'Bearer '+token } })
+    .then(function(r) {
+      showToast('KYC submitted! Under review in 24–48 hrs ✦', 'success');
+      var token2 = localStorage.getItem('sl_token'); loadKyc(token2);
+    })
+    .catch(function(e) {
+      showToast(e.response&&e.response.data&&e.response.data.error ? e.response.data.error : 'Submission failed', 'error');
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit KYC Documents'; }
+    });
 }
 
 /* ── Settings ── */

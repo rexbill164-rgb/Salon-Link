@@ -616,7 +616,7 @@ document.addEventListener('DOMContentLoaded', function() {
           '<span style="font-size:13px;font-weight:600;color:var(--t-primary);">' + firstName + '</span>' +
           '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted)" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>' +
         '</button>' +
-        '<div id="user-dd" style="display:none;position:absolute;right:0;top:calc(100%+8px);min-width:210px;background:#FFFFFF;border:1px solid var(--i-faint);border-radius:20px;padding:8px;z-index:900;box-shadow:0 16px 48px rgba(0,0,0,0.12);">' +
+        '<div id="user-dd" style="display:none;position:fixed;right:20px;top:68px;min-width:220px;background:#FFFFFF;border:1px solid #EEEEEE;border-radius:20px;padding:8px;z-index:9999;box-shadow:0 20px 60px rgba(0,0,0,0.18),0 4px 12px rgba(0,0,0,0.08);">' +
           provLink + adminLink +
           '<a href="' + dashLink + '" class="sidebar-item"><span class="icon"><i class="far fa-calendar-alt"></i></span> My Bookings</a>' +
           '<a href="/hairstyle-history" class="sidebar-item"><span class="icon"><i class="fas fa-images"></i></span> Style History</a>' +
@@ -646,7 +646,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function toggleDD() {
   var dd = document.getElementById('user-dd');
-  if (dd) dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+  if (!dd) return;
+  var showing = dd.style.display !== 'none';
+  dd.style.display = 'none';
+  if (!showing) {
+    dd.style.display = 'block';
+    dd.style.animation = 'none';
+    dd.style.opacity = '0';
+    dd.style.transform = 'translateY(-6px) scale(0.97)';
+    dd.style.transition = 'opacity 0.18s ease, transform 0.18s ease';
+    requestAnimationFrame(function(){
+      dd.style.opacity = '1';
+      dd.style.transform = 'translateY(0) scale(1)';
+    });
+  }
 }
 
 function dismissPwa() {
