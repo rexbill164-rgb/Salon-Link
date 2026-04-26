@@ -648,6 +648,13 @@ function addKycImgSection(parent, label, src, isCircle) {
     img.style.cssText = 'width:100%;max-height:260px;object-fit:contain;border-radius:16px;background:#111;cursor:pointer;border:1px solid rgba(255,255,255,0.08);box-shadow:0 8px 32px rgba(0,0,0,0.4);';
   }
   img.addEventListener('click', function(){ viewImg(img.src, label); });
+  img.addEventListener('error', function(){
+    img.style.display = 'none';
+    var errMsg = document.createElement('div');
+    errMsg.style.cssText = 'padding:16px;background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.2);border-radius:12px;color:rgba(255,100,80,0.9);font-size:12px;text-align:center;';
+    errMsg.textContent = '⚠ Image could not be loaded — may be corrupted or too large';
+    wrap.appendChild(errMsg);
+  });
   wrap.appendChild(img);
   parent.appendChild(wrap);
 }
@@ -702,33 +709,45 @@ function viewProviderKyc(providerId) {
 
       var hasAny = imgs.kyc_front_url || imgs.kyc_back_url || imgs.kyc_selfie_url;
       if (!hasAny && !imgs.kyc_card_number) {
-        ct.style.textAlign = 'center'; ct.style.padding = '32px';
         ct.style.textAlign = 'center'; ct.style.padding = '40px 20px';
         var noDocDiv = document.createElement('div');
         noDocDiv.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:12px;';
         noDocDiv.innerHTML =
           '<div style="width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:4px;">📋</div>' +
           '<div style="font-size:16px;font-weight:700;color:#FFFFFF;">No documents uploaded</div>' +
-          '<div style="font-size:13px;color:rgba(255,255,255,0.45);line-height:1.6;max-width:300px;">This provider hasn\'t submitted KYC yet. Ask them to complete verification from their dashboard.</div>' +
-          '<div style="margin-top:8px;padding:10px 20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:100px;font-size:12px;color:rgba(255,255,255,0.5);">Status: No submission</div>';
+          '<div style="font-size:13px;color:rgba(255,255,255,0.45);line-height:1.6;max-width:300px;">This provider hasn\'t submitted KYC documents yet.</div>' +
+          '<div style="margin-top:8px;padding:10px 20px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.10);border-radius:100px;font-size:12px;color:rgba(255,255,255,0.5);">Status: Awaiting Submission</div>';
         ct.appendChild(noDocDiv);
         return;
       }
       if (imgs.kyc_card_number) {
         var cardBox = document.createElement('div');
-        cardBox.style.cssText = 'margin-bottom:24px;padding:16px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:16px;display:flex;align-items:center;gap:14px;';
+        cardBox.style.cssText = 'margin-bottom:24px;padding:16px 20px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:16px;';
         var cardLbl = document.createElement('div');
-        cardLbl.style.cssText = 'font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em;';
+        cardLbl.style.cssText = 'font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;';
         cardLbl.textContent = 'Ghana Card Number';
         var cardVal = document.createElement('div');
-        cardVal.style.cssText = 'font-size:16px;font-weight:700;color:#FFFFFF;letter-spacing:0.06em;font-family:monospace;';
+        cardVal.style.cssText = 'font-size:18px;font-weight:700;color:#FFFFFF;letter-spacing:0.08em;font-family:monospace;';
         cardVal.textContent = imgs.kyc_card_number;
         cardBox.appendChild(cardLbl); cardBox.appendChild(cardVal);
         ct.appendChild(cardBox);
       }
-      if (imgs.kyc_front_url)  addKycImgSection(ct, 'GHANA CARD — FRONT', imgs.kyc_front_url, false);
-      if (imgs.kyc_back_url)   addKycImgSection(ct, 'GHANA CARD — BACK',  imgs.kyc_back_url,  false);
-      if (imgs.kyc_selfie_url) addKycImgSection(ct, 'LIVE SELFIE',         imgs.kyc_selfie_url, true);
+      // Helper to validate image source (data URL or http URL)
+      function isValidImgSrc(src) {
+        return src && (src.startsWith('data:image') || src.startsWith('http'));
+      }
+      if (imgs.kyc_front_url && isValidImgSrc(imgs.kyc_front_url))
+        addKycImgSection(ct, 'GHANA CARD — FRONT', imgs.kyc_front_url, false);
+      else if (imgs.kyc_front_url)
+        addKycImgSection(ct, 'GHANA CARD — FRONT (corrupted)', '/placeholder-id.png', false);
+      if (imgs.kyc_back_url && isValidImgSrc(imgs.kyc_back_url))
+        addKycImgSection(ct, 'GHANA CARD — BACK', imgs.kyc_back_url, false);
+      else if (imgs.kyc_back_url)
+        addKycImgSection(ct, 'GHANA CARD — BACK (corrupted)', '/placeholder-id.png', false);
+      if (imgs.kyc_selfie_url && isValidImgSrc(imgs.kyc_selfie_url))
+        addKycImgSection(ct, 'LIVE SELFIE', imgs.kyc_selfie_url, true);
+      else if (imgs.kyc_selfie_url)
+        addKycImgSection(ct, 'LIVE SELFIE (corrupted)', '/placeholder-id.png', true);
     })
     .catch(function(e) {
       var ct = document.getElementById('kyc-modal-content');

@@ -517,15 +517,6 @@ export const navbar = (active = '') => `
 <div style="height:64px;"></div>
 <script>
 (function(){
-  var u = (function(){ try{ return JSON.parse(localStorage.getItem('sl_user')||'{}'); }catch(e){ return {}; } })();
-  if (u && u.id) {
-    var nav = document.getElementById('nav-auth');
-    if (nav) {
-      var dashLink = u.role === 'provider' ? '/provider/dashboard' : u.role === 'admin' ? '/admin' : '/dashboard';
-      nav.innerHTML = '<a href="' + dashLink + '" class="btn-ghost" style="padding:9px 20px;font-size:13px;">' + (u.first_name || u.name || 'Dashboard') + '</a>' +
-        '<button onclick="logout()" class="btn-ghost" style="padding:9px 16px;font-size:13px;color:var(--s-red);">Sign Out</button>';
-    }
-  }
   var n=document.getElementById('nav-main');
   function update(){
     if(window.scrollY>40){
@@ -605,18 +596,21 @@ document.addEventListener('DOMContentLoaded', function() {
     var firstName = user.name.split(' ')[0];
     var provLink = user.role==='provider' ? '<a href="/provider/dashboard" class="sidebar-item"><span class="icon"><i class="fas fa-chart-bar"></i></span> Provider Dashboard</a>' : '';
     var adminLink = user.role==='admin' ? '<a href="/admin" class="sidebar-item"><span class="icon"><i class="fas fa-shield-alt"></i></span> Admin Panel</a>' : '';
+    // Detect dark vs light navbar
+    var navEl = document.getElementById('nav-main');
+    var isDarkNav = navEl && (navEl.style.background === 'transparent' || navEl.style.background === '' || window.getComputedStyle(navEl).backgroundColor === 'rgba(0, 0, 0, 0)');
+    var btnBg = isDarkNav ? 'rgba(255,255,255,0.15)' : 'var(--g-dim)';
+    var btnBorder = isDarkNav ? '1.5px solid rgba(255,255,255,0.30)' : '1.5px solid var(--g-border)';
+    var btnTxtColor = isDarkNav ? '#FFFFFF' : 'var(--t-primary)';
+    var btnChevron = isDarkNav ? 'rgba(255,255,255,0.6)' : 'var(--t-muted)';
     nav.innerHTML =
-      '<a href="/notifications" class="btn-icon" title="Notifications" style="position:relative;">' +
-        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>' +
-        '<span style="position:absolute;top:8px;right:8px;width:7px;height:7px;background:var(--g-main);border-radius:50%;border:2px solid white;"></span>' +
-      '</a>' +
       '<div style="position:relative;" id="user-menu-wrap">' +
-        '<button onclick="toggleDD()" id="user-menu-btn" style="display:flex;align-items:center;gap:9px;background:var(--g-dim);border:1.5px solid var(--g-border);border-radius:100px;padding:6px 14px 6px 6px;cursor:pointer;transition:all 0.25s;">' +
-          '<div style="width:28px;height:28px;border-radius:50%;background:var(--g-main);display:flex;align-items:center;justify-content:center;font-size:13px;color:#FFFFFF;font-weight:700;">' + initLetter + '</div>' +
-          '<span style="font-size:13px;font-weight:600;color:var(--t-primary);">' + firstName + '</span>' +
-          '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--t-muted)" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>' +
+        '<button onclick="toggleDD()" id="user-menu-btn" style="display:flex;align-items:center;gap:9px;background:' + btnBg + ';border:' + btnBorder + ';border-radius:100px;padding:6px 14px 6px 6px;cursor:pointer;transition:all 0.25s;backdrop-filter:blur(12px);">' +
+          '<div style="width:28px;height:28px;border-radius:50%;background:#111111;display:flex;align-items:center;justify-content:center;font-size:13px;color:#FFFFFF;font-weight:700;">' + initLetter + '</div>' +
+          '<span style="font-size:13px;font-weight:600;color:' + btnTxtColor + ';">' + firstName + '</span>' +
+          '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="' + btnChevron + '" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>' +
         '</button>' +
-        '<div id="user-dd" style="display:none;position:fixed;right:20px;top:68px;min-width:220px;background:#FFFFFF;border:1px solid #EEEEEE;border-radius:20px;padding:8px;z-index:9999;box-shadow:0 20px 60px rgba(0,0,0,0.18),0 4px 12px rgba(0,0,0,0.08);">' +
+        '<div id="user-dd" style="display:none;position:fixed;right:20px;top:68px;min-width:220px;background:#FFFFFF;border:1px solid #EEEEEE;border-radius:20px;padding:8px;z-index:99990;box-shadow:0 20px 60px rgba(0,0,0,0.18),0 4px 12px rgba(0,0,0,0.08);isolation:isolate;">' +
           provLink + adminLink +
           '<a href="' + dashLink + '" class="sidebar-item"><span class="icon"><i class="far fa-calendar-alt"></i></span> My Bookings</a>' +
           '<a href="/hairstyle-history" class="sidebar-item"><span class="icon"><i class="fas fa-images"></i></span> Style History</a>' +
@@ -629,7 +623,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('click', function(e) {
     var wrap = document.getElementById('user-menu-wrap');
     var dd   = document.getElementById('user-dd');
-    if (wrap && dd && !wrap.contains(e.target)) dd.style.display = 'none';
+    if (wrap && dd && !wrap.contains(e.target as Node) && !dd.contains(e.target as Node)) dd.style.display = 'none';
   });
 
   // Scroll reveal
@@ -647,11 +641,21 @@ document.addEventListener('DOMContentLoaded', function() {
 function toggleDD() {
   var dd = document.getElementById('user-dd');
   if (!dd) return;
+  // Move to body to escape any stacking context
+  if (dd.parentElement !== document.body) {
+    document.body.appendChild(dd);
+  }
   var showing = dd.style.display !== 'none';
   dd.style.display = 'none';
   if (!showing) {
+    // Recalculate position from button
+    var btn = document.getElementById('user-menu-btn');
+    if (btn) {
+      var rect = btn.getBoundingClientRect();
+      dd.style.top = (rect.bottom + 8) + 'px';
+      dd.style.right = (window.innerWidth - rect.right) + 'px';
+    }
     dd.style.display = 'block';
-    dd.style.animation = 'none';
     dd.style.opacity = '0';
     dd.style.transform = 'translateY(-6px) scale(0.97)';
     dd.style.transition = 'opacity 0.18s ease, transform 0.18s ease';

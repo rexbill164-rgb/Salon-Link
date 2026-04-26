@@ -138,10 +138,9 @@ ${baseHead('Discover Services', `
 
     <!-- Title row -->
     <div style="margin-bottom:28px;">
-      <h1 style="font-size:clamp(24px,4vw,38px);font-weight:800;color:#FFFFFF;margin-bottom:4px;line-height:1.15;letter-spacing:-0.02em;">
+      <h1 style="font-size:clamp(22px,4vw,34px);font-weight:800;color:#FFFFFF;margin-bottom:0;line-height:1.15;letter-spacing:-0.02em;">
         Find beauty services
       </h1>
-      <p style="font-size:13px;color:rgba(255,255,255,0.55);">Verified pros across Ghana</p>
     </div>
 
     <!-- Search + Near Me row -->
@@ -282,12 +281,6 @@ ${globalScripts()}
 <script>
 // ── Make navbar solid on scroll ──
 (function(){
-  var u = (function(){ try{ return JSON.parse(localStorage.getItem('sl_user')||'{}'); }catch(e){ return {}; } })();
-  var nav = document.getElementById('nav-auth');
-  if (u && u.id && nav) {
-    var dashLink = u.role === 'provider' ? '/provider/dashboard' : u.role === 'admin' ? '/admin' : '/dashboard';
-    nav.innerHTML = '<a href="' + dashLink + '" style="padding:9px 20px;font-size:13px;background:rgba(255,255,255,0.15);color:#FFFFFF;border:1.5px solid rgba(255,255,255,0.35);border-radius:100px;text-decoration:none;font-weight:600;">' + (u.first_name || u.name || 'Dashboard') + '</a>';
-  }
   var n = document.getElementById('nav-main');
   function updateNav() {
     if (window.scrollY > 100) {

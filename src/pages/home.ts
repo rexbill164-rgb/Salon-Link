@@ -44,34 +44,39 @@ ${baseHead('Ghana\'s Top Beauty Booking App', `
   .see-all:hover { color:#111111; }
 
   /* ── 3D perspective wrapper ── */
-  .perspective-wrap { perspective: 800px; }
+  .perspective-wrap { perspective: 900px; }
 
   /* ── Top category circles (iPhone bubble style) ── */
   .top-cats-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 16px;
+    perspective: 1000px;
   }
   @media(min-width:640px){ .top-cats-grid { grid-template-columns: repeat(7, 1fr); gap: 20px; } }
   @media(min-width:1024px){ .top-cats-grid { grid-template-columns: repeat(9, 1fr); } }
 
-  .cat-circle { display:flex; flex-direction:column; align-items:center; gap:10px; text-decoration:none; }
+  .cat-circle { display:flex; flex-direction:column; align-items:center; gap:8px; text-decoration:none; cursor:pointer; }
   .cat-circle-img {
-    width:74px; height:74px; border-radius:50%; overflow:hidden;
+    width:72px; height:72px; border-radius:50%; overflow:hidden;
     border: 2px solid rgba(0,0,0,0.06);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.13), 0 2px 6px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.5);
-    transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), box-shadow 0.3s;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.07),
+                inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(0,0,0,0.08);
+    transition: transform 0.35s cubic-bezier(.34,1.56,.64,1), box-shadow 0.35s, filter 0.35s;
     flex-shrink: 0;
     transform-style: preserve-3d;
+    will-change: transform;
   }
-  @media(min-width:640px){ .cat-circle-img { width:90px; height:90px; } }
+  @media(min-width:640px){ .cat-circle-img { width:86px; height:86px; } }
   .cat-circle:hover .cat-circle-img {
-    transform: scale(1.10) rotateY(6deg) rotateX(-4deg);
-    box-shadow: 0 16px 40px rgba(0,0,0,0.20), -4px 4px 16px rgba(0,0,0,0.10);
+    transform: scale(1.12) rotateY(8deg) rotateX(-5deg) translateZ(10px);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.22), -6px 6px 20px rgba(0,0,0,0.12),
+                inset 0 1px 0 rgba(255,255,255,0.7);
+    filter: brightness(1.04) contrast(1.05);
   }
-  .cat-circle-img img { width:100%; height:100%; object-fit:cover; display:block; filter: contrast(1.05) saturate(1.1); }
-  .cat-circle-label { font-size:11px; font-weight:600; color:#333333; text-align:center; line-height:1.25; letter-spacing:0.01em; }
-  @media(min-width:640px){ .cat-circle-label { font-size:12px; } }
+  .cat-circle-img img { width:100%; height:100%; object-fit:cover; display:block; filter: contrast(1.04) saturate(1.08); transition: filter 0.35s; }
+  .cat-circle-label { font-size:10px; font-weight:600; color:#333333; text-align:center; line-height:1.25; letter-spacing:0.01em; }
+  @media(min-width:640px){ .cat-circle-label { font-size:11px; } }
 
   /* ── Category tiles ── */
   .cat-tiles-grid {
@@ -86,13 +91,18 @@ ${baseHead('Ghana\'s Top Beauty Booking App', `
     position:relative; border-radius:20px; overflow:hidden; display:block;
     text-decoration:none; aspect-ratio:4/3;
     cursor:pointer;
-    transition:transform 0.4s cubic-bezier(.34,1.56,.64,1), box-shadow 0.4s;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08);
+    transition:transform 0.4s cubic-bezier(.34,1.56,.64,1), box-shadow 0.4s, filter 0.4s;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.13), 0 2px 6px rgba(0,0,0,0.08);
     transform-style: preserve-3d;
+    will-change: transform;
   }
-  .cat-tile:hover { transform:translateY(-6px) rotateX(3deg) scale(1.01); box-shadow:0 20px 50px rgba(0,0,0,0.22), 0 6px 16px rgba(0,0,0,0.10); }
-  .cat-tile img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.5s; filter: contrast(1.05) saturate(1.08); }
-  .cat-tile:hover img { transform:scale(1.06); }
+  .cat-tile:hover {
+    transform: translateY(-8px) rotateX(4deg) rotateY(-1deg) scale(1.02);
+    box-shadow: 0 24px 56px rgba(0,0,0,0.24), 0 8px 20px rgba(0,0,0,0.12);
+    filter: brightness(1.03);
+  }
+  .cat-tile img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.55s; filter: contrast(1.05) saturate(1.07); }
+  .cat-tile:hover img { transform:scale(1.07); }
   .cat-tile-overlay {
     position:absolute; inset:0;
     background:linear-gradient(to top,rgba(0,0,0,0.72) 0%,rgba(0,0,0,0.14) 50%,transparent 100%);
@@ -107,12 +117,17 @@ ${baseHead('Ghana\'s Top Beauty Booking App', `
   .prov-card-fresh {
     background: #FFFFFF; border-radius:18px; overflow:hidden;
     cursor:pointer; border:1px solid #F0F0F0;
-    transition:transform 0.3s cubic-bezier(.34,1.56,.64,1), box-shadow 0.3s;
+    transition:transform 0.35s cubic-bezier(.34,1.56,.64,1), box-shadow 0.35s;
     box-shadow: 0 2px 12px rgba(0,0,0,0.07);
     flex-shrink: 0;
+    transform-style: preserve-3d;
+    will-change: transform;
   }
-  .prov-card-fresh:hover { transform:translateY(-5px); box-shadow:0 16px 44px rgba(0,0,0,0.13); }
-  .prov-card-fresh:hover .pcard-img { transform:scale(1.04); }
+  .prov-card-fresh:hover {
+    transform: translateY(-6px) rotateY(2deg) rotateX(-1deg);
+    box-shadow: 0 20px 48px rgba(0,0,0,0.14), 4px 8px 24px rgba(0,0,0,0.07);
+  }
+  .prov-card-fresh:hover .pcard-img { transform:scale(1.05); }
   .pcard-img { width:100%; height:152px; object-fit:cover; transition:transform 0.5s; display:block; }
 
   /* ── Horizontal scroll ── */
@@ -170,17 +185,17 @@ ${navbar('home')}
 
     <!-- Headline + search -->
     <div style="max-width:740px;margin:0 auto;text-align:center;padding:0 0 52px;">
-      <div class="afu" style="display:inline-flex;align-items:center;gap:8px;background:#F5F5F5;border:1px solid #E0E0E0;border-radius:100px;padding:6px 16px;margin-bottom:24px;">
-        <span style="font-size:13px;">✂️</span>
-        <span style="font-size:12px;font-weight:700;color:#111111;letter-spacing:0.06em;text-transform:uppercase;">Ghana's #1 Beauty Platform</span>
+      <div class="afu" style="display:inline-flex;align-items:center;gap:8px;background:#F5F5F5;border:1px solid #E0E0E0;border-radius:100px;padding:5px 14px;margin-bottom:20px;">
+        <span style="width:6px;height:6px;background:#111;border-radius:50%;display:inline-block;"></span>
+        <span style="font-size:11px;font-weight:700;color:#111111;letter-spacing:0.07em;text-transform:uppercase;">Ghana's #1 Beauty Platform</span>
       </div>
 
-      <h1 class="afu-1" style="font-size:clamp(34px,6vw,58px);font-weight:800;line-height:1.1;letter-spacing:-0.03em;margin-bottom:12px;color:#111111;">
+      <h1 class="afu-1" style="font-size:clamp(32px,6vw,54px);font-weight:800;line-height:1.08;letter-spacing:-0.03em;margin-bottom:14px;color:#111111;">
         Book beauty<br/>you'll love
       </h1>
 
-      <p class="afu-2" style="font-size:15px;color:#777777;line-height:1.6;margin-bottom:36px;max-width:420px;margin-left:auto;margin-right:auto;">
-        Verified professionals across Ghana. Instant booking.
+      <p class="afu-2" style="font-size:14px;color:#888888;line-height:1.6;margin-bottom:32px;max-width:360px;margin-left:auto;margin-right:auto;">
+        Verified pros across Ghana.
       </p>
 
       <!-- Airbnb-style pill search bar -->
@@ -206,10 +221,10 @@ ${navbar('home')}
       </div>
 
       <!-- Popular tags -->
-      <div class="afu-4" style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;">
-        <span style="font-size:12px;color:#AAAAAA;font-weight:500;">Popular:</span>
-        ${['Hair Braiding','Nail Art','Fade Haircut','Facial','Makeup'].map(s=>`
-          <a href="/discover?service=${encodeURIComponent(s)}" style="font-size:12px;font-weight:600;color:#333333;background:linear-gradient(145deg,#F7F7F7,#EFEFEF);border:1px solid #E4E4E4;border-radius:100px;padding:5px 16px;text-decoration:none;box-shadow:0 1px 4px rgba(0,0,0,0.06);">${s}</a>
+      <div class="afu-4" style="display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;">
+        <span style="font-size:11px;color:#BBBBBB;font-weight:500;">Try:</span>
+        ${['Hair Braiding','Nail Art','Fade Haircut','Facial'].map(s=>`
+          <a href="/discover?service=${encodeURIComponent(s)}" style="font-size:11px;font-weight:600;color:#444444;background:linear-gradient(145deg,#F7F7F7,#EFEFEF);border:1px solid #E4E4E4;border-radius:100px;padding:4px 13px;text-decoration:none;box-shadow:0 1px 4px rgba(0,0,0,0.06);">${s}</a>
         `).join('')}
       </div>
     </div>
@@ -237,9 +252,9 @@ ${navbar('home')}
 ══════════════════════════════════════════════ -->
 <section style="padding:56px 0 48px;background:#FFFFFF;">
   <div class="container">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
       <h2 class="section-title">Top categories</h2>
-      <a href="/discover" class="see-all">See all <i class="fas fa-arrow-right" style="font-size:11px;"></i></a>
+      <a href="/discover" class="see-all">All <i class="fas fa-arrow-right" style="font-size:11px;"></i></a>
     </div>
 
     <div class="top-cats-grid">
@@ -270,9 +285,9 @@ ${navbar('home')}
 ══════════════════════════════════════════════ -->
 <section style="padding:0 0 56px;background:#F8F8F8;">
   <div class="container">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
-      <h2 class="section-title">Browse by category</h2>
-      <a href="/discover" class="see-all">See all <i class="fas fa-arrow-right" style="font-size:11px;"></i></a>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h2 class="section-title">Browse</h2>
+      <a href="/discover" class="see-all">All <i class="fas fa-arrow-right" style="font-size:11px;"></i></a>
     </div>
 
     <div class="cat-tiles-grid">
@@ -320,11 +335,8 @@ ${navbar('home')}
 ══════════════════════════════════════════════ -->
 <section style="padding:0 0 56px;background:#FFFFFF;border-top:1px solid #F0F0F0;">
   <div class="container">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
-      <div>
-        <h2 class="section-title">Recommended for you</h2>
-        <p style="font-size:13px;color:#888888;margin-top:4px;">Top-rated professionals near you</p>
-      </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h2 class="section-title">Recommended</h2>
       <a href="/discover" class="see-all">View all</a>
     </div>
 
@@ -365,11 +377,8 @@ ${navbar('home')}
 ══════════════════════════════════════════════ -->
 <section style="padding:0 0 56px;background:#F8F8F8;">
   <div class="container">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-top:40px;">
-      <div>
-        <h2 class="section-title">New to SalonLink</h2>
-        <p style="font-size:13px;color:#888888;margin-top:4px;">Fresh faces, exceptional talent</p>
-      </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-top:40px;">
+      <h2 class="section-title">New arrivals</h2>
       <a href="/discover" class="see-all">View all</a>
     </div>
 
@@ -404,9 +413,8 @@ ${navbar('home')}
 ══════════════════════════════════════════════ -->
 <section style="padding:60px 0;background:linear-gradient(180deg,#FFFFFF 0%,#F5F5F5 100%);">
   <div class="container">
-    <div style="text-align:center;margin-bottom:40px;" class="reveal">
-      <h2 class="section-title" style="font-size:clamp(22px,3vw,32px);margin-bottom:10px;">How SalonLink works</h2>
-      <p style="font-size:15px;color:#888888;">Book your beauty service in 3 easy steps</p>
+    <div style="text-align:center;margin-bottom:36px;" class="reveal">
+      <h2 class="section-title" style="font-size:clamp(20px,3vw,30px);">How it works</h2>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">
@@ -447,12 +455,12 @@ ${navbar('home')}
           <i class="fas fa-store" style="color:#111111;font-size:12px;"></i>
           <span style="font-size:12px;font-weight:700;color:#111111;text-transform:uppercase;letter-spacing:0.08em;">For Professionals</span>
         </div>
-        <h2 style="font-size:clamp(24px,3.5vw,38px);font-weight:800;line-height:1.2;margin-bottom:18px;color:#111111;">
-          Grow your salon business.<br/>
-          <span style="color:#111111;border-bottom:3px solid #111111;">It's completely free.</span>
+        <h2 style="font-size:clamp(22px,3.5vw,36px);font-weight:800;line-height:1.2;margin-bottom:14px;color:#111111;">
+          Grow your business.<br/>
+          <span style="border-bottom:3px solid #111111;">Completely free.</span>
         </h2>
-        <p style="font-size:14px;color:#777777;line-height:1.7;margin-bottom:28px;">
-          Get discovered, manage bookings, and build a loyal clientele — free.
+        <p style="font-size:13px;color:#888888;line-height:1.7;margin-bottom:24px;">
+          Get discovered, manage bookings, build loyal clients.
         </p>
         <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:36px;">
           ${[
@@ -523,7 +531,7 @@ ${navbar('home')}
 <section style="padding:60px 0;background:linear-gradient(180deg,#F5F5F5 0%,#FFFFFF 100%);">
   <div class="container">
     <div style="text-align:center;margin-bottom:36px;" class="reveal">
-      <h2 class="section-title" style="font-size:clamp(22px,3vw,32px);">What people are saying</h2>
+      <h2 class="section-title" style="font-size:clamp(20px,3vw,30px);">What people say</h2>
     </div>
 
     <div class="h-scroll">
@@ -557,11 +565,11 @@ ${navbar('home')}
 <section style="padding:60px 0;background:#F8F8F8;">
   <div class="container">
     <div style="background:linear-gradient(135deg,#111111 0%,#2d2d2d 50%,#181818 100%);border-radius:28px;padding:64px 48px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.22);" class="reveal">
-      <h2 style="font-size:clamp(24px,4vw,40px);font-weight:800;color:#FFFFFF;margin-bottom:10px;">
+      <h2 style="font-size:clamp(22px,4vw,38px);font-weight:800;color:#FFFFFF;margin-bottom:8px;">
         Your next look awaits
       </h2>
-      <p style="font-size:15px;color:rgba(255,255,255,0.60);margin-bottom:32px;">
-        Join 50,000+ Ghanaians on SalonLink.
+      <p style="font-size:13px;color:rgba(255,255,255,0.55);margin-bottom:28px;">
+        Join 50,000+ Ghanaians.
       </p>
       <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
         <a href="/discover" style="background:#FFFFFF;color:#111111;border:none;border-radius:100px;padding:15px 36px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,0.25);">
