@@ -15,15 +15,15 @@ ${baseHead('Ghana\'s Top Beauty Booking App', `
   .hero-search-bar {
     display:flex; align-items:stretch; gap:0;
     background:#FFFFFF; border-radius:100px; padding:0;
-    width:100%; max-width:700px; cursor:pointer;
-    box-shadow: 0 6px 32px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
+    width:100%; max-width:520px; cursor:pointer;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.05);
     border: 1px solid #E4E4E4;
     overflow: hidden;
   }
-  .hero-search-bar:hover { box-shadow: 0 10px 44px rgba(0,0,0,0.16); border-color:#C8C8C8; }
+  .hero-search-bar:hover { box-shadow: 0 8px 36px rgba(0,0,0,0.14); border-color:#C8C8C8; }
   .search-field {
-    flex:1; display:flex; align-items:center; gap:10px;
-    padding:15px 22px; border-right:1px solid #EEEEEE;
+    flex:1; display:flex; align-items:center; gap:8px;
+    padding:11px 18px; border-right:1px solid #EEEEEE;
     text-decoration:none; transition: background 0.2s;
   }
   .search-field:hover { background:#FAFAFA; }
@@ -31,12 +31,27 @@ ${baseHead('Ghana\'s Top Beauty Booking App', `
   .search-btn {
     background:linear-gradient(135deg,#1a1a1a 0%,#3a3a3a 100%);
     color:#FFFFFF; border:none; border-radius:0 100px 100px 0;
-    padding:15px 30px; font-size:14px; font-weight:700; cursor:pointer;
+    padding:11px 24px; font-size:13px; font-weight:700; cursor:pointer;
     white-space:nowrap; transition:all 0.25s;
-    display:flex; align-items:center; gap:8px; flex-shrink:0;
+    display:flex; align-items:center; gap:7px; flex-shrink:0;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
   }
   .search-btn:hover { background:linear-gradient(135deg,#2a2a2a 0%,#4a4a4a 100%); }
+  @media(max-width:480px){
+    .hero-search-bar { max-width:100%; }
+    .search-field:nth-child(2) { display:none; }
+    .search-btn { padding:11px 18px; }
+  }
+
+  /* ── Provider section 3-col responsive ── */
+  @media(max-width:767px){
+    .prov-feat-grid { grid-template-columns:1fr !important; }
+    .prov-dash-stats { grid-template-columns:1fr 1fr !important; }
+    .prov-dash-sched { grid-template-columns:1fr !important; }
+  }
+  @media(min-width:768px) and (max-width:1023px){
+    .prov-feat-grid { grid-template-columns:1fr 1fr !important; }
+  }
 
   /* ── Section titles ── */
   .section-title { font-size:22px; font-weight:800; color:#111111; letter-spacing:-0.02em; }
@@ -200,22 +215,22 @@ ${navbar('home')}
 
       <!-- Airbnb-style pill search bar -->
       <div class="afu-3 hero-search-bar" style="margin:0 auto 36px;">
-        <a href="/discover" class="search-field" style="flex:1.6;">
-          <i class="fas fa-search" style="color:#111111;font-size:14px;flex-shrink:0;"></i>
+        <a href="/discover" class="search-field" style="flex:1.8;">
+          <i class="fas fa-search" style="color:#111111;font-size:13px;flex-shrink:0;"></i>
           <div style="text-align:left;">
-            <div style="font-size:10px;font-weight:700;color:#111111;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:1px;">Service</div>
-            <div style="font-size:13px;color:#888888;">Hair, nails, barber…</div>
+            <div style="font-size:9px;font-weight:700;color:#111111;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:1px;">Service</div>
+            <div style="font-size:12px;color:#AAAAAA;">Hair, nails, barber…</div>
           </div>
         </a>
         <a href="/discover" class="search-field" style="flex:1;">
-          <i class="fas fa-map-marker-alt" style="color:#111111;font-size:14px;flex-shrink:0;"></i>
+          <i class="fas fa-map-marker-alt" style="color:#111111;font-size:12px;flex-shrink:0;"></i>
           <div style="text-align:left;">
-            <div style="font-size:10px;font-weight:700;color:#111111;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:1px;">Location</div>
-            <div style="font-size:13px;color:#888888;">Accra, Ghana</div>
+            <div style="font-size:9px;font-weight:700;color:#111111;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:1px;">Location</div>
+            <div style="font-size:12px;color:#AAAAAA;">Accra</div>
           </div>
         </a>
         <a href="/discover" class="search-btn">
-          <i class="fas fa-search" style="font-size:13px;"></i>
+          <i class="fas fa-search" style="font-size:12px;"></i>
           Search
         </a>
       </div>
@@ -445,83 +460,90 @@ ${navbar('home')}
 <!-- ══════════════════════════════════════════════
      FOR PROVIDERS
 ══════════════════════════════════════════════ -->
-<section style="padding:60px 0;background:#FFFFFF;">
+<section style="padding:64px 0;background:#FFFFFF;">
   <div class="container">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;" class="reveal">
 
-      <!-- Copy -->
+    <!-- Header row -->
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:40px;flex-wrap:wrap;gap:20px;" class="reveal">
       <div>
-        <div style="display:inline-flex;align-items:center;gap:8px;background:#F0F0F0;border:1px solid #E0E0E0;border-radius:100px;padding:6px 14px;margin-bottom:20px;">
-          <i class="fas fa-store" style="color:#111111;font-size:12px;"></i>
-          <span style="font-size:12px;font-weight:700;color:#111111;text-transform:uppercase;letter-spacing:0.08em;">For Professionals</span>
+        <div style="display:inline-flex;align-items:center;gap:7px;background:#F0F0F0;border:1px solid #E0E0E0;border-radius:100px;padding:5px 14px;margin-bottom:14px;">
+          <i class="fas fa-store" style="color:#111111;font-size:11px;"></i>
+          <span style="font-size:11px;font-weight:700;color:#111111;text-transform:uppercase;letter-spacing:0.08em;">For Professionals</span>
         </div>
-        <h2 style="font-size:clamp(22px,3.5vw,36px);font-weight:800;line-height:1.2;margin-bottom:14px;color:#111111;">
+        <h2 style="font-size:clamp(26px,4vw,42px);font-weight:800;line-height:1.15;color:#111111;margin:0;">
           Grow your business.<br/>
           <span style="border-bottom:3px solid #111111;">Completely free.</span>
         </h2>
-        <p style="font-size:13px;color:#888888;line-height:1.7;margin-bottom:24px;">
-          Get discovered, manage bookings, build loyal clients.
-        </p>
-        <div style="display:flex;flex-direction:column;gap:14px;margin-bottom:36px;">
+      </div>
+      <a href="/register?role=provider" style="flex-shrink:0;display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1a1a1a,#3a3a3a);color:#FFFFFF;border:none;border-radius:100px;padding:13px 32px;font-size:13px;font-weight:700;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,0.20);">
+        Start Free <i class="fas fa-arrow-right" style="font-size:11px;"></i>
+      </a>
+    </div>
+
+    <!-- Full-width 3-col features + dashboard grid -->
+    <div class="prov-feat-grid reveal" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:40px;">
+      ${[
+        {icon:'fas fa-id-card',      title:'Free KYC',           desc:'Instant Ghana Card identity check. Build client trust from day one.'},
+        {icon:'far fa-calendar-alt', title:'Smart Calendar',     desc:'No double-bookings. Duration-aware slots managed automatically.'},
+        {icon:'fas fa-chart-line',   title:'Growth Analytics',   desc:'Track revenue, retention and performance in real-time.'},
+      ].map(f=>`
+        <div style="background:#F8F8F8;border:1px solid #EBEBEB;border-radius:20px;padding:28px 24px;transition:box-shadow 0.25s,transform 0.25s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 36px rgba(0,0,0,0.10)'" onmouseout="this.style.transform='none';this.style.boxShadow='none'">
+          <div style="width:44px;height:44px;border-radius:13px;background:linear-gradient(145deg,#FFFFFF,#EFEFEF);border:1px solid rgba(0,0,0,0.07);display:flex;align-items:center;justify-content:center;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,0.08);">
+            <i class="${f.icon}" style="color:#111111;font-size:17px;"></i>
+          </div>
+          <div style="font-size:15px;font-weight:700;color:#111111;margin-bottom:6px;">${f.title}</div>
+          <div style="font-size:13px;color:#888888;line-height:1.65;">${f.desc}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- Dashboard mockup — full width -->
+    <div style="background:#FFFFFF;border:1px solid #E8E8E8;border-radius:24px;overflow:hidden;box-shadow:0 16px 56px rgba(0,0,0,0.08);" class="reveal">
+      <!-- Window bar -->
+      <div style="background:#111111;padding:13px 20px;display:flex;align-items:center;gap:7px;">
+        ${['rgba(255,255,255,0.25)','rgba(255,255,255,0.25)','rgba(255,255,255,0.25)'].map(c=>`<div style="width:9px;height:9px;border-radius:50%;background:${c};"></div>`).join('')}
+        <span style="font-size:11px;color:rgba(255,255,255,0.55);margin-left:10px;font-weight:500;letter-spacing:0.04em;">SalonLink · Provider Dashboard</span>
+      </div>
+      <!-- Stats row -->
+      <div class="prov-dash-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid #F0F0F0;">
+        ${[
+          {lbl:'Bookings Today', val:'8',      icon:'📅'},
+          {lbl:'Revenue',        val:'₵2,840', icon:'💰'},
+          {lbl:'Total Clients',  val:'248',    icon:'👥'},
+          {lbl:'Rating',         val:'4.9 ★',  icon:'⭐'},
+        ].map((s,i)=>`
+          <div style="padding:22px 24px;${i<3?'border-right:1px solid #F0F0F0;':''}">
+            <div style="font-size:22px;margin-bottom:2px;">${s.icon}</div>
+            <div style="font-size:22px;font-weight:800;color:#111111;line-height:1.1;">${s.val}</div>
+            <div style="font-size:10px;font-weight:600;color:#AAAAAA;text-transform:uppercase;letter-spacing:0.07em;margin-top:4px;">${s.lbl}</div>
+          </div>
+        `).join('')}
+      </div>
+      <!-- Schedule -->
+      <div style="padding:24px 28px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:#BBBBBB;margin-bottom:14px;">Today's Schedule</div>
+        <div class="prov-dash-sched" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
           ${[
-            {icon:'fas fa-id-card', title:'Free KYC Verification', desc:'Build trust with instant Ghana Card identity verification.'},
-            {icon:'far fa-calendar-alt', title:'Smart Booking Calendar', desc:'Zero double-bookings. Duration-aware slot management.'},
-            {icon:'fas fa-chart-line', title:'Growth Analytics', desc:'Track revenue and client retention in real-time.'},
-          ].map(f=>`
-            <div style="display:flex;align-items:center;gap:14px;">
-              <div style="width:42px;height:42px;border-radius:13px;background:linear-gradient(145deg,#F2F2F2,#E8E8E8);border:1px solid rgba(0,0,0,0.06);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.08);"><i class="${f.icon}" style="color:#222222;font-size:16px;"></i>
+            {time:'9:00 AM',  name:'Akosua M.', svc:'Natural Twist', status:'confirmed'},
+            {time:'11:30 AM', name:'Efua T.',   svc:'Box Braids',    status:'confirmed'},
+            {time:'2:00 PM',  name:'Ama D.',    svc:'Silk Press',    status:'upcoming'},
+          ].map(a=>`
+            <div style="display:flex;align-items:center;gap:12px;background:#F8F8F8;border:1px solid #EEEEEE;border-radius:14px;padding:14px 16px;">
+              <div style="width:38px;height:38px;border-radius:50%;background:#E8E8E8;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#555;flex-shrink:0;">${a.name[0]}</div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:13px;font-weight:700;color:#111111;">${a.name}</div>
+                <div style="font-size:11px;color:#999999;">${a.svc}</div>
               </div>
-              <div>
-                <div style="font-size:14px;font-weight:600;margin-bottom:2px;color:#111111;">${f.title}</div>
-                <div style="font-size:13px;color:#888888;">${f.desc}</div>
+              <div style="text-align:right;flex-shrink:0;">
+                <div style="font-size:11px;font-weight:700;color:#111111;">${a.time}</div>
+                <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:100px;background:${a.status==='confirmed'?'#E8F5E9':'#F5F5F5'};color:${a.status==='confirmed'?'#2E7D32':'#888888'};text-transform:uppercase;letter-spacing:0.05em;">${a.status}</span>
               </div>
             </div>
           `).join('')}
         </div>
-        <a href="/register?role=provider" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#1a1a1a,#3a3a3a);color:#FFFFFF;border:none;border-radius:100px;padding:14px 36px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,0.20);">
-          Start Free <i class="fas fa-arrow-right" style="font-size:12px;"></i>
-        </a>
-      </div>
-
-      <!-- Dashboard mockup -->
-      <div class="hide-mob">
-        <div style="background:#FFFFFF;border:1px solid #EBEBEB;border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.10);">
-          <div style="background:#111111;padding:16px 20px;display:flex;align-items:center;gap:8px;">
-            ${['rgba(255,255,255,0.3)','rgba(255,255,255,0.3)','rgba(255,255,255,0.3)'].map(c=>`<div style="width:10px;height:10px;border-radius:50%;background:${c};"></div>`).join('')}
-            <span style="font-size:12px;color:rgba(255,255,255,0.7);margin-left:8px;font-weight:500;">Provider Dashboard</span>
-          </div>
-          <div style="padding:24px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
-              ${[
-                {lbl:"Today's", val:'8', icon:'📅', bg:'#F5F5F5'},
-                {lbl:'Revenue', val:'₵ 2,840', icon:'💰', bg:'#F5F5F5'},
-                {lbl:'Clients', val:'248', icon:'👥', bg:'#F5F5F5'},
-                {lbl:'Rating', val:'4.9 ★', icon:'⭐', bg:'#F5F5F5'},
-              ].map(s=>`
-                <div style="background:${s.bg};border:1px solid #EBEBEB;border-radius:14px;padding:14px;">
-                  <div style="font-size:20px;margin-bottom:6px;">${s.icon}</div>
-                  <div style="font-size:20px;font-weight:800;color:#111111;margin-bottom:2px;">${s.val}</div>
-                  <div style="font-size:10px;font-weight:600;color:#888888;text-transform:uppercase;letter-spacing:0.06em;">${s.lbl}</div>
-                </div>
-              `).join('')}
-            </div>
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#999999;margin-bottom:12px;">Today's Schedule</div>
-            ${[
-              {time:'9:00 AM', name:'Akosua M.', svc:'Natural Twist'},
-              {time:'11:30 AM',name:'Efua T.',   svc:'Box Braids'},
-              {time:'2:00 PM', name:'Ama D.',    svc:'Silk Press'},
-            ].map((a,i)=>`
-              <div style="display:flex;align-items:center;gap:12px;padding:10px 0;${i<2?'border-bottom:1px solid #F0F0F0;':''}">
-                <span style="font-size:11px;color:#111111;font-weight:700;min-width:64px;">${a.time}</span>
-                <span style="flex:1;font-size:13px;font-weight:600;color:#111111;">${a.name}</span>
-                <span style="font-size:12px;color:#888888;">${a.svc}</span>
-                <span style="background:#F0F0F0;color:#111111;font-size:10px;font-weight:700;padding:3px 8px;border-radius:100px;">confirmed</span>
-              </div>
-            `).join('')}
-          </div>
-        </div>
       </div>
     </div>
+
   </div>
 </section>
 
