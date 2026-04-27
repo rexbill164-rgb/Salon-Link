@@ -66,6 +66,9 @@ ${baseHead('Sign In', `
   }
   .tab-pill { flex:1; padding:11px 12px; border-radius:8px; font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; transition:all 0.25s; border:none; background:transparent; color:#AAAAAA; }
   .tab-pill.active { background:#FFFFFF; color:#111111; border:1px solid #EEEEEE; box-shadow:0 2px 14px rgba(0,0,0,0.09); }
+  /* Reset modal */
+  .reset-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px; }
+  .reset-card { background:#FFFFFF;border-radius:24px;padding:36px 32px;width:100%;max-width:400px;box-shadow:0 32px 80px rgba(0,0,0,0.35); }
 </style>
 `)}
 </head>
@@ -99,9 +102,22 @@ ${baseHead('Sign In', `
   <!-- ── Login Card ── -->
   <div class="auth-card">
     <h1 style="font-size:26px;font-weight:700;margin-bottom:6px;color:var(--t-primary);">Welcome back</h1>
-    <p style="font-size:13px;color:var(--t-secondary);margin-bottom:28px;">
+    <p style="font-size:13px;color:var(--t-secondary);margin-bottom:16px;">
       No account? <a href="/register" style="color:#111111;text-decoration:none;font-weight:700;">Create one free →</a>
     </p>
+
+    <!-- Temporary password notice for existing users -->
+    <div id="reset-notice" style="background:#F0F7FF;border:1px solid #BFDBFE;border-radius:14px;padding:12px 14px;margin-bottom:20px;display:flex;align-items:flex-start;gap:10px;">
+      <span style="font-size:16px;flex-shrink:0;">ℹ️</span>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#1D4ED8;margin-bottom:2px;">Existing users — passwords were reset</div>
+        <div style="font-size:11px;color:#3B82F6;line-height:1.5;">
+          Temporary password: <strong style="font-family:monospace;letter-spacing:1px;">SalonLink2026</strong><br/>
+          Use <strong>Forgot password?</strong> below to set your own.
+        </div>
+        <button onclick="document.getElementById('reset-notice').style.display='none'" style="margin-top:6px;background:none;border:none;color:#93C5FD;font-size:10px;cursor:pointer;padding:0;">Dismiss</button>
+      </div>
+    </div>
 
     <!-- Tab switcher -->
     <div style="display:flex;background:var(--c-dark);border-radius:10px;padding:3px;gap:3px;margin-bottom:24px;border:1px solid var(--i-faint);">
