@@ -255,6 +255,117 @@ auth.post('/logout', async (c) => {
   return c.json({ success: true, message: 'Logged out successfully' })
 })
 
+// POST /api/auth/reset-password
+// Self-service: user provides email + new password. Generates a 6-digit code, 
+// stores it and returns it (in demo mode since no email service configured).
+// Two-step: step 1 = send code, step 2 = verify code + set new password.
+auth.post('/reset-password/request', async (c) => {
+  try {
+    const { email } = await c.req.json()
+    if (!email) return c.json({ success: false, error: 'Email is required' }, 400)
+
+    const user = await c.env.DB.prepare(
+      'SELECT id, email, first_name FROM users WHERE email = ? AND is_active = 1'
+    ).bind(email.toLowerCase().trim()).first() as any
+
+    if (!user) {
+      // Don't reveal whether email exists
+      return c.json({ success: true, message: 'If that email is registered, a reset code has been sent.' })
+    }
+
+    const code = String(Math.floor(100000 + Math.random() * 900000))
+    const codeHash = await hashPassword(code)
+    const expires = new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 min
+
+    await c.env.DB.prepare(`
+      CREATE TABLE IF NOT EXISTS password_resets (
+        email TEXT PRIMARY KEY,
+        code_hash TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        attempts INTEGER DEFAULT 0
+      )
+    `).run()
+
+    await c.env.DB.prepare(
+      'INSERT INTO password_resets (email, code_hash, expires_at, attempts) VALUES (?,?,?,0) ON CONFLICT(email) DO UPDATE SET code_hash=excluded.code_hash, expires_at=excluded.expires_at, attempts=0'
+    ).bind(email.toLowerCase().trim(), codeHash, expires).run()
+
+    // Try SendGrid if configured
+    const SENDGRID_KEY = c.env.SENDGRID_KEY
+    let sent = false
+    if (SENDGRID_KEY) {
+      try {
+        const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${SENDGRID_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            personalizations: [{ to: [{ email }] }],
+            from: { email: 'noreply@salonlink.it.com', name: 'SalonLink' },
+            subject: 'SalonLink — Password Reset Code',
+            content: [{ type: 'text/html', value: `
+              <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;">
+                <h2 style="color:#111;">Password Reset</h2>
+                <p>Hi ${user.first_name || 'there'},</p>
+                <p>Your SalonLink password reset code is:</p>
+                <div style="background:#f5f5f5;border-radius:12px;padding:20px;text-align:center;margin:24px 0;">
+                  <span style="font-size:32px;font-weight:800;letter-spacing:8px;color:#111;">${code}</span>
+                </div>
+                <p style="color:#888;font-size:13px;">This code expires in 15 minutes. If you didn't request this, ignore this email.</p>
+              </div>
+            `}]
+          })
+        })
+        sent = res.ok
+      } catch (_) {}
+    }
+
+    return c.json({ 
+      success: true, 
+      message: sent ? 'Reset code sent to your email' : 'Reset code generated',
+      // In demo mode (no email), return code so user can reset
+      ...(sent ? {} : { demo_code: code, demo_note: 'Email service not configured — use this code' })
+    })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// POST /api/auth/reset-password/confirm
+auth.post('/reset-password/confirm', async (c) => {
+  try {
+    const { email, code, new_password } = await c.req.json()
+    if (!email || !code || !new_password) {
+      return c.json({ success: false, error: 'Email, code and new password are required' }, 400)
+    }
+    if (new_password.length < 8) {
+      return c.json({ success: false, error: 'Password must be at least 8 characters' }, 400)
+    }
+
+    const row = await c.env.DB.prepare(
+      'SELECT code_hash, expires_at, attempts FROM password_resets WHERE email = ?'
+    ).bind(email.toLowerCase().trim()).first() as any
+
+    if (!row) return c.json({ success: false, error: 'No reset code found. Please request a new one.' }, 400)
+    if (new Date(row.expires_at) < new Date()) return c.json({ success: false, error: 'Reset code has expired. Please request a new one.' }, 400)
+    if (row.attempts >= 5) return c.json({ success: false, error: 'Too many attempts. Please request a new code.' }, 429)
+
+    const valid = await verifyPassword(code, row.code_hash)
+    if (!valid) {
+      await c.env.DB.prepare('UPDATE password_resets SET attempts = attempts + 1 WHERE email = ?').bind(email.toLowerCase().trim()).run()
+      return c.json({ success: false, error: 'Incorrect code. Please try again.' }, 400)
+    }
+
+    // Update password
+    const newHash = await hashPassword(new_password)
+    await c.env.DB.prepare('UPDATE users SET password_hash = ? WHERE email = ?').bind(newHash, email.toLowerCase().trim()).run()
+    await c.env.DB.prepare('DELETE FROM password_resets WHERE email = ?').bind(email.toLowerCase().trim()).run()
+
+    return c.json({ success: true, message: 'Password updated successfully. You can now sign in.' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
 // ── WhatsApp OTP via UltraMsg ──────────────────────────────
 // Generates a 6-digit OTP, stores it in the sessions table (reused as otp store),
 // and sends it to the user's WhatsApp number.

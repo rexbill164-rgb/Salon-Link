@@ -381,4 +381,48 @@ admin.get('/providers/:id/kyc-images', async (c) => {
   }
 })
 
+// POST /api/admin/users/:id/reset-password — admin resets any user's password
+admin.post('/users/:id/reset-password', async (c) => {
+  try {
+    const adminUser = await getAdmin(c)
+    if (!adminUser) return c.json({ success: false, error: 'Admin access required' }, 403)
+
+    const { new_password } = await c.req.json()
+    if (!new_password || new_password.length < 8) {
+      return c.json({ success: false, error: 'Password must be at least 8 characters' }, 400)
+    }
+
+    // Hash using same SHA-256 approach
+    const encoder = new TextEncoder()
+    const data = encoder.encode(new_password)
+    const hash = await crypto.subtle.digest('SHA-256', data)
+    const password_hash = btoa(String.fromCharCode(...new Uint8Array(hash)))
+
+    const result = await c.env.DB.prepare(
+      'UPDATE users SET password_hash = ? WHERE id = ?'
+    ).bind(password_hash, c.req.param('id')).run()
+
+    if (!result.meta.changes) return c.json({ success: false, error: 'User not found' }, 404)
+    return c.json({ success: true, message: 'Password reset successfully' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// GET /api/admin/users — list all users
+admin.get('/users', async (c) => {
+  try {
+    const adminUser = await getAdmin(c)
+    if (!adminUser) return c.json({ success: false, error: 'Admin access required' }, 403)
+
+    const users = await c.env.DB.prepare(
+      "SELECT id, email, first_name, last_name, role, phone, is_active, is_verified, created_at FROM users ORDER BY id DESC"
+    ).all()
+
+    return c.json({ success: true, users: users.results || [] })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
 export default admin

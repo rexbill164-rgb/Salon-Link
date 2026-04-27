@@ -125,7 +125,7 @@ ${baseHead('Sign In', `
       <div class="form-group">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
           <label class="form-label" style="margin-bottom:0;">Password</label>
-          <a href="#" style="font-size:11px;color:#111111;text-decoration:none;font-weight:600;">Forgot?</a>
+          <a href="#" onclick="showForgot();return false;" style="font-size:11px;color:#111111;text-decoration:none;font-weight:600;">Forgot?</a>
         </div>
         <div class="input-wrap">
           <i class="fas fa-lock input-icon"></i>
@@ -292,5 +292,132 @@ function backToPhone() {
   document.getElementById('phone-step-1').style.display='block';
   document.getElementById('phone-step-2').style.display='none';
 }
+
+// ── Forgot Password ────────────────────────────────────────────
+function showForgot() {
+  var m = document.getElementById('forgot-modal');
+  if (m) { m.style.display='flex'; document.getElementById('forgot-email').focus(); }
+}
+function closeForgot() {
+  var m = document.getElementById('forgot-modal');
+  if (m) m.style.display='none';
+  document.getElementById('forgot-step-1').style.display='block';
+  document.getElementById('forgot-step-2').style.display='none';
+  document.getElementById('forgot-step-3').style.display='none';
+}
+var _forgotEmail = '';
+async function sendResetCode() {
+  var email = document.getElementById('forgot-email').value.trim();
+  if (!email) { showToast('Enter your email address', 'error'); return; }
+  var btn = document.getElementById('send-reset-btn');
+  btn.disabled=true; btn.textContent='Sending...';
+  try {
+    var res = await axios.post('/api/auth/reset-password/request', { email });
+    _forgotEmail = email;
+    if (res.data.demo_code) {
+      // No email service — show code directly
+      document.getElementById('reset-demo-info').style.display='block';
+      document.getElementById('reset-demo-code').textContent = res.data.demo_code;
+    }
+    document.getElementById('forgot-step-1').style.display='none';
+    document.getElementById('forgot-step-2').style.display='block';
+    setTimeout(function(){ document.getElementById('reset-code-input').focus(); }, 100);
+  } catch(err) {
+    var msg = (err.response && err.response.data && err.response.data.error) || 'Failed to send code';
+    showToast(msg, 'error');
+    btn.disabled=false; btn.textContent='Send Reset Code';
+  }
+}
+async function confirmReset() {
+  var code = document.getElementById('reset-code-input').value.trim();
+  var pw1  = document.getElementById('reset-pw1').value;
+  var pw2  = document.getElementById('reset-pw2').value;
+  if (!code || code.length !== 6) { showToast('Enter the 6-digit code', 'error'); return; }
+  if (!pw1 || pw1.length < 8)     { showToast('Password must be at least 8 characters', 'error'); return; }
+  if (pw1 !== pw2)                  { showToast('Passwords do not match', 'error'); return; }
+  var btn = document.getElementById('confirm-reset-btn');
+  btn.disabled=true; btn.textContent='Resetting...';
+  try {
+    await axios.post('/api/auth/reset-password/confirm', { email: _forgotEmail, code, new_password: pw1 });
+    document.getElementById('forgot-step-2').style.display='none';
+    document.getElementById('forgot-step-3').style.display='block';
+  } catch(err) {
+    var msg = (err.response && err.response.data && err.response.data.error) || 'Reset failed';
+    showToast(msg, 'error');
+    btn.disabled=false; btn.textContent='Reset Password';
+  }
+}
 </script>
+
+<!-- ── Forgot Password Modal ── -->
+<div id="forgot-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99999;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(6px);">
+  <div style="background:#FFFFFF;border-radius:24px;padding:36px 32px;width:100%;max-width:400px;box-shadow:0 40px 80px rgba(0,0,0,0.4);position:relative;">
+    <button onclick="closeForgot()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;color:#AAAAAA;cursor:pointer;line-height:1;">×</button>
+
+    <!-- Step 1: Enter email -->
+    <div id="forgot-step-1">
+      <div style="font-size:24px;margin-bottom:12px;">🔑</div>
+      <h2 style="font-size:20px;font-weight:800;color:#111111;margin-bottom:6px;">Forgot your password?</h2>
+      <p style="font-size:13px;color:#888888;margin-bottom:24px;">Enter your email and we'll send a reset code.</p>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <div class="input-wrap">
+          <i class="fas fa-envelope input-icon"></i>
+          <input type="email" id="forgot-email" class="input has-icon-left" placeholder="you@example.com" onkeydown="if(event.key==='Enter') sendResetCode()"/>
+        </div>
+      </div>
+      <button id="send-reset-btn" onclick="sendResetCode()" class="btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:13px;">
+        Send Reset Code
+      </button>
+    </div>
+
+    <!-- Step 2: Enter code + new password -->
+    <div id="forgot-step-2" style="display:none;">
+      <div style="font-size:24px;margin-bottom:12px;">📧</div>
+      <h2 style="font-size:20px;font-weight:800;color:#111111;margin-bottom:6px;">Enter reset code</h2>
+      <p style="font-size:13px;color:#888888;margin-bottom:4px;">Check your email for a 6-digit code.</p>
+
+      <!-- Demo info (shown when no email service) -->
+      <div id="reset-demo-info" style="display:none;background:#FFF8E1;border:1px solid #FFD54F;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:700;color:#F57F17;margin-bottom:4px;">⚡ Demo Mode — Email not configured</div>
+        <div style="font-size:13px;color:#555555;">Your reset code is: <strong id="reset-demo-code" style="font-size:18px;letter-spacing:4px;color:#111111;font-family:monospace;"></strong></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">6-Digit Code</label>
+        <input type="tel" id="reset-code-input" class="input" placeholder="000000" maxlength="6" inputmode="numeric" style="text-align:center;font-size:22px;font-weight:700;letter-spacing:8px;"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">New Password</label>
+        <div class="input-wrap">
+          <i class="fas fa-lock input-icon"></i>
+          <input type="password" id="reset-pw1" class="input has-icon-left" placeholder="Min. 8 characters"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm Password</label>
+        <div class="input-wrap">
+          <i class="fas fa-lock input-icon"></i>
+          <input type="password" id="reset-pw2" class="input has-icon-left" placeholder="Repeat password"/>
+        </div>
+      </div>
+      <button id="confirm-reset-btn" onclick="confirmReset()" class="btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:13px;">
+        Reset Password
+      </button>
+      <button onclick="document.getElementById('forgot-step-1').style.display='block';document.getElementById('forgot-step-2').style.display='none';" style="width:100%;margin-top:10px;background:none;border:none;color:#AAAAAA;font-size:12px;cursor:pointer;padding:8px;">
+        ← Back
+      </button>
+    </div>
+
+    <!-- Step 3: Success -->
+    <div id="forgot-step-3" style="display:none;text-align:center;">
+      <div style="font-size:40px;margin-bottom:16px;">✅</div>
+      <h2 style="font-size:20px;font-weight:800;color:#111111;margin-bottom:8px;">Password reset!</h2>
+      <p style="font-size:13px;color:#888888;margin-bottom:24px;">Your password has been updated. You can now sign in with your new password.</p>
+      <button onclick="closeForgot()" class="btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:13px;">
+        Sign In Now
+      </button>
+    </div>
+  </div>
+</div>
 </body></html>`
