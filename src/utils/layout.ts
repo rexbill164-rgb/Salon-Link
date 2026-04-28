@@ -623,7 +623,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('click', function(e) {
     var wrap = document.getElementById('user-menu-wrap');
     var dd   = document.getElementById('user-dd');
-    if (wrap && dd && !wrap.contains(e.target as Node) && !dd.contains(e.target as Node)) dd.style.display = 'none';
+    if (wrap && dd && !wrap.contains(e.target) && !dd.contains(e.target)) dd.style.display = 'none';
   });
 
   // Scroll reveal
