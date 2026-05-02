@@ -11,37 +11,49 @@ ${baseHead('Sign In', `
     position:fixed; inset:0;
     display:flex; align-items:center; justify-content:center;
   }
-  /* Video / image background */
+  /* Video / image background — always visible on ALL screen sizes */
   .auth-bg {
-    position:absolute; inset:0; overflow:hidden;
-    background:#0a0a0a;
+    position:fixed; inset:0; overflow:hidden;
+    background:#0a0a0a; z-index:0;
   }
   .auth-bg video, .auth-bg img.bg-img {
     width:100%; height:100%; object-fit:cover;
-    opacity:0.55;
+    opacity:0.60;
+    display:block;
   }
   .auth-bg::after {
     content:'';
     position:absolute; inset:0;
-    background: linear-gradient(135deg,
-      rgba(5,5,5,0.88) 0%,
-      rgba(20,20,20,0.60) 45%,
-      rgba(5,5,5,0.84) 100%);
+    background: linear-gradient(160deg,
+      rgba(5,5,5,0.82) 0%,
+      rgba(10,10,10,0.55) 50%,
+      rgba(5,5,5,0.82) 100%);
   }
   /* Card */
   .auth-card {
     position:relative; z-index:10;
-    background:rgba(255,255,255,0.97);
-    backdrop-filter:blur(28px);
+    background:rgba(255,255,255,0.96);
+    backdrop-filter:blur(28px); -webkit-backdrop-filter:blur(28px);
     border-radius:26px;
     padding:44px 48px;
     width:100%; max-width:440px;
     box-shadow:0 40px 100px rgba(0,0,0,0.50), 0 0 0 1px rgba(255,255,255,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
     overflow-y:auto; max-height:92vh;
   }
+  /* MOBILE — card shrinks to content, background stays visible around it */
   @media(max-width:520px){
-    .auth-card{ border-radius:0; max-height:100vh; padding:36px 24px; max-width:100%; height:100vh; }
-    html,body { overflow:auto; }
+    html,body { overflow:auto; height:auto; }
+    .auth-wrap { position:relative; min-height:100vh; align-items:flex-start; padding:80px 0 40px; }
+    .auth-bg { position:fixed; }
+    .auth-card {
+      border-radius:22px;
+      padding:32px 22px;
+      max-width:calc(100% - 32px);
+      max-height:none;
+      height:auto;
+      margin:0 16px;
+    }
+    .auth-logo { top:20px; }
   }
   /* Logo bar above card */
   .auth-logo {
