@@ -11,9 +11,10 @@ type Bindings = {
   JWT_SECRET?: string
 }
 
-type SmsMigrationTable = 'sms_logs' | 'otp_codes' | 'customer_profiles' | 'automation_rules'
+type SmsMigrationTable = 'sms_logs' | 'otp_codes' | 'customer_profiles' | 'automation_rules' | 'analytics_events'
 
 const sms = new Hono<{ Bindings: Bindings }>()
+const REQUIRED_SMS_ANALYTICS_TABLES: SmsMigrationTable[] = ['sms_logs', 'otp_codes', 'customer_profiles', 'automation_rules', 'analytics_events']
 
 function getJwtSecret(c: any): string {
   return c.env.JWT_SECRET || ['salonlink', 'jwt', 'secret', '2026'].join('_')
@@ -193,7 +194,7 @@ async function issueJwt(c: any, user: any): Promise<string> {
 // POST /api/sms/otp/send
 sms.post('/otp/send', async (c) => {
   try {
-    await requireTables(c, ['otp_codes', 'sms_logs'])
+    await requireTables(c, REQUIRED_SMS_ANALYTICS_TABLES)
 
     const { phone, purpose = 'login' } = await c.req.json()
     const normalized = normalizeGhanaPhone(phone)
@@ -246,7 +247,7 @@ sms.post('/otp/send', async (c) => {
 // POST /api/sms/otp/verify
 sms.post('/otp/verify', async (c) => {
   try {
-    await requireTables(c, ['otp_codes', 'customer_profiles'])
+    await requireTables(c, REQUIRED_SMS_ANALYTICS_TABLES)
 
     const { phone, otp, purpose = 'login' } = await c.req.json()
     const normalized = normalizeGhanaPhone(phone)
@@ -318,7 +319,7 @@ sms.post('/otp/verify', async (c) => {
 // POST /api/sms/welcome
 sms.post('/welcome', async (c) => {
   try {
-    await requireTables(c, ['customer_profiles', 'sms_logs', 'automation_rules'])
+    await requireTables(c, REQUIRED_SMS_ANALYTICS_TABLES)
 
     const body = await c.req.json().catch(() => ({})) as any
     let user = await getAuthUser(c)
