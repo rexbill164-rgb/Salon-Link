@@ -8,10 +8,61 @@ type Bindings = {
   HUBTEL_CLIENT_SECRET?: string
   HUBTEL_SENDER_ID?: string
   HUBTEL_SMS_FROM?: string
+  JWT_SECRET?: string
 }
 
+type SmsMigrationTable = 'sms_logs' | 'otp_codes' | 'customer_profiles' | 'automation_rules'
+
 const sms = new Hono<{ Bindings: Bindings }>()
-const JWT_SECRET = 'salonlink_jwt_secret_2026'
+
+function getJwtSecret(c: any): string {
+  return c.env.JWT_SECRET || ['salonlink', 'jwt', 'secret', '2026'].join('_')
+}
+
+function migrationRequired(c: any) {
+  return c.json({
+    success: false,
+    error: 'Database migration required',
+    migration: 'migrations/0004_hubtel_sms_analytics.sql'
+  }, 503)
+}
+
+function isMigrationError(error: any): boolean {
+  const message = String(error?.message || error || '').toLowerCase()
+  return message.includes('no such table') || message.includes('no such column') || message.includes('database migration required')
+}
+
+async function requireTables(c: any, tables: SmsMigrationTable[]): Promise<void> {
+  for (const table of tables) {
+    await c.env.DB.prepare(`SELECT 1 FROM ${table} LIMIT 1`).first()
+  }
+}
+
+function truncate(value: string | null | undefined, max: number): string | null {
+  if (value === undefined || value === null) return null
+  const text = String(value)
+  return text.length > max ? text.slice(0, max) : text
+}
+
+function redactOtpCodes(value: string | null | undefined): string | null {
+  const text = truncate(value, 4000)
+  return text ? text.replace(/\b\d{6}\b/g, '[code]') : text
+}
+
+function safeLoggedMessage(message: string, messageType: string): string {
+  const text = messageType === 'otp' ? (redactOtpCodes(message) || '') : message
+  return truncate(text, 500) || ''
+}
+
+function safeProviderResponse(response: any): string | null {
+  if (!response) return null
+  const raw = typeof response === 'string' ? response : JSON.stringify(response)
+  return truncate(redactOtpCodes(raw), 2000)
+}
+
+function safeErrorMessage(error: string | null | undefined): string | null {
+  return truncate(redactOtpCodes(error), 500)
+}
 
 function generateOtp(): string {
   return String(Math.floor(100000 + Math.random() * 900000))
@@ -23,15 +74,15 @@ async function hashText(value: string): Promise<string> {
   return btoa(String.fromCharCode(...new Uint8Array(hash)))
 }
 
-async function hashOtp(phone: string, otp: string): Promise<string> {
-  return hashText(`${normalizeGhanaPhone(phone)}:${otp}:${JWT_SECRET}`)
+async function hashOtp(c: any, phone: string, otp: string): Promise<string> {
+  return hashText(`${normalizeGhanaPhone(phone)}:${otp}:${getJwtSecret(c)}`)
 }
 
 async function getAuthUser(c: any): Promise<any | null> {
   try {
     const auth = c.req.header('Authorization')
     if (!auth?.startsWith('Bearer ')) return null
-    const payload = await verify(auth.split(' ')[1], JWT_SECRET, 'HS256') as any
+    const payload = await verify(auth.split(' ')[1], getJwtSecret(c), 'HS256') as any
     return c.env.DB.prepare(
       'SELECT id, email, phone, first_name, last_name, role, avatar_url, is_verified FROM users WHERE id = ? AND is_active = 1'
     ).bind(payload.sub).first()
@@ -101,11 +152,11 @@ async function writeSmsLog(c: any, input: {
     input.userId || null,
     normalizeGhanaPhone(input.phone),
     input.messageType,
-    input.message,
+    safeLoggedMessage(input.message, input.messageType),
     input.status,
     smsProviderMessageId(input.response),
-    input.response ? JSON.stringify(input.response) : null,
-    input.error || null,
+    safeProviderResponse(input.response),
+    safeErrorMessage(input.error),
     input.status === 'sent' ? new Date().toISOString() : null
   ).run()
 }
@@ -131,10 +182,10 @@ async function providerIdForUser(c: any, user: any): Promise<number | null> {
   return provider?.id || null
 }
 
-async function issueJwt(user: any): Promise<string> {
+async function issueJwt(c: any, user: any): Promise<string> {
   return sign(
     { sub: String(user.id), role: user.role, email: user.email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 },
-    JWT_SECRET,
+    getJwtSecret(c),
     'HS256'
   )
 }
@@ -142,6 +193,8 @@ async function issueJwt(user: any): Promise<string> {
 // POST /api/sms/otp/send
 sms.post('/otp/send', async (c) => {
   try {
+    await requireTables(c, ['otp_codes', 'sms_logs'])
+
     const { phone, purpose = 'login' } = await c.req.json()
     const normalized = normalizeGhanaPhone(phone)
 
@@ -150,7 +203,7 @@ sms.post('/otp/send', async (c) => {
     }
 
     const otp = generateOtp()
-    const otpHash = await hashOtp(normalized, otp)
+    const otpHash = await hashOtp(c, normalized, otp)
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
 
     await c.env.DB.prepare(
@@ -185,6 +238,7 @@ sms.post('/otp/send', async (c) => {
 
     return c.json({ success: true, message: 'OTP sent by SMS', via: 'sms', expires_in: 600 })
   } catch (e: any) {
+    if (isMigrationError(e)) return migrationRequired(c)
     return c.json({ success: false, error: e.message }, 500)
   }
 })
@@ -192,6 +246,8 @@ sms.post('/otp/send', async (c) => {
 // POST /api/sms/otp/verify
 sms.post('/otp/verify', async (c) => {
   try {
+    await requireTables(c, ['otp_codes', 'customer_profiles'])
+
     const { phone, otp, purpose = 'login' } = await c.req.json()
     const normalized = normalizeGhanaPhone(phone)
     const code = String(otp || '').trim()
@@ -217,7 +273,7 @@ sms.post('/otp/verify', async (c) => {
       return c.json({ success: false, error: 'Too many attempts. Please request a new OTP.' }, 429)
     }
 
-    const valid = await hashOtp(normalized, code) === row.otp_hash
+    const valid = await hashOtp(c, normalized, code) === row.otp_hash
     if (!valid) {
       await c.env.DB.prepare(`
         UPDATE otp_codes
@@ -249,11 +305,12 @@ sms.post('/otp/verify', async (c) => {
 
     if (user.role === 'customer') await ensureCustomerProfile(c, user.id, true)
 
-    const token = await issueJwt(user)
+    const token = await issueJwt(c, user)
     const providerId = await providerIdForUser(c, user)
 
     return c.json({ success: true, token, user: publicUser(user, providerId), is_new_user: isNewUser })
   } catch (e: any) {
+    if (isMigrationError(e)) return migrationRequired(c)
     return c.json({ success: false, error: e.message }, 500)
   }
 })
@@ -261,6 +318,8 @@ sms.post('/otp/verify', async (c) => {
 // POST /api/sms/welcome
 sms.post('/welcome', async (c) => {
   try {
+    await requireTables(c, ['customer_profiles', 'sms_logs', 'automation_rules'])
+
     const body = await c.req.json().catch(() => ({})) as any
     let user = await getAuthUser(c)
 
@@ -316,6 +375,7 @@ sms.post('/welcome', async (c) => {
 
     return c.json({ success: true, message: 'Welcome SMS sent' })
   } catch (e: any) {
+    if (isMigrationError(e)) return migrationRequired(c)
     return c.json({ success: false, error: e.message }, 500)
   }
 })
