@@ -1,7 +1,6 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
-import { secureHeaders } from 'hono/secure-headers'
 
 // Route imports
 import authRoutes from './routes/auth'
@@ -31,8 +30,7 @@ import { paymentPage, paymentSuccessPage } from './pages/paymentPage'
 
 type Bindings = {
   DB: D1Database
-  PAYSTACK_SECRET_KEY: string
-  JWT_SECRET: string
+  [key: string]: any
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -44,7 +42,9 @@ app.use('*', cors({
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization'],
 }))
-app.use('*', secureHeaders())
+// Do not enable strict secureHeaders yet. This build relies on inline scripts, inline click handlers,
+// CDN scripts, dynamic client-side UI, and maps. A strict default CSP blocks those scripts and makes
+// admin/provider pages feel static.
 
 // ─── API ROUTES ──────────────────────────────────────────
 app.route('/api/auth', authRoutes)
@@ -64,7 +64,7 @@ app.get('/dashboard', (c) => c.html(dashboardPage()))
 app.get('/provider/dashboard', (c) => c.html(providerDashboardPage()))
 app.get('/provider/onboarding', (c) => c.html(onboardingPage()))
 app.get('/discover', (c) => c.html(discoveryPage()))
-app.get('/provider/:id', (c) => c.html(providerProfilePage()))
+app.get('/provider/:id', (c) => c.html(providerProfilePage(c.req.param('id'))))
 app.get('/book/:id', (c) => c.html(bookingPage(c.req.param('id'))))
 app.get('/admin', (c) => c.html(adminPanelPage()))
 app.get('/hairstyle-history', (c) => c.html(hairstyleHistoryPage()))
@@ -77,7 +77,7 @@ app.get('/payment/success', (c) => c.html(paymentSuccessPage()))
 app.get('/api/health', (c) => c.json({
   status: 'ok',
   app: 'SalonLink',
-  version: '2.0.0',
+  version: '2.0.1-genspark-fix',
   db: 'D1 Connected',
   timestamp: new Date().toISOString()
 }))
