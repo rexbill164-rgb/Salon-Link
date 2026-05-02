@@ -1,16 +1,39 @@
 import { Hono } from 'hono'
 import { verify } from 'hono/jwt'
 
-type Bindings = { DB: D1Database }
+type Bindings = { DB: D1Database; JWT_SECRET?: string }
+type AnalyticsMigrationTable = 'analytics_events' | 'sms_logs'
 
 const analytics = new Hono<{ Bindings: Bindings }>()
-const JWT_SECRET = 'salonlink_jwt_secret_2026'
+
+function getJwtSecret(c: any): string {
+  return c.env.JWT_SECRET || ['salonlink', 'jwt', 'secret', '2026'].join('_')
+}
+
+function migrationRequired(c: any) {
+  return c.json({
+    success: false,
+    error: 'Database migration required',
+    migration: 'migrations/0004_hubtel_sms_analytics.sql'
+  }, 503)
+}
+
+function isMigrationError(error: any): boolean {
+  const message = String(error?.message || error || '').toLowerCase()
+  return message.includes('no such table') || message.includes('no such column') || message.includes('database migration required')
+}
+
+async function requireTables(c: any, tables: AnalyticsMigrationTable[]): Promise<void> {
+  for (const table of tables) {
+    await c.env.DB.prepare(`SELECT 1 FROM ${table} LIMIT 1`).first()
+  }
+}
 
 async function getAuthPayload(c: any): Promise<any | null> {
   try {
     const auth = c.req.header('Authorization')
     if (!auth?.startsWith('Bearer ')) return null
-    return await verify(auth.split(' ')[1], JWT_SECRET, 'HS256') as any
+    return await verify(auth.split(' ')[1], getJwtSecret(c), 'HS256') as any
   } catch {
     return null
   }
@@ -53,6 +76,8 @@ async function countFirst(c: any, sql: string): Promise<number> {
 // POST /api/analytics/track
 analytics.post('/track', async (c) => {
   try {
+    await requireTables(c, ['analytics_events'])
+
     const body = await c.req.json()
     const eventName = String(body.event_name || '').trim()
 
@@ -85,6 +110,7 @@ analytics.post('/track', async (c) => {
 
     return c.json({ success: true })
   } catch (e: any) {
+    if (isMigrationError(e)) return migrationRequired(c)
     return c.json({ success: false, error: e.message }, 500)
   }
 })
@@ -94,6 +120,8 @@ analytics.get('/summary', async (c) => {
   try {
     const admin = await requireAdmin(c)
     if (!admin) return c.json({ success: false, error: 'Admin access required' }, 403)
+
+    await requireTables(c, ['analytics_events', 'sms_logs'])
 
     const customers = await countFirst(c, "SELECT COUNT(*) as count FROM users WHERE role = 'customer'")
     const providers = await countFirst(c, 'SELECT COUNT(*) as count FROM providers')
@@ -172,6 +200,7 @@ analytics.get('/summary', async (c) => {
       }
     })
   } catch (e: any) {
+    if (isMigrationError(e)) return migrationRequired(c)
     return c.json({ success: false, error: e.message }, 500)
   }
 })
