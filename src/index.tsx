@@ -27,7 +27,6 @@ import { hairstyleHistoryPage } from './pages/hairstyleHistory'
 import { settingsPage } from './pages/settings'
 import { notificationsPage } from './pages/notifications'
 import { paymentPage, paymentSuccessPage } from './pages/paymentPage'
-import { enhancePage } from './utils/refreshTheme'
 
 type Bindings = {
   DB: D1Database
@@ -58,32 +57,32 @@ app.route('/api/uploads', uploadRoutes)
 app.route('/api/notifications', notificationRoutes)
 
 // Frontend pages
-app.get('/', (c) => c.html(enhancePage(homePage())))
-app.get('/login', (c) => c.html(enhancePage(loginPage())))
-app.get('/register', (c) => c.html(enhancePage(registerPage())))
-app.get('/dashboard', (c) => c.html(enhancePage(dashboardPage())))
-app.get('/provider/dashboard', (c) => c.html(enhancePage(providerDashboardPage())))
-app.get('/provider/onboarding', (c) => c.html(enhancePage(onboardingPage())))
-app.get('/discover', (c) => c.html(enhancePage(discoveryPage())))
-app.get('/provider/:id', (c) => c.html(enhancePage(providerProfilePage(c.req.param('id')))))
-app.get('/book/:id', (c) => c.html(enhancePage(bookingPage(c.req.param('id')))))
-app.get('/admin', (c) => c.html(enhancePage(adminPanelPage())))
-app.get('/hairstyle-history', (c) => c.html(enhancePage(hairstyleHistoryPage())))
-app.get('/settings', (c) => c.html(enhancePage(settingsPage())))
-app.get('/notifications', (c) => c.html(enhancePage(notificationsPage())))
-app.get('/payment/pay', (c) => c.html(enhancePage(paymentPage())))
-app.get('/payment/success', (c) => c.html(enhancePage(paymentSuccessPage())))
+app.get('/', (c) => c.html(homePage()))
+app.get('/login', (c) => c.html(loginPage()))
+app.get('/register', (c) => c.html(registerPage()))
+app.get('/dashboard', (c) => c.html(dashboardPage()))
+app.get('/provider/dashboard', (c) => c.html(providerDashboardPage()))
+app.get('/provider/onboarding', (c) => c.html(onboardingPage()))
+app.get('/discover', (c) => c.html(discoveryPage()))
+app.get('/provider/:id', (c) => c.html(providerProfilePage(c.req.param('id'))))
+app.get('/book/:id', (c) => c.html(bookingPage(c.req.param('id'))))
+app.get('/admin', (c) => c.html(adminPanelPage()))
+app.get('/hairstyle-history', (c) => c.html(hairstyleHistoryPage()))
+app.get('/settings', (c) => c.html(settingsPage()))
+app.get('/notifications', (c) => c.html(notificationsPage()))
+app.get('/payment/pay', (c) => c.html(paymentPage()))
+app.get('/payment/success', (c) => c.html(paymentSuccessPage()))
 
 // Health check
 app.get('/api/health', (c) => c.json({
   status: 'ok',
   app: 'SalonLink',
-  version: '2.1.0-graphite-refresh',
+  version: '2.0.1-genspark-fix',
   db: 'D1 Connected',
   timestamp: new Date().toISOString()
 }))
 
 // 404 fallback
-app.notFound((c) => c.html(enhancePage(homePage())))
+app.notFound((c) => c.html(homePage()))
 
 export default app
