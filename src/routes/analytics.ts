@@ -2,9 +2,10 @@ import { Hono } from 'hono'
 import { verify } from 'hono/jwt'
 
 type Bindings = { DB: D1Database; JWT_SECRET?: string }
-type AnalyticsMigrationTable = 'analytics_events' | 'sms_logs'
+type AnalyticsMigrationTable = 'sms_logs' | 'otp_codes' | 'customer_profiles' | 'automation_rules' | 'analytics_events'
 
 const analytics = new Hono<{ Bindings: Bindings }>()
+const REQUIRED_SMS_ANALYTICS_TABLES: AnalyticsMigrationTable[] = ['sms_logs', 'otp_codes', 'customer_profiles', 'automation_rules', 'analytics_events']
 
 function getJwtSecret(c: any): string {
   return c.env.JWT_SECRET || ['salonlink', 'jwt', 'secret', '2026'].join('_')
@@ -76,7 +77,7 @@ async function countFirst(c: any, sql: string): Promise<number> {
 // POST /api/analytics/track
 analytics.post('/track', async (c) => {
   try {
-    await requireTables(c, ['analytics_events'])
+    await requireTables(c, REQUIRED_SMS_ANALYTICS_TABLES)
 
     const body = await c.req.json()
     const eventName = String(body.event_name || '').trim()
@@ -121,7 +122,7 @@ analytics.get('/summary', async (c) => {
     const admin = await requireAdmin(c)
     if (!admin) return c.json({ success: false, error: 'Admin access required' }, 403)
 
-    await requireTables(c, ['analytics_events', 'sms_logs'])
+    await requireTables(c, REQUIRED_SMS_ANALYTICS_TABLES)
 
     const customers = await countFirst(c, "SELECT COUNT(*) as count FROM users WHERE role = 'customer'")
     const providers = await countFirst(c, 'SELECT COUNT(*) as count FROM providers')
