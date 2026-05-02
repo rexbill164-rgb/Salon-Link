@@ -11,6 +11,8 @@ import reviewRoutes from './routes/reviews'
 import adminRoutes from './routes/admin'
 import uploadRoutes from './routes/uploads'
 import notificationRoutes from './routes/notifications'
+import smsRoutes from './routes/sms'
+import analyticsRoutes from './routes/analytics'
 
 // Page imports
 import { homePage } from './pages/home'
@@ -55,6 +57,8 @@ app.route('/api/reviews', reviewRoutes)
 app.route('/api/admin', adminRoutes)
 app.route('/api/uploads', uploadRoutes)
 app.route('/api/notifications', notificationRoutes)
+app.route('/api/sms', smsRoutes)
+app.route('/api/analytics', analyticsRoutes)
 
 // Frontend pages
 app.get('/', (c) => c.html(homePage()))
