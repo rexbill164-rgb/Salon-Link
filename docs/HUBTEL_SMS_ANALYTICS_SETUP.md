@@ -7,6 +7,8 @@ This implementation uses SalonLink-managed OTP codes delivered through Hubtel SM
 - SalonLink generates a 6-digit OTP on `POST /api/sms/otp/send`.
 - The OTP is hashed and stored in D1 in the `otp_codes` table.
 - Hubtel is used only to deliver the SMS message to the normalized Ghana phone number.
+- SalonLink stores and logs normalized Ghana phone numbers as `233XXXXXXXXX`.
+- Hubtel SMS requests send the recipient number as `+233XXXXXXXXX`.
 - The OTP expires after 10 minutes.
 - Verification attempts are limited to 5 attempts per OTP session.
 - SMS delivery attempts are stored in `sms_logs`; OTP bodies are truncated/redacted in logs to avoid retaining the code unnecessarily.
