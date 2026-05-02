@@ -37,6 +37,42 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
+function loginPageWithSmsAndAnalytics() {
+  const afterLoginScript = `function salonLinkAfterLogin(token, user, method) {
+  if (!token || !window.axios) return;
+  var headers = { Authorization: 'Bearer ' + token };
+  axios.post('/api/sms/welcome', {}, { headers: headers }).catch(function(){});
+  axios.post('/api/analytics/track', {
+    event_name: 'user_login',
+    event_source: 'web',
+    page_path: '/login',
+    metadata: { method: method, role: user && user.role }
+  }, { headers: headers }).catch(function(){});
+}`
+
+  return loginPage()
+    .replace('/api/auth/otp/send', '/api/sms/otp/send')
+    .replace('/api/auth/otp/verify', '/api/sms/otp/verify')
+    .replace('Phone / WhatsApp', 'Phone / SMS')
+    .replace('OTP sent to your WhatsApp', 'OTP sent to your phone')
+    .replace('Send OTP via WhatsApp', 'Send OTP via SMS')
+    .replace('Check your WhatsApp', 'Check your SMS')
+    .replace('OTP sent to WhatsApp \\u2726', 'OTP sent by SMS \\u2726')
+    .replace('Send OTP via WhatsApp', 'Send OTP via SMS')
+    .replace(
+      '<script>\n// Try to play video background, fallback to image',
+      `<script>\n${afterLoginScript}\n\n// Try to play video background, fallback to image`
+    )
+    .replace(
+      "localStorage.setItem('sl_user', JSON.stringify(u));\n      showToast('Welcome back, ' + u.name + ' \\u2726', 'success');",
+      "localStorage.setItem('sl_user', JSON.stringify(u));\n      salonLinkAfterLogin(res.data.token, u, 'email');\n      showToast('Welcome back, ' + u.name + ' \\u2726', 'success');"
+    )
+    .replace(
+      "localStorage.setItem('sl_user', JSON.stringify(u));\n      showToast('Welcome to SalonLink \\u2726', 'success');",
+      "localStorage.setItem('sl_user', JSON.stringify(u));\n      salonLinkAfterLogin(res.data.token, u, 'phone');\n      showToast('Welcome to SalonLink \\u2726', 'success');"
+    )
+}
+
 // Middleware
 app.use('*', logger())
 app.use('*', cors({
@@ -62,7 +98,7 @@ app.route('/api/analytics', analyticsRoutes)
 
 // Frontend pages
 app.get('/', (c) => c.html(homePage()))
-app.get('/login', (c) => c.html(loginPage()))
+app.get('/login', (c) => c.html(loginPageWithSmsAndAnalytics()))
 app.get('/register', (c) => c.html(registerPage()))
 app.get('/dashboard', (c) => c.html(dashboardPage()))
 app.get('/provider/dashboard', (c) => c.html(providerDashboardPage()))
