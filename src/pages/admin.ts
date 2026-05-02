@@ -651,8 +651,8 @@ function addKycImgSection(parent, label, src, isCircle) {
   img.addEventListener('error', function(){
     img.style.display = 'none';
     var errMsg = document.createElement('div');
-    errMsg.style.cssText = 'padding:16px;background:rgba(255,59,48,0.08);border:1px solid rgba(255,59,48,0.2);border-radius:12px;color:rgba(255,100,80,0.9);font-size:12px;text-align:center;';
-    errMsg.textContent = '⚠ Image could not be loaded — may be corrupted or too large';
+    errMsg.style.cssText = 'padding:20px 16px;background:rgba(255,59,48,0.08);border:1px dashed rgba(255,59,48,0.3);border-radius:12px;color:rgba(255,100,80,0.9);font-size:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;';
+    errMsg.innerHTML = '<span style="font-size:28px;">🖼</span><span style="font-weight:600;">Image could not be displayed</span><span style="color:rgba(255,255,255,0.35);font-size:11px;">The document was uploaded but may be too large to display, or the format is unsupported. The provider may need to re-submit.</span>';
     wrap.appendChild(errMsg);
   });
   wrap.appendChild(img);
@@ -732,22 +732,25 @@ function viewProviderKyc(providerId) {
         cardBox.appendChild(cardLbl); cardBox.appendChild(cardVal);
         ct.appendChild(cardBox);
       }
-      // Helper to validate image source (data URL or http URL)
-      function isValidImgSrc(src) {
-        return src && (src.startsWith('data:image') || src.startsWith('http'));
+      // Helper — normalise any stored image value to a usable src
+      function normImgSrc(src) {
+        if (!src || typeof src !== 'string' || src.trim() === '') return null;
+        var s = src.trim();
+        // Already a proper data URL or HTTP URL
+        if (s.startsWith('data:image') || s.startsWith('http')) return s;
+        // Raw base64 without the data: prefix — reconstruct it
+        if (/^[A-Za-z0-9+/=]{20,}/.test(s)) return 'data:image/jpeg;base64,' + s;
+        return null;
       }
-      if (imgs.kyc_front_url && isValidImgSrc(imgs.kyc_front_url))
-        addKycImgSection(ct, 'GHANA CARD — FRONT', imgs.kyc_front_url, false);
-      else if (imgs.kyc_front_url)
-        addKycImgSection(ct, 'GHANA CARD — FRONT (corrupted)', '/placeholder-id.png', false);
-      if (imgs.kyc_back_url && isValidImgSrc(imgs.kyc_back_url))
-        addKycImgSection(ct, 'GHANA CARD — BACK', imgs.kyc_back_url, false);
-      else if (imgs.kyc_back_url)
-        addKycImgSection(ct, 'GHANA CARD — BACK (corrupted)', '/placeholder-id.png', false);
-      if (imgs.kyc_selfie_url && isValidImgSrc(imgs.kyc_selfie_url))
-        addKycImgSection(ct, 'LIVE SELFIE', imgs.kyc_selfie_url, true);
-      else if (imgs.kyc_selfie_url)
-        addKycImgSection(ct, 'LIVE SELFIE (corrupted)', '/placeholder-id.png', true);
+      var frontSrc  = normImgSrc(imgs.kyc_front_url);
+      var backSrc   = normImgSrc(imgs.kyc_back_url);
+      var selfieSrc = normImgSrc(imgs.kyc_selfie_url);
+      if (frontSrc)  addKycImgSection(ct, 'GHANA CARD — FRONT', frontSrc, false);
+      else if (imgs.kyc_front_url) addKycImgSection(ct, 'GHANA CARD — FRONT (unreadable)', 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=', false);
+      if (backSrc)   addKycImgSection(ct, 'GHANA CARD — BACK', backSrc, false);
+      else if (imgs.kyc_back_url)  addKycImgSection(ct, 'GHANA CARD — BACK (unreadable)',  'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=', false);
+      if (selfieSrc) addKycImgSection(ct, 'LIVE SELFIE', selfieSrc, true);
+      else if (imgs.kyc_selfie_url) addKycImgSection(ct, 'LIVE SELFIE (unreadable)',        'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=', true);
     })
     .catch(function(e) {
       var ct = document.getElementById('kyc-modal-content');

@@ -48,6 +48,7 @@ ${baseHead('Ghana\'s Top Beauty Booking App', `
     .prov-feat-grid { grid-template-columns:1fr !important; }
     .prov-dash-stats { grid-template-columns:1fr 1fr !important; }
     .prov-dash-sched { grid-template-columns:1fr !important; }
+    #prov-section { padding:0 16px !important; }
   }
   @media(min-width:768px) and (max-width:1023px){
     .prov-feat-grid { grid-template-columns:1fr 1fr !important; }
@@ -460,8 +461,8 @@ ${navbar('home')}
 <!-- ══════════════════════════════════════════════
      FOR PROVIDERS
 ══════════════════════════════════════════════ -->
-<section style="padding:64px 0;background:#FFFFFF;">
-  <div class="container">
+<section style="padding:64px 0;background:#FFFFFF;overflow:hidden;">
+  <div style="max-width:1440px;margin:0 auto;padding:0 40px;width:100%;box-sizing:border-box;">
 
     <!-- Header row -->
     <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:40px;flex-wrap:wrap;gap:20px;" class="reveal">
@@ -498,7 +499,7 @@ ${navbar('home')}
     </div>
 
     <!-- Dashboard mockup — full width -->
-    <div style="background:#FFFFFF;border:1px solid #E8E8E8;border-radius:24px;overflow:hidden;box-shadow:0 16px 56px rgba(0,0,0,0.08);" class="reveal">
+    <div style="background:#FFFFFF;border:1px solid #E8E8E8;border-radius:24px;overflow:hidden;box-shadow:0 16px 56px rgba(0,0,0,0.08);width:100%;" class="reveal">
       <!-- Window bar -->
       <div style="background:#111111;padding:13px 20px;display:flex;align-items:center;gap:7px;">
         ${['rgba(255,255,255,0.25)','rgba(255,255,255,0.25)','rgba(255,255,255,0.25)'].map(c=>`<div style="width:9px;height:9px;border-radius:50%;background:${c};"></div>`).join('')}
