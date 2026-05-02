@@ -28,14 +28,15 @@ function getHubtelAuth(env: HubtelEnv): string | null {
 }
 
 export async function sendHubtelSms(env: HubtelEnv, phone: string, message: string): Promise<{ ok: boolean; provider: string; response?: any; error?: string }> {
-  const to = normalizeGhanaPhone(phone)
+  const normalized = normalizeGhanaPhone(phone)
+  const to = normalized.startsWith('+') ? normalized : '+' + normalized
   const from = env.HUBTEL_SMS_FROM || env.HUBTEL_SENDER_ID || 'SalonLink'
   const auth = getHubtelAuth(env)
 
   if (!auth) {
     return { ok: false, provider: 'hubtel', error: 'Hubtel credentials not configured' }
   }
-  if (!to || to.length < 12) {
+  if (!normalized || normalized.length < 12) {
     return { ok: false, provider: 'hubtel', error: `Invalid phone number: ${maskPhone(phone)}` }
   }
 
