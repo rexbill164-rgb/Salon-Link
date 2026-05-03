@@ -27,6 +27,7 @@ import { hairstyleHistoryPage } from './pages/hairstyleHistory'
 import { settingsPage } from './pages/settings'
 import { notificationsPage } from './pages/notifications'
 import { paymentPage, paymentSuccessPage } from './pages/paymentPage'
+import { repairInlineScriptText } from './utils/generatedScriptRepairs'
 
 type Bindings = {
   DB: D1Database
@@ -61,12 +62,12 @@ app.get('/', (c) => c.html(homePage()))
 app.get('/login', (c) => c.html(loginPage()))
 app.get('/register', (c) => c.html(registerPage()))
 app.get('/dashboard', (c) => c.html(dashboardPage()))
-app.get('/provider/dashboard', (c) => c.html(providerDashboardPage()))
+app.get('/provider/dashboard', (c) => c.html(repairInlineScriptText(providerDashboardPage())))
 app.get('/provider/onboarding', (c) => c.html(onboardingPage()))
 app.get('/discover', (c) => c.html(discoveryPage()))
 app.get('/provider/:id', (c) => c.html(providerProfilePage(c.req.param('id'))))
 app.get('/book/:id', (c) => c.html(bookingPage(c.req.param('id'))))
-app.get('/admin', (c) => c.html(adminPanelPage()))
+app.get('/admin', (c) => c.html(repairInlineScriptText(adminPanelPage())))
 app.get('/hairstyle-history', (c) => c.html(hairstyleHistoryPage()))
 app.get('/settings', (c) => c.html(settingsPage()))
 app.get('/notifications', (c) => c.html(notificationsPage()))
