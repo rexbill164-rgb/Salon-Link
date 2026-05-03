@@ -1,9 +1,17 @@
 import { Hono } from 'hono'
 import { sign, verify } from 'hono/jwt'
 
-type Bindings = { DB: D1Database; ADMIN_EMAIL?: string; SENDGRID_KEY?: string; ULTRAMSG_TOKEN?: string; ULTRAMSG_INSTANCE?: string }
+type Bindings = { DB: D1Database; JWT_SECRET?: string; ALLOW_DEMO_CODES?: string; ADMIN_EMAIL?: string; SENDGRID_KEY?: string; ULTRAMSG_TOKEN?: string; ULTRAMSG_INSTANCE?: string }
 
 const auth = new Hono<{ Bindings: Bindings }>()
+
+function getJwtSecret(c: any): string {
+  return c.env.JWT_SECRET || ['salonlink', 'jwt', 'secret', '2026'].join('_')
+}
+
+function allowDemoCodes(c: any): boolean {
+  return c.env.ALLOW_DEMO_CODES === 'true'
+}
 
 // Send email via SendGrid (if key configured) or store as notification
 async function sendAdminEmail(c: any, subject: string, body: string) {
@@ -97,7 +105,7 @@ auth.post('/register', async (c) => {
     // Generate JWT
     const token = await sign(
       { sub: String(userId), role: userRole, email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 },
-      'salonlink_jwt_secret_2026'
+      getJwtSecret(c)
     )
 
     const user = await c.env.DB.prepare(
@@ -156,7 +164,7 @@ auth.post('/login', async (c) => {
 
     const token = await sign(
       { sub: String(user.id), role: user.role, email: user.email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 },
-      'salonlink_jwt_secret_2026'
+      getJwtSecret(c)
     )
 
     // Get provider id if provider
@@ -195,7 +203,7 @@ auth.get('/me', async (c) => {
       return c.json({ success: false, error: 'Unauthorized' }, 401)
     }
     const token = authHeader.split(' ')[1]
-    const payload = await verify(token, 'salonlink_jwt_secret_2026', 'HS256') as any
+    const payload = await verify(token, getJwtSecret(c), 'HS256') as any
 
     const user = await c.env.DB.prepare(
       'SELECT id, email, phone, first_name, last_name, role, avatar_url, is_verified FROM users WHERE id = ?'
@@ -216,7 +224,7 @@ auth.put('/profile', async (c) => {
   try {
     const authHeader = c.req.header('Authorization')
     if (!authHeader?.startsWith('Bearer ')) return c.json({ success: false, error: 'Unauthorized' }, 401)
-    const payload = await verify(authHeader.split(' ')[1], 'salonlink_jwt_secret_2026', 'HS256') as any
+    const payload = await verify(authHeader.split(' ')[1], getJwtSecret(c), 'HS256') as any
     const { first_name, last_name, phone } = await c.req.json()
     await c.env.DB.prepare(
       'UPDATE users SET first_name = ?, last_name = ?, phone = ? WHERE id = ?'
@@ -235,7 +243,7 @@ auth.put('/password', async (c) => {
   try {
     const authHeader = c.req.header('Authorization')
     if (!authHeader?.startsWith('Bearer ')) return c.json({ success: false, error: 'Unauthorized' }, 401)
-    const payload = await verify(authHeader.split(' ')[1], 'salonlink_jwt_secret_2026', 'HS256') as any
+    const payload = await verify(authHeader.split(' ')[1], getJwtSecret(c), 'HS256') as any
     const { current_password, new_password } = await c.req.json()
     if (!current_password || !new_password) return c.json({ success: false, error: 'Both passwords required' }, 400)
     if (new_password.length < 8) return c.json({ success: false, error: 'Password must be at least 8 characters' }, 400)
@@ -256,8 +264,7 @@ auth.post('/logout', async (c) => {
 })
 
 // POST /api/auth/reset-password
-// Self-service: user provides email + new password. Generates a 6-digit code, 
-// stores it and returns it (in demo mode since no email service configured).
+// Self-service password reset. Demo reset codes are only returned when ALLOW_DEMO_CODES is true.
 // Two-step: step 1 = send code, step 2 = verify code + set new password.
 auth.post('/reset-password/request', async (c) => {
   try {
@@ -319,11 +326,11 @@ auth.post('/reset-password/request', async (c) => {
       } catch (_) {}
     }
 
-    return c.json({ 
-      success: true, 
-      message: sent ? 'Reset code sent to your email' : 'Reset code generated',
-      // In demo mode (no email), return code so user can reset
-      ...(sent ? {} : { demo_code: code, demo_note: 'Email service not configured — use this code' })
+    const demoAllowed = allowDemoCodes(c)
+    return c.json({
+      success: true,
+      message: sent ? 'Reset code sent to your email' : 'If that email is registered, a reset code has been sent.',
+      ...(sent || !demoAllowed ? {} : { demo_code: code, demo_note: 'Email service not configured — use this code' })
     })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
@@ -421,10 +428,15 @@ auth.post('/otp/send', async (c) => {
 
     if (sent) {
       return c.json({ success: true, message: 'OTP sent to your WhatsApp', via: 'whatsapp' })
-    } else {
-      // No WhatsApp credentials — return OTP in response for dev/demo (remove in prod)
-      return c.json({ success: true, message: 'OTP generated (WhatsApp not configured)', otp_demo: otp, via: 'demo' })
     }
+
+    const demoAllowed = allowDemoCodes(c)
+    return c.json({
+      success: true,
+      message: demoAllowed ? 'OTP generated (WhatsApp not configured)' : 'OTP sent if messaging is configured',
+      via: demoAllowed ? 'demo' : 'configured',
+      ...(demoAllowed ? { otp_demo: otp } : {})
+    })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
@@ -472,7 +484,7 @@ auth.post('/otp/verify', async (c) => {
 
     const token = await sign(
       { sub: user.id, role: user.role, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 },
-      'salonlink_jwt_secret_2026', 'HS256'
+      getJwtSecret(c), 'HS256'
     )
 
     return c.json({
