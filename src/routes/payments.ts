@@ -23,7 +23,7 @@ function generateRef(): string {
   return 'SL-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 7).toUpperCase()
 }
 
-// ── Verify Paystack webhook HMAC-SHA512 signature ──
+// -- Verify Paystack webhook HMAC-SHA512 signature --
 async function verifyPaystackSignature(body: string, signature: string, secret: string): Promise<boolean> {
   try {
     const encoder = new TextEncoder()
@@ -37,7 +37,7 @@ async function verifyPaystackSignature(body: string, signature: string, secret: 
   } catch { return false }
 }
 
-// ── POST /api/payments/initialize — customer initiates Paystack payment ──
+// -- POST /api/payments/initialize - customer initiates Paystack payment --
 payments.post('/initialize', async (c) => {
   try {
     const user = await getUser(c)
@@ -46,7 +46,6 @@ payments.post('/initialize', async (c) => {
     const { booking_id } = await c.req.json()
     if (!booking_id) return c.json({ success: false, error: 'booking_id required' }, 400)
 
-    // Load booking with full details
     const booking = await c.env.DB.prepare(`
       SELECT b.*, p.business_name, p.id as pid,
         s.name as service_name, s.id as sid,
@@ -60,13 +59,11 @@ payments.post('/initialize', async (c) => {
 
     if (!booking) return c.json({ success: false, error: 'Booking not found or already paid' }, 404)
 
-    // booking.total_amount already includes the 3 GHS platform fee (added at booking creation)
-    const totalCharge = booking.total_amount  // pesewas — service price + 300 (3 GHS fee)
+    const totalCharge = booking.total_amount
     const serviceAmount = totalCharge - PLATFORM_FEE_PESEWAS
     const reference = generateRef()
     const paystackKey = c.env.PAYSTACK_SECRET_KEY || PAYSTACK_SECRET
 
-    // Initialize with Paystack
     const paystackRes = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: {
@@ -98,7 +95,6 @@ payments.post('/initialize', async (c) => {
       return c.json({ success: false, error: psData.message || 'Paystack initialization failed' }, 502)
     }
 
-    // Save pending payment record
     await c.env.DB.prepare(
       `INSERT INTO payments (booking_id, customer_id, provider_id, amount, reference, status, paystack_data)
        VALUES (?, ?, ?, ?, ?, 'pending', ?)`
@@ -119,13 +115,12 @@ payments.post('/initialize', async (c) => {
   }
 })
 
-// ── GET /api/payments/verify/:reference — verify after redirect ──
+// -- GET /api/payments/verify/:reference - verify after redirect --
 payments.get('/verify/:reference', async (c) => {
   try {
     const reference = c.req.param('reference')
     const paystackKey = c.env.PAYSTACK_SECRET_KEY || PAYSTACK_SECRET
 
-    // Call Paystack verify API
     const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
       headers: { 'Authorization': `Bearer ${paystackKey}` }
     })
@@ -142,12 +137,10 @@ payments.get('/verify/:reference', async (c) => {
 
     const txData = data.data
     const meta = txData.metadata || {}
-    const amountPaid = txData.amount // pesewas
+    const amountPaid = txData.amount
     const providerEarning = amountPaid - PLATFORM_FEE_PESEWAS
     const bookingId = meta.booking_id ? parseInt(String(meta.booking_id)) : null
-    const providerId = meta.provider_id ? parseInt(String(meta.provider_id)) : null
 
-    // Already processed? Return success immediately
     const existing = await c.env.DB.prepare(
       'SELECT id FROM transactions WHERE payment_reference = ?'
     ).bind(reference).first()
@@ -155,19 +148,16 @@ payments.get('/verify/:reference', async (c) => {
       return c.json({ success: true, status: 'success', reference, amount: amountPaid })
     }
 
-    // Look up payment record (may exist from initialize step)
     let payment = await c.env.DB.prepare(
       'SELECT * FROM payments WHERE reference = ?'
     ).bind(reference).first() as any
 
-    // If no payment record (race condition or direct Paystack), look up booking from metadata
     if (!payment && bookingId) {
       const booking = await c.env.DB.prepare(
         'SELECT * FROM bookings WHERE id = ?'
       ).bind(bookingId).first() as any
 
       if (booking) {
-        // Create payment record on the fly
         await c.env.DB.prepare(
           `INSERT OR IGNORE INTO payments (booking_id, customer_id, provider_id, amount, reference, status)
            VALUES (?, ?, ?, ?, ?, 'success')`
@@ -178,11 +168,9 @@ payments.get('/verify/:reference', async (c) => {
     }
 
     if (!payment) {
-      // Paystack confirmed success but we can't find the booking — still return success to user
       return c.json({ success: true, status: 'success', reference, amount: amountPaid, note: 'booking_lookup_failed' })
     }
 
-    // Create transaction record
     await c.env.DB.prepare(
       `INSERT OR IGNORE INTO transactions (booking_id, provider_id, customer_id, amount_paid, platform_fee, provider_earning, payout_status, payment_reference, paystack_event_id)
        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
@@ -192,7 +180,6 @@ payments.get('/verify/:reference', async (c) => {
       reference, String(txData.id)
     ).run()
 
-    // Mark payment + booking confirmed
     await c.env.DB.prepare(
       "UPDATE payments SET status='success', updated_at=CURRENT_TIMESTAMP WHERE reference=?"
     ).bind(reference).run()
@@ -201,10 +188,9 @@ payments.get('/verify/:reference', async (c) => {
       "UPDATE bookings SET payment_status='paid', payment_reference=?, status='confirmed', updated_at=CURRENT_TIMESTAMP WHERE id=?"
     ).bind(reference, payment.booking_id).run()
 
-    // Notify customer
     await c.env.DB.prepare(
       `INSERT INTO notifications (user_id, title, message, type, action_url)
-       VALUES (?, '💳 Payment Confirmed!', 'GHS ${(amountPaid/100).toFixed(2)} paid. Your booking is confirmed!', 'payment', '/dashboard')`
+       VALUES (?, 'Payment Confirmed!', 'GHS ${(amountPaid/100).toFixed(2)} paid. Your booking is confirmed!', 'payment', '/dashboard')`
     ).bind(payment.customer_id).run()
 
     return c.json({ success: true, status: 'success', reference, amount: amountPaid })
@@ -213,36 +199,31 @@ payments.get('/verify/:reference', async (c) => {
   }
 })
 
-// ── POST /api/payments/webhook — Paystack webhook (secure) ──
+// -- POST /api/payments/webhook - Paystack webhook (secure) --
 payments.post('/webhook', async (c) => {
   try {
     const rawBody = await c.req.text()
     const signature = c.req.header('x-paystack-signature') || ''
     const paystackKey = c.env.PAYSTACK_SECRET_KEY || PAYSTACK_SECRET
 
-    // 1. Verify HMAC-SHA512 signature
     const isValid = await verifyPaystackSignature(rawBody, signature, paystackKey)
     if (!isValid) {
       return c.json({ error: 'Invalid signature' }, 401)
     }
 
     const event = JSON.parse(rawBody) as any
-
-    // 2. Only process charge.success
     if (event.event !== 'charge.success') {
       return c.json({ received: true, processed: false })
     }
 
     const txData = event.data
     const reference = txData.reference
-    const amountPaid = txData.amount // pesewas
+    const amountPaid = txData.amount
     const meta = txData.metadata || {}
     const bookingId = meta.booking_id
-    const providerId = meta.provider_id
     const platformFee = PLATFORM_FEE_PESEWAS
     const providerEarning = amountPaid - platformFee
 
-    // 3. Idempotency — skip if already processed
     const existing = await c.env.DB.prepare(
       'SELECT id FROM transactions WHERE payment_reference = ? OR paystack_event_id = ?'
     ).bind(reference, String(txData.id)).first()
@@ -251,13 +232,11 @@ payments.post('/webhook', async (c) => {
       return c.json({ received: true, processed: false, reason: 'duplicate' })
     }
 
-    // 4. Look up payment record
     const payment = await c.env.DB.prepare(
       'SELECT * FROM payments WHERE reference = ?'
     ).bind(reference).first() as any
 
     if (!payment) {
-      // Auto-create if webhook arrives before verify (race condition)
       const booking = bookingId ? await c.env.DB.prepare(
         'SELECT * FROM bookings WHERE id = ?'
       ).bind(bookingId).first() as any : null
@@ -281,13 +260,11 @@ payments.post('/webhook', async (c) => {
       return c.json({ received: true, processed: true })
     }
 
-    // 5. Create canonical transaction record
     await c.env.DB.prepare(
       `INSERT INTO transactions (booking_id, provider_id, customer_id, amount_paid, platform_fee, provider_earning, payout_status, payment_reference, paystack_event_id)
        VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?)`
     ).bind(payment.booking_id, payment.provider_id, payment.customer_id, amountPaid, platformFee, providerEarning, reference, String(txData.id)).run()
 
-    // 6. Update payment + booking status
     await c.env.DB.prepare(
       "UPDATE payments SET status='success', updated_at=CURRENT_TIMESTAMP WHERE reference=?"
     ).bind(reference).run()
@@ -296,10 +273,9 @@ payments.post('/webhook', async (c) => {
       "UPDATE bookings SET payment_status='paid', payment_reference=?, status='confirmed', updated_at=CURRENT_TIMESTAMP WHERE id=?"
     ).bind(reference, payment.booking_id).run()
 
-    // 7. Notify customer
     await c.env.DB.prepare(
       `INSERT INTO notifications (user_id, title, message, type, action_url)
-       VALUES (?, '💳 Payment Confirmed!', 'GHS ${(amountPaid/100).toFixed(2)} received. Your booking is confirmed!', 'payment', '/dashboard')`
+       VALUES (?, 'Payment Confirmed!', 'GHS ${(amountPaid/100).toFixed(2)} received. Your booking is confirmed!', 'payment', '/dashboard')`
     ).bind(payment.customer_id).run()
 
     return c.json({ received: true, processed: true, provider_earning: providerEarning, platform_fee: platformFee })
@@ -309,12 +285,12 @@ payments.post('/webhook', async (c) => {
   }
 })
 
-// ── GET /api/payments/public-key — return public key safely ──
+// -- GET /api/payments/public-key - return public key safely --
 payments.get('/public-key', (c) => {
   return c.json({ public_key: PAYSTACK_PUBLIC })
 })
 
-// ── GET /api/payments/my — customer's own payment history ──
+// -- GET /api/payments/my - customer's own payment history --
 payments.get('/my', async (c) => {
   try {
     const user = await getUser(c)
@@ -336,7 +312,7 @@ payments.get('/my', async (c) => {
   }
 })
 
-// ── GET /api/payments/admin/summary — admin earnings overview ──
+// -- GET /api/payments/admin/summary - admin earnings overview --
 payments.get('/admin/summary', async (c) => {
   try {
     const user = await getUser(c)
@@ -387,12 +363,13 @@ payments.get('/admin/summary', async (c) => {
       by_provider: byProvider.results,
       recent_transactions: recent.results
     })
-  } catch (e: any) {
-    return c.json({ success: false, error: e.message }, 500)
+  } catch (err) {
+    console.error('PAYMENTS SUMMARY ERROR:', err)
+    return c.json({ error: 'Failed to load payment data', details: String(err) }, 500)
   }
 })
 
-// ── GET /api/payments/admin/transactions — paginated transactions with filter ──
+// -- GET /api/payments/admin/transactions - paginated transactions with filter --
 payments.get('/admin/transactions', async (c) => {
   try {
     const user = await getUser(c)
@@ -426,7 +403,7 @@ payments.get('/admin/transactions', async (c) => {
   }
 })
 
-// ── POST /api/payments/admin/payout — mark transaction(s) as paid out ──
+// -- POST /api/payments/admin/payout - mark transaction(s) as paid out --
 payments.post('/admin/payout', async (c) => {
   try {
     const user = await getUser(c)
@@ -434,7 +411,6 @@ payments.post('/admin/payout', async (c) => {
 
     const { transaction_ids, provider_id, notes } = await c.req.json()
 
-    // Can mark individual transactions OR all pending for a provider
     if (transaction_ids && Array.isArray(transaction_ids) && transaction_ids.length > 0) {
       const placeholders = transaction_ids.map(() => '?').join(',')
       await c.env.DB.prepare(
@@ -446,13 +422,11 @@ payments.post('/admin/payout', async (c) => {
     }
 
     if (provider_id) {
-      // Mark ALL pending for this provider
       const result = await c.env.DB.prepare(
         `UPDATE transactions SET payout_status='paid', paid_out_at=CURRENT_TIMESTAMP, paid_out_by=?, notes=?, updated_at=CURRENT_TIMESTAMP
          WHERE provider_id=? AND payout_status='pending'`
       ).bind(user.sub, notes || null, provider_id).run()
 
-      // Notify provider
       const prov = await c.env.DB.prepare(
         'SELECT user_id, business_name FROM providers WHERE id=?'
       ).bind(provider_id).first() as any
@@ -460,7 +434,7 @@ payments.post('/admin/payout', async (c) => {
       if (prov) {
         await c.env.DB.prepare(
           `INSERT INTO notifications (user_id, title, message, type, action_url)
-           VALUES (?, '💰 Payout Sent!', 'Your pending earnings have been paid to your MoMo account.', 'payment', '/provider/dashboard')`
+           VALUES (?, 'Payout Sent!', 'Your pending earnings have been paid to your MoMo account.', 'payment', '/provider/dashboard')`
         ).bind(prov.user_id).run()
       }
 
@@ -473,7 +447,7 @@ payments.post('/admin/payout', async (c) => {
   }
 })
 
-// ── GET /api/payments/admin/payout-list — providers with amounts owed ──
+// -- GET /api/payments/admin/payout-list - providers with amounts owed --
 payments.get('/admin/payout-list', async (c) => {
   try {
     const user = await getUser(c)
@@ -500,7 +474,7 @@ payments.get('/admin/payout-list', async (c) => {
   }
 })
 
-// ── PUT /api/payments/provider/momo — provider updates MoMo details ──
+// -- PUT /api/payments/provider/momo - provider updates MoMo details --
 payments.put('/provider/momo', async (c) => {
   try {
     const user = await getUser(c)
@@ -519,7 +493,7 @@ payments.put('/provider/momo', async (c) => {
   }
 })
 
-// ── GET /api/payments/provider/earnings — provider's own earnings ──
+// -- GET /api/payments/provider/earnings - provider's own earnings --
 payments.get('/provider/earnings', async (c) => {
   try {
     const user = await getUser(c)
@@ -564,9 +538,7 @@ payments.get('/provider/earnings', async (c) => {
   }
 })
 
-// ── POST /api/payments/cash-book — customer books with cash/pay-on-site (no Paystack) ──
-// Booking is confirmed immediately; payment_status stays 'unpaid' until provider collects.
-// Provider owes GHS 3 platform fee regardless (already recorded in service_fees at booking creation).
+// -- POST /api/payments/cash-book - customer books with cash/pay-on-site (no Paystack) --
 payments.post('/cash-book', async (c) => {
   try {
     const user = await getUser(c)
@@ -591,38 +563,34 @@ payments.post('/cash-book', async (c) => {
 
     const reference = `SL-CASH-${Date.now()}`
 
-    // Confirm booking but keep payment_status = 'unpaid' (cash collected on site)
     await c.env.DB.prepare(
       `UPDATE bookings SET status='confirmed', payment_reference=?, payment_method='cash', updated_at=CURRENT_TIMESTAMP WHERE id=?`
     ).bind(reference, booking.id).run()
 
-    // Notify customer
     await c.env.DB.prepare(
       `INSERT INTO notifications (user_id, title, message, type, action_url)
-       VALUES (?, '✅ Booking Confirmed (Pay On-Site)', ?, 'booking', '/dashboard')`
+       VALUES (?, 'Booking Confirmed (Pay On-Site)', ?, 'booking', '/dashboard')`
     ).bind(user.sub, `Your booking at ${booking.business_name} on ${booking.booking_date} at ${booking.booking_time} is confirmed. Pay on arrival.`).run()
 
-    // Notify provider
     const customerName = `${booking.customer_first || ''} ${booking.customer_last || ''}`.trim()
     if (booking.provider_user_id) {
       await c.env.DB.prepare(
         `INSERT INTO notifications (user_id, title, message, type, action_url)
-         VALUES (?, '💵 Cash Booking Confirmed', ?, 'booking', '/provider/dashboard')`
+         VALUES (?, 'Cash Booking Confirmed', ?, 'booking', '/provider/dashboard')`
       ).bind(booking.provider_user_id, `${customerName} will pay cash on arrival for ${booking.service_name} on ${booking.booking_date} at ${booking.booking_time}. Remember to send GHS 3 platform fee to 0533 675 960.`).run()
     }
 
-    // Push + email (fire & forget)
     const totalGhs = (booking.total_amount || 0) / 100
     c.executionCtx?.waitUntil(Promise.allSettled([
       sendPushToUser(c.env.DB, user.sub, {
-        title: '✅ Booking Confirmed!',
-        body: `${booking.business_name} · Pay cash on arrival · ${booking.booking_date}`,
+        title: 'Booking Confirmed!',
+        body: `${booking.business_name} - Pay cash on arrival - ${booking.booking_date}`,
         url: '/dashboard',
         tag: `cash-booking-${booking.id}`
       }, c.env),
       booking.customer_email ? sendEmail(
         c.env, booking.customer_email,
-        `Booking Confirmed (Pay On-Site) — ${booking.business_name}`,
+        `Booking Confirmed (Pay On-Site) - ${booking.business_name}`,
         paymentReceiptEmail({
           customerName, providerName: booking.business_name,
           serviceName: booking.service_name,
@@ -640,7 +608,7 @@ payments.post('/cash-book', async (c) => {
   }
 })
 
-// ── POST /api/payments/mock-success — handles MoMo simulation payments ──
+// -- POST /api/payments/mock-success - handles MoMo simulation payments --
 payments.post('/mock-success', async (c) => {
   try {
     const user = await getUser(c)
@@ -679,25 +647,23 @@ payments.post('/mock-success', async (c) => {
       `UPDATE bookings SET payment_status='paid', payment_method=?, payment_reference=?, status='confirmed', updated_at=CURRENT_TIMESTAMP WHERE id=?`
     ).bind(paymentMethod, reference, booking.id).run()
 
-    // DB notification
     await c.env.DB.prepare(
       `INSERT INTO notifications (user_id, title, message, type, action_url)
-       VALUES (?, '✅ Payment Confirmed!', ?, 'payment', '/dashboard')`
+       VALUES (?, 'Payment Confirmed!', ?, 'payment', '/dashboard')`
     ).bind(user.sub, `Your booking at ${booking.business_name} is confirmed. Ref: ${reference}`).run()
 
-    // Push + Email receipt (fire & forget)
     const customerName = `${booking.customer_first || ''} ${booking.customer_last || ''}`.trim()
     const totalGhs = amountPaid / 100
     c.executionCtx?.waitUntil(Promise.allSettled([
       sendPushToUser(c.env.DB, user.sub, {
-        title: '✅ Payment Confirmed!',
-        body: `${booking.business_name} · ${booking.booking_date} at ${booking.booking_time}`,
+        title: 'Payment Confirmed!',
+        body: `${booking.business_name} - ${booking.booking_date} at ${booking.booking_time}`,
         url: '/dashboard',
         tag: `payment-${booking.id}`
       }, c.env),
       booking.customer_email ? sendEmail(
         c.env, booking.customer_email,
-        `Payment Receipt — ${booking.business_name}`,
+        `Payment Receipt - ${booking.business_name}`,
         paymentReceiptEmail({
           customerName, providerName: booking.business_name,
           serviceName: booking.service_name,
