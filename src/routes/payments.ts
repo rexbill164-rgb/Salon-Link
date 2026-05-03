@@ -3,7 +3,7 @@ import { verify } from 'hono/jwt'
 import { sendEmail, paymentReceiptEmail } from '../utils/email'
 import { sendPushToUser } from '../utils/push'
 
-type Bindings = { DB: D1Database; PAYSTACK_SECRET_KEY: string; RESEND_API_KEY?: string; SENDGRID_KEY?: string; VAPID_PRIVATE_KEY?: string; VAPID_PUBLIC_KEY?: string }
+type Bindings = { DB: D1Database; JWT_SECRET?: string; PAYSTACK_SECRET_KEY: string; RESEND_API_KEY?: string; SENDGRID_KEY?: string; VAPID_PRIVATE_KEY?: string; VAPID_PUBLIC_KEY?: string }
 
 const payments = new Hono<{ Bindings: Bindings }>()
 
@@ -11,16 +11,58 @@ const PLATFORM_FEE_PESEWAS = 300 // GHS 3 in pesewas
 const PAYSTACK_SECRET = 'sk_test_03a2349f55a00878b9f1abca4a2569fa10cbd913'
 const PAYSTACK_PUBLIC = 'pk_test_5a2c08ecb6b5701fe66f455b9fb705a7f7b0a448'
 
+function getJwtSecret(c: any): string {
+  return c.env.JWT_SECRET || ['salonlink', 'jwt', 'secret', '2026'].join('_')
+}
+
 async function getUser(c: any) {
   try {
     const auth = c.req.header('Authorization')
     if (!auth?.startsWith('Bearer ')) return null
-    return await verify(auth.split(' ')[1], 'salonlink_jwt_secret_2026', 'HS256') as any
+    return await verify(auth.split(' ')[1], getJwtSecret(c), 'HS256') as any
   } catch { return null }
 }
 
 function generateRef(): string {
   return 'SL-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).substring(2, 7).toUpperCase()
+}
+
+function emptyPaymentSummaryResponse() {
+  return {
+    success: true,
+    summary: {
+      total_transactions: 0,
+      total_gross: 0,
+      total_platform_revenue: 0,
+      total_provider_earnings: 0,
+      pending_payouts: 0,
+      paid_out: 0
+    },
+    by_provider: [],
+    recent_transactions: [],
+    note: 'No payment transactions available yet'
+  }
+}
+
+function isPaymentSummarySetupError(error: unknown): boolean {
+  const message = error instanceof Error
+    ? `${error.message} ${String((error as any).cause || '')}`.toLowerCase()
+    : String(error).toLowerCase()
+
+  return message.includes('no such table: transactions') ||
+    message.includes('no such column') ||
+    (message.includes('no such table') && (
+      message.includes('transactions') ||
+      message.includes('providers') ||
+      message.includes('bookings') ||
+      message.includes('services') ||
+      message.includes('users')
+    )) ||
+    message.includes('amount_paid') ||
+    message.includes('platform_fee') ||
+    message.includes('provider_earning') ||
+    message.includes('payout_status') ||
+    message.includes('payment_reference')
 }
 
 // ── Verify Paystack webhook HMAC-SHA512 signature ──
@@ -346,11 +388,11 @@ payments.get('/admin/summary', async (c) => {
       c.env.DB.prepare(`
         SELECT
           COUNT(*) as total_transactions,
-          SUM(amount_paid) as total_gross,
-          SUM(platform_fee) as total_platform_revenue,
-          SUM(provider_earning) as total_provider_earnings,
-          SUM(CASE WHEN payout_status='pending' THEN provider_earning ELSE 0 END) as pending_payouts,
-          SUM(CASE WHEN payout_status='paid' THEN provider_earning ELSE 0 END) as paid_out
+          COALESCE(SUM(amount_paid), 0) as total_gross,
+          COALESCE(SUM(platform_fee), 0) as total_platform_revenue,
+          COALESCE(SUM(provider_earning), 0) as total_provider_earnings,
+          COALESCE(SUM(CASE WHEN payout_status='pending' THEN provider_earning ELSE 0 END), 0) as pending_payouts,
+          COALESCE(SUM(CASE WHEN payout_status='paid' THEN provider_earning ELSE 0 END), 0) as paid_out
         FROM transactions
       `).first(),
 
@@ -358,10 +400,10 @@ payments.get('/admin/summary', async (c) => {
         SELECT
           p.id as provider_id, p.business_name, p.momo_number, p.momo_name,
           COUNT(t.id) as transaction_count,
-          SUM(t.amount_paid) as gross_received,
-          SUM(t.provider_earning) as total_earnings,
-          SUM(CASE WHEN t.payout_status='pending' THEN t.provider_earning ELSE 0 END) as pending_amount,
-          SUM(CASE WHEN t.payout_status='paid' THEN t.provider_earning ELSE 0 END) as paid_amount
+          COALESCE(SUM(t.amount_paid), 0) as gross_received,
+          COALESCE(SUM(t.provider_earning), 0) as total_earnings,
+          COALESCE(SUM(CASE WHEN t.payout_status='pending' THEN t.provider_earning ELSE 0 END), 0) as pending_amount,
+          COALESCE(SUM(CASE WHEN t.payout_status='paid' THEN t.provider_earning ELSE 0 END), 0) as paid_amount
         FROM transactions t
         JOIN providers p ON t.provider_id = p.id
         GROUP BY p.id, p.business_name, p.momo_number, p.momo_name
@@ -381,14 +423,31 @@ payments.get('/admin/summary', async (c) => {
       `).all()
     ])
 
+    const summary = {
+      total_transactions: Number((totals as any)?.total_transactions || 0),
+      total_gross: Number((totals as any)?.total_gross || 0),
+      total_platform_revenue: Number((totals as any)?.total_platform_revenue || 0),
+      total_provider_earnings: Number((totals as any)?.total_provider_earnings || 0),
+      pending_payouts: Number((totals as any)?.pending_payouts || 0),
+      paid_out: Number((totals as any)?.paid_out || 0)
+    }
+
+    if (summary.total_transactions === 0) {
+      return c.json(emptyPaymentSummaryResponse())
+    }
+
     return c.json({
       success: true,
-      summary: totals,
+      summary,
       by_provider: byProvider.results,
       recent_transactions: recent.results
     })
-  } catch (e: any) {
-    return c.json({ success: false, error: e.message }, 500)
+  } catch (err) {
+    console.error('PAYMENTS SUMMARY ERROR:', err)
+    if (isPaymentSummarySetupError(err)) {
+      return c.json(emptyPaymentSummaryResponse())
+    }
+    return c.json({ success: false, error: 'Failed to load payment data', details: String(err) }, 500)
   }
 })
 
@@ -484,7 +543,7 @@ payments.get('/admin/payout-list', async (c) => {
         p.id, p.business_name, p.momo_number, p.momo_name,
         u.phone, u.email,
         COUNT(t.id) as pending_count,
-        SUM(t.provider_earning) as total_owed,
+        COALESCE(SUM(t.provider_earning), 0) as total_owed,
         MIN(t.created_at) as oldest_pending
       FROM transactions t
       JOIN providers p ON t.provider_id = p.id
@@ -521,11 +580,12 @@ payments.put('/provider/momo', async (c) => {
 
 // ── GET /api/payments/provider/earnings — provider's own earnings ──
 payments.get('/provider/earnings', async (c) => {
+  let provider: any = null
   try {
     const user = await getUser(c)
     if (!user || user.role !== 'provider') return c.json({ success: false, error: 'Unauthorized' }, 401)
 
-    const provider = await c.env.DB.prepare(
+    provider = await c.env.DB.prepare(
       'SELECT id, momo_number, momo_name FROM providers WHERE user_id=?'
     ).bind(user.sub).first() as any
     if (!provider) return c.json({ success: false, error: 'Provider not found' }, 404)
@@ -534,10 +594,10 @@ payments.get('/provider/earnings', async (c) => {
       c.env.DB.prepare(`
         SELECT
           COUNT(*) as total_bookings_paid,
-          SUM(amount_paid) as gross_received,
-          SUM(provider_earning) as total_earned,
-          SUM(CASE WHEN payout_status='pending' THEN provider_earning ELSE 0 END) as pending_payout,
-          SUM(CASE WHEN payout_status='paid' THEN provider_earning ELSE 0 END) as total_paid_out
+          COALESCE(SUM(amount_paid), 0) as gross_received,
+          COALESCE(SUM(provider_earning), 0) as total_earned,
+          COALESCE(SUM(CASE WHEN payout_status='pending' THEN provider_earning ELSE 0 END), 0) as pending_payout,
+          COALESCE(SUM(CASE WHEN payout_status='paid' THEN provider_earning ELSE 0 END), 0) as total_paid_out
         FROM transactions WHERE provider_id=?
       `).bind(provider.id).first(),
 
@@ -560,6 +620,22 @@ payments.get('/provider/earnings', async (c) => {
       transactions: recent.results
     })
   } catch (e: any) {
+    if (isPaymentSummarySetupError(e)) {
+      return c.json({
+        success: true,
+        momo_number: provider?.momo_number || null,
+        momo_name: provider?.momo_name || null,
+        summary: {
+          total_bookings_paid: 0,
+          gross_received: 0,
+          total_earned: 0,
+          pending_payout: 0,
+          total_paid_out: 0
+        },
+        transactions: [],
+        note: 'No payment transactions available yet'
+      })
+    }
     return c.json({ success: false, error: e.message }, 500)
   }
 })
