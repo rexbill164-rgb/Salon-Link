@@ -108,7 +108,9 @@ export function withDiscoveryNearbyUi(html: string): string {
   }
   function providerNumber(provider, keys){
     for (var i = 0; i < keys.length; i++) {
-      var value = Number(provider[keys[i]]);
+      var raw = provider[keys[i]];
+      if (raw === null || raw === undefined || raw === '') continue;
+      var value = Number(raw);
       if (isFinite(value)) return value;
     }
     return null;
@@ -271,11 +273,9 @@ export function withDiscoveryNearbyUi(html: string): string {
         .then(function(response){ return response.json(); })
         .then(function(data){
           var providers = data.providers || [];
-          var pinnedCount = providers.filter(function(provider){ return providerLat(provider) !== null && providerLng(provider) !== null; }).length;
           if (sub) sub.textContent = providers.length ? 'Showing providers around your current location.' : 'No nearby providers found yet.';
           renderProviders(providers);
           renderMap(lat, lng, providers);
-          if (!pinnedCount && providers.length) setMapMessage('Provider list loaded. These providers have not pinned map locations yet.');
           if (btn) { btn.textContent = 'Refresh'; btn.disabled = false; }
         })
         .catch(function(){
