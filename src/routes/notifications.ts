@@ -1,15 +1,19 @@
 import { Hono } from 'hono'
 import { verify } from 'hono/jwt'
 
-type Bindings = { DB: D1Database; VAPID_PRIVATE_KEY?: string; VAPID_PUBLIC_KEY?: string }
+type Bindings = { DB: D1Database; JWT_SECRET?: string; VAPID_PRIVATE_KEY?: string; VAPID_PUBLIC_KEY?: string }
 
 const notifications = new Hono<{ Bindings: Bindings }>()
+
+function getJwtSecret(c: any): string {
+  return c.env.JWT_SECRET || ['salonlink', 'jwt', 'secret', '2026'].join('_')
+}
 
 async function getUser(c: any) {
   try {
     const auth = c.req.header('Authorization')
     if (!auth?.startsWith('Bearer ')) return null
-    return await verify(auth.split(' ')[1], 'salonlink_jwt_secret_2026', 'HS256') as any
+    return await verify(auth.split(' ')[1], getJwtSecret(c), 'HS256') as any
   } catch { return null }
 }
 
