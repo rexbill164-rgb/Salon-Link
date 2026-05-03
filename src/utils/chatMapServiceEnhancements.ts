@@ -203,6 +203,46 @@ export function withDiscoveryNearbyUi(html: string): string {
     nearbyMapLayers.push(layer);
     return layer;
   }
+  function ensureBaseMap(L, lat, lng){
+    if (!nearbyMap) {
+      nearbyMap = L.map('nearby-map', { zoomControl:true, scrollWheelZoom:false });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(nearbyMap);
+    }
+    nearbyMap.setView([lat, lng], 16);
+    setTimeout(function(){ nearbyMap.invalidateSize(); nearbyMap.setView([lat, lng], 16); }, 80);
+  }
+  function addUserMarker(L, lat, lng){
+    var customer = addLayer(L.circleMarker([lat, lng], {
+      radius: 9,
+      color: '#111',
+      weight: 3,
+      fillColor: '#111',
+      fillOpacity: 0.9
+    }).addTo(nearbyMap));
+    customer.bindPopup('You are here');
+    setTimeout(function(){ customer.openPopup(); }, 120);
+    return customer;
+  }
+  function renderUserLocation(customerLat, customerLng){
+    var lat = Number(customerLat);
+    var lng = Number(customerLng);
+    if (!isFinite(lat) || !isFinite(lng)) return;
+
+    ensureLeaflet().then(function(loaded){
+      if (!loaded || !window.L) {
+        setMapMessage('Map could not load, but the provider list will still work.');
+        return;
+      }
+      var L = window.L;
+      setMapMessage('');
+      ensureBaseMap(L, lat, lng);
+      clearMapLayers();
+      addUserMarker(L, lat, lng);
+    });
+  }
   function renderMap(customerLat, customerLng, providers){
     var lat = Number(customerLat);
     var lng = Number(customerLng);
@@ -216,24 +256,10 @@ export function withDiscoveryNearbyUi(html: string): string {
 
       var L = window.L;
       setMapMessage('');
-      if (!nearbyMap) {
-        nearbyMap = L.map('nearby-map', { zoomControl:true, scrollWheelZoom:false });
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors',
-          maxZoom: 19
-        }).addTo(nearbyMap);
-      }
-
+      ensureBaseMap(L, lat, lng);
       clearMapLayers();
       var bounds = L.latLngBounds([[lat, lng]]);
-      var customer = addLayer(L.circleMarker([lat, lng], {
-        radius: 9,
-        color: '#111',
-        weight: 3,
-        fillColor: '#111',
-        fillOpacity: 0.9
-      }).addTo(nearbyMap));
-      customer.bindPopup('You are here');
+      var customer = addUserMarker(L, lat, lng);
 
       var markerCount = 0;
       providers.forEach(function(provider){
@@ -255,9 +281,10 @@ export function withDiscoveryNearbyUi(html: string): string {
 
       setTimeout(function(){
         nearbyMap.invalidateSize();
-        if (markerCount > 0) nearbyMap.fitBounds(bounds, { padding:[26, 26], maxZoom:15 });
-        else nearbyMap.setView([lat, lng], 13);
-      }, 80);
+        if (markerCount > 0) nearbyMap.fitBounds(bounds, { padding:[26, 26], maxZoom:16 });
+        else nearbyMap.setView([lat, lng], 16);
+        customer.openPopup();
+      }, 140);
     });
   }
   function loadNearbyProviders(){
@@ -269,6 +296,7 @@ export function withDiscoveryNearbyUi(html: string): string {
     navigator.geolocation.getCurrentPosition(function(pos){
       var lat = pos.coords.latitude;
       var lng = pos.coords.longitude;
+      renderUserLocation(lat, lng);
       fetch('/api/providers/nearby?lat=' + encodeURIComponent(lat) + '&lng=' + encodeURIComponent(lng) + '&limit=20')
         .then(function(response){ return response.json(); })
         .then(function(data){
@@ -287,6 +315,10 @@ export function withDiscoveryNearbyUi(html: string): string {
       if (sub) sub.textContent = 'Allow location to see providers near you.';
       setMapMessage('Allow location to show your nearby map.');
       if (btn) { btn.textContent = 'Use location'; btn.disabled = false; }
+    }, {
+      enableHighAccuracy: true,
+      timeout: 12000,
+      maximumAge: 60000
     });
   }
   document.addEventListener('DOMContentLoaded', insertPanel);
