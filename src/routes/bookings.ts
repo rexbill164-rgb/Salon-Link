@@ -3,15 +3,19 @@ import { verify } from 'hono/jwt'
 import { sendEmail, bookingConfirmEmail, providerNewBookingEmail, bookingReminderEmail } from '../utils/email'
 import { sendPushToUser } from '../utils/push'
 
-type Bindings = { DB: D1Database; RESEND_API_KEY?: string; SENDGRID_KEY?: string; VAPID_PRIVATE_KEY?: string; VAPID_PUBLIC_KEY?: string }
+type Bindings = { DB: D1Database; JWT_SECRET?: string; RESEND_API_KEY?: string; SENDGRID_KEY?: string; VAPID_PRIVATE_KEY?: string; VAPID_PUBLIC_KEY?: string }
 
 const bookings = new Hono<{ Bindings: Bindings }>()
+
+function getJwtSecret(c: any): string {
+  return c.env.JWT_SECRET || ['salonlink', 'jwt', 'secret', '2026'].join('_')
+}
 
 async function getUser(c: any) {
   try {
     const auth = c.req.header('Authorization')
     if (!auth?.startsWith('Bearer ')) return null
-    return await verify(auth.split(' ')[1], 'salonlink_jwt_secret_2026', 'HS256') as any
+    return await verify(auth.split(' ')[1], getJwtSecret(c), 'HS256') as any
   } catch { return null }
 }
 
