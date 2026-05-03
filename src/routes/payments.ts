@@ -336,6 +336,41 @@ payments.get('/my', async (c) => {
   }
 })
 
+function emptyPaymentSummaryResponse() {
+  return {
+    success: true,
+    summary: {
+      total_transactions: 0,
+      total_gross: 0,
+      total_platform_revenue: 0,
+      total_provider_earnings: 0,
+      pending_payouts: 0,
+      paid_out: 0
+    },
+    by_provider: [],
+    recent_transactions: [],
+    note: 'No payment transactions available yet'
+  }
+}
+
+function isPaymentSummarySetupError(error: unknown): boolean {
+  const message = String(error).toLowerCase()
+  return message.includes('no such table: transactions') ||
+    message.includes('no such column') ||
+    (message.includes('no such table') && (
+      message.includes('transactions') ||
+      message.includes('providers') ||
+      message.includes('bookings') ||
+      message.includes('services') ||
+      message.includes('users')
+    )) ||
+    message.includes('amount_paid') ||
+    message.includes('platform_fee') ||
+    message.includes('provider_earning') ||
+    message.includes('payout_status') ||
+    message.includes('payment_reference')
+}
+
 // ── GET /api/payments/admin/summary — admin earnings overview ──
 payments.get('/admin/summary', async (c) => {
   try {
@@ -346,11 +381,11 @@ payments.get('/admin/summary', async (c) => {
       c.env.DB.prepare(`
         SELECT
           COUNT(*) as total_transactions,
-          SUM(amount_paid) as total_gross,
-          SUM(platform_fee) as total_platform_revenue,
-          SUM(provider_earning) as total_provider_earnings,
-          SUM(CASE WHEN payout_status='pending' THEN provider_earning ELSE 0 END) as pending_payouts,
-          SUM(CASE WHEN payout_status='paid' THEN provider_earning ELSE 0 END) as paid_out
+          COALESCE(SUM(amount_paid), 0) as total_gross,
+          COALESCE(SUM(platform_fee), 0) as total_platform_revenue,
+          COALESCE(SUM(provider_earning), 0) as total_provider_earnings,
+          COALESCE(SUM(CASE WHEN payout_status='pending' THEN provider_earning ELSE 0 END), 0) as pending_payouts,
+          COALESCE(SUM(CASE WHEN payout_status='paid' THEN provider_earning ELSE 0 END), 0) as paid_out
         FROM transactions
       `).first(),
 
@@ -358,10 +393,10 @@ payments.get('/admin/summary', async (c) => {
         SELECT
           p.id as provider_id, p.business_name, p.momo_number, p.momo_name,
           COUNT(t.id) as transaction_count,
-          SUM(t.amount_paid) as gross_received,
-          SUM(t.provider_earning) as total_earnings,
-          SUM(CASE WHEN t.payout_status='pending' THEN t.provider_earning ELSE 0 END) as pending_amount,
-          SUM(CASE WHEN t.payout_status='paid' THEN t.provider_earning ELSE 0 END) as paid_amount
+          COALESCE(SUM(t.amount_paid), 0) as gross_received,
+          COALESCE(SUM(t.provider_earning), 0) as total_earnings,
+          COALESCE(SUM(CASE WHEN t.payout_status='pending' THEN t.provider_earning ELSE 0 END), 0) as pending_amount,
+          COALESCE(SUM(CASE WHEN t.payout_status='paid' THEN t.provider_earning ELSE 0 END), 0) as paid_amount
         FROM transactions t
         JOIN providers p ON t.provider_id = p.id
         GROUP BY p.id, p.business_name, p.momo_number, p.momo_name
@@ -381,14 +416,22 @@ payments.get('/admin/summary', async (c) => {
       `).all()
     ])
 
+    if (!totals || Number((totals as any).total_transactions || 0) === 0) {
+      return c.json(emptyPaymentSummaryResponse())
+    }
+
     return c.json({
       success: true,
       summary: totals,
       by_provider: byProvider.results,
       recent_transactions: recent.results
     })
-  } catch (e: any) {
-    return c.json({ success: false, error: e.message }, 500)
+  } catch (err) {
+    console.error('PAYMENTS SUMMARY ERROR:', err)
+    if (isPaymentSummarySetupError(err)) {
+      return c.json(emptyPaymentSummaryResponse())
+    }
+    return c.json({ error: 'Failed to load payment data', details: String(err) }, 500)
   }
 })
 
