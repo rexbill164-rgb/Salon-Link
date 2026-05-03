@@ -11,6 +11,7 @@ import reviewRoutes from './routes/reviews'
 import adminRoutes from './routes/admin'
 import uploadRoutes from './routes/uploads'
 import notificationRoutes from './routes/notifications'
+import { withFinalPremiumDesign } from './utils/finalPremiumTheme'
 
 // Page imports
 import { homePage } from './pages/home'
@@ -35,6 +36,11 @@ type Bindings = {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
+function withInteractionFixes(html: string): string {
+  const script = '<script src="/admin-provider-fix.js?v=1" defer></script>'
+  return html.includes('</body>') ? html.replace('</body>', script + '</body>') : html + script
+}
+
 // Middleware
 app.use('*', logger())
 app.use('*', cors({
@@ -57,32 +63,32 @@ app.route('/api/uploads', uploadRoutes)
 app.route('/api/notifications', notificationRoutes)
 
 // Frontend pages
-app.get('/', (c) => c.html(homePage()))
-app.get('/login', (c) => c.html(loginPage()))
-app.get('/register', (c) => c.html(registerPage()))
-app.get('/dashboard', (c) => c.html(dashboardPage()))
-app.get('/provider/dashboard', (c) => c.html(providerDashboardPage()))
-app.get('/provider/onboarding', (c) => c.html(onboardingPage()))
-app.get('/discover', (c) => c.html(discoveryPage()))
-app.get('/provider/:id', (c) => c.html(providerProfilePage(c.req.param('id'))))
-app.get('/book/:id', (c) => c.html(bookingPage(c.req.param('id'))))
-app.get('/admin', (c) => c.html(adminPanelPage()))
-app.get('/hairstyle-history', (c) => c.html(hairstyleHistoryPage()))
-app.get('/settings', (c) => c.html(settingsPage()))
-app.get('/notifications', (c) => c.html(notificationsPage()))
-app.get('/payment/pay', (c) => c.html(paymentPage()))
-app.get('/payment/success', (c) => c.html(paymentSuccessPage()))
+app.get('/', (c) => c.html(withFinalPremiumDesign(homePage(), 'home')))
+app.get('/login', (c) => c.html(withFinalPremiumDesign(loginPage(), 'login')))
+app.get('/register', (c) => c.html(withFinalPremiumDesign(registerPage(), 'register')))
+app.get('/dashboard', (c) => c.html(withFinalPremiumDesign(dashboardPage(), 'dashboard')))
+app.get('/provider/dashboard', (c) => c.html(withInteractionFixes(withFinalPremiumDesign(providerDashboardPage(), 'provider-dashboard'))))
+app.get('/provider/onboarding', (c) => c.html(withFinalPremiumDesign(onboardingPage(), 'provider-onboarding')))
+app.get('/discover', (c) => c.html(withFinalPremiumDesign(discoveryPage(), 'discover')))
+app.get('/provider/:id', (c) => c.html(withInteractionFixes(withFinalPremiumDesign(providerProfilePage(c.req.param('id')), 'provider-profile'))))
+app.get('/book/:id', (c) => c.html(withFinalPremiumDesign(bookingPage(c.req.param('id')), 'booking')))
+app.get('/admin', (c) => c.html(withInteractionFixes(withFinalPremiumDesign(adminPanelPage(), 'admin'))))
+app.get('/hairstyle-history', (c) => c.html(withFinalPremiumDesign(hairstyleHistoryPage(), 'hairstyle-history')))
+app.get('/settings', (c) => c.html(withFinalPremiumDesign(settingsPage(), 'settings')))
+app.get('/notifications', (c) => c.html(withFinalPremiumDesign(notificationsPage(), 'notifications')))
+app.get('/payment/pay', (c) => c.html(withFinalPremiumDesign(paymentPage(), 'payment')))
+app.get('/payment/success', (c) => c.html(withFinalPremiumDesign(paymentSuccessPage(), 'payment-success')))
 
 // Health check
 app.get('/api/health', (c) => c.json({
   status: 'ok',
   app: 'SalonLink',
-  version: '2.0.1-genspark-fix',
+  version: '2.0.2-interaction-fix',
   db: 'D1 Connected',
   timestamp: new Date().toISOString()
 }))
 
 // 404 fallback
-app.notFound((c) => c.html(homePage()))
+app.notFound((c) => c.html(withFinalPremiumDesign(homePage(), 'home')))
 
 export default app
