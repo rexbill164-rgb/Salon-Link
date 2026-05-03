@@ -68,18 +68,28 @@ export function withDiscoveryNearbyUi(html: string): string {
 <style id="nearby-map-panel-styles">
   .nearby-map-panel { background:#fff; border:1px solid #eee; border-radius:22px; padding:18px; margin:0 0 18px; box-shadow:0 8px 24px rgba(0,0,0,.06); }
   .nearby-map-top { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-  .nearby-map-placeholder { margin-top:14px; min-height:112px; border-radius:18px; border:1px dashed #d9d9d9; background:linear-gradient(135deg,#f6f6f6,#ededed); display:flex; align-items:center; justify-content:center; text-align:center; color:#777; font-size:12px; }
+  .nearby-map-box { margin-top:14px; height:220px; min-height:220px; border-radius:18px; border:1px solid #e3e3e3; background:#f2f2f2; overflow:hidden; position:relative; }
+  #nearby-map { width:100%; height:100%; min-height:220px; }
+  .nearby-map-message { position:absolute; inset:0; z-index:2; display:flex; align-items:center; justify-content:center; padding:18px; text-align:center; color:#666; font-size:12px; line-height:1.5; background:linear-gradient(135deg,rgba(255,255,255,.88),rgba(246,246,246,.8)); pointer-events:none; }
+  .nearby-map-message.is-hidden { display:none; }
   .nearby-provider-list { display:none; margin-top:14px; gap:10px; overflow-x:auto; padding-bottom:2px; }
   .nearby-provider-card { min-width:232px; text-align:left; border:1px solid #eee; background:#fafafa; border-radius:18px; padding:14px; cursor:pointer; transition:transform .2s, box-shadow .2s, border-color .2s; }
   .nearby-provider-card:hover { transform:translateY(-2px); box-shadow:0 10px 22px rgba(0,0,0,.08); border-color:#ddd; }
   .nearby-provider-card:active { transform:scale(.99); }
-  @media(max-width:640px){ .nearby-map-panel { margin-bottom:14px; padding:16px; } .nearby-map-top { align-items:flex-start; } .nearby-provider-card { min-width:218px; } }
+  .nearby-map-box .leaflet-container { font-family:inherit; }
+  .nearby-map-box .leaflet-popup-content-wrapper { border-radius:14px; }
+  @media(max-width:640px){ .nearby-map-panel { margin-bottom:14px; padding:16px; } .nearby-map-top { align-items:flex-start; } .nearby-provider-card { min-width:218px; } .nearby-map-box { height:210px; min-height:210px; } #nearby-map { min-height:210px; } }
 </style>`
 
   const script = `
 <script id="nearby-map-panel-script">
 (function(){
   if (location.pathname !== '/discover') return;
+
+  var nearbyMap = null;
+  var nearbyMapLayers = [];
+  var leafletLoadPromise = null;
+
   function esc(value){
     return String(value || '').replace(/[&<>"']/g, function(ch){
       if (ch === '&') return '&amp;';
@@ -95,6 +105,58 @@ export function withDiscoveryNearbyUi(html: string): string {
     var km = Number(provider.distance_km || 9999);
     if (km < 9999) return km < 1 ? Math.round(km * 1000) + 'm away' : km.toFixed(1) + 'km away';
     return provider.city ? provider.city + ' - location not pinned' : 'Location not pinned';
+  }
+  function providerNumber(provider, keys){
+    for (var i = 0; i < keys.length; i++) {
+      var value = Number(provider[keys[i]]);
+      if (isFinite(value)) return value;
+    }
+    return null;
+  }
+  function providerLat(provider){ return providerNumber(provider, ['location_lat', 'lat', 'latitude']); }
+  function providerLng(provider){ return providerNumber(provider, ['location_lng', 'lng', 'longitude']); }
+  function setMapMessage(message){
+    var el = document.getElementById('nearby-map-message');
+    if (!el) return;
+    if (!message) {
+      el.className = 'nearby-map-message is-hidden';
+      el.textContent = '';
+      return;
+    }
+    el.className = 'nearby-map-message';
+    el.textContent = message;
+  }
+  function ensureLeafletCss(){
+    if (document.querySelector('link[href*="leaflet.css"]')) return;
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    link.integrity = 'sha256-p4NxAoJBhIINfQnDTL7Kkdl0r7vdZc4w2NrI7Z5oN2M=';
+    link.crossOrigin = '';
+    document.head.appendChild(link);
+  }
+  function ensureLeaflet(){
+    ensureLeafletCss();
+    if (window.L) return Promise.resolve(true);
+    if (leafletLoadPromise) return leafletLoadPromise;
+    leafletLoadPromise = new Promise(function(resolve){
+      var existing = document.getElementById('nearby-map-leaflet-js');
+      if (existing) {
+        existing.addEventListener('load', function(){ resolve(!!window.L); });
+        existing.addEventListener('error', function(){ resolve(false); });
+        setTimeout(function(){ resolve(!!window.L); }, 3500);
+        return;
+      }
+      var script = document.createElement('script');
+      script.id = 'nearby-map-leaflet-js';
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+      script.crossOrigin = '';
+      script.onload = function(){ resolve(!!window.L); };
+      script.onerror = function(){ resolve(false); };
+      document.head.appendChild(script);
+    });
+    return leafletLoadPromise;
   }
   function buildCard(provider){
     return '<button class="nearby-provider-card" type="button" data-provider-id="' + esc(provider.id) + '">' +
@@ -113,7 +175,7 @@ export function withDiscoveryNearbyUi(html: string): string {
     var panel = document.createElement('section');
     panel.id = 'nearby-map-panel';
     panel.className = 'nearby-map-panel';
-    panel.innerHTML = '<div class="nearby-map-top"><div><div style="font-weight:900;font-size:16px;color:#111;">Near You</div><div id="nearby-map-sub" style="font-size:12px;color:#777;margin-top:3px;">Allow location to see providers near you.</div></div><button id="nearby-map-btn" type="button" style="border:none;background:#111;color:#fff;border-radius:999px;padding:10px 14px;font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap;">Use location</button></div><div class="nearby-map-placeholder"><div><div style="font-weight:800;color:#333;margin-bottom:3px;">Map view coming soon</div><div>Nearby list appears here after location permission.</div></div></div><div id="nearby-provider-list" class="nearby-provider-list"></div>';
+    panel.innerHTML = '<div class="nearby-map-top"><div><div style="font-weight:900;font-size:16px;color:#111;">Near You</div><div id="nearby-map-sub" style="font-size:12px;color:#777;margin-top:3px;">Allow location to see providers near you.</div></div><button id="nearby-map-btn" type="button" style="border:none;background:#111;color:#fff;border-radius:999px;padding:10px 14px;font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap;">Use location</button></div><div class="nearby-map-box"><div id="nearby-map"></div><div id="nearby-map-message" class="nearby-map-message">Use your location to load the nearby map.</div></div><div id="nearby-provider-list" class="nearby-provider-list"></div>';
     grid.parentNode.insertBefore(panel, grid);
     document.getElementById('nearby-map-btn').addEventListener('click', loadNearbyProviders);
   }
@@ -130,26 +192,100 @@ export function withDiscoveryNearbyUi(html: string): string {
       card.addEventListener('click', function(){ location.href = '/provider/' + encodeURIComponent(card.getAttribute('data-provider-id')); });
     });
   }
+  function clearMapLayers(){
+    if (!nearbyMap) return;
+    nearbyMapLayers.forEach(function(layer){ nearbyMap.removeLayer(layer); });
+    nearbyMapLayers = [];
+  }
+  function addLayer(layer){
+    nearbyMapLayers.push(layer);
+    return layer;
+  }
+  function renderMap(customerLat, customerLng, providers){
+    var lat = Number(customerLat);
+    var lng = Number(customerLng);
+    if (!isFinite(lat) || !isFinite(lng)) return;
+
+    ensureLeaflet().then(function(loaded){
+      if (!loaded || !window.L) {
+        setMapMessage('Nearby providers loaded, but the map could not load. The list below still works.');
+        return;
+      }
+
+      var L = window.L;
+      setMapMessage('');
+      if (!nearbyMap) {
+        nearbyMap = L.map('nearby-map', { zoomControl:true, scrollWheelZoom:false });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors',
+          maxZoom: 19
+        }).addTo(nearbyMap);
+      }
+
+      clearMapLayers();
+      var bounds = L.latLngBounds([[lat, lng]]);
+      var customer = addLayer(L.circleMarker([lat, lng], {
+        radius: 9,
+        color: '#111',
+        weight: 3,
+        fillColor: '#111',
+        fillOpacity: 0.9
+      }).addTo(nearbyMap));
+      customer.bindPopup('You are here');
+
+      var markerCount = 0;
+      providers.forEach(function(provider){
+        var pLat = providerLat(provider);
+        var pLng = providerLng(provider);
+        if (pLat === null || pLng === null) return;
+        markerCount++;
+        bounds.extend([pLat, pLng]);
+        var marker = addLayer(L.circleMarker([pLat, pLng], {
+          radius: 8,
+          color: '#111',
+          weight: 2,
+          fillColor: '#fff',
+          fillOpacity: 1
+        }).addTo(nearbyMap));
+        marker.bindPopup('<strong>' + esc(provider.business_name || 'Provider') + '</strong><br>' + esc(category(provider.service_category)) + '<br>' + esc(distanceLabel(provider)));
+        marker.on('click', function(){ marker.openPopup(); });
+      });
+
+      setTimeout(function(){
+        nearbyMap.invalidateSize();
+        if (markerCount > 0) nearbyMap.fitBounds(bounds, { padding:[26, 26], maxZoom:15 });
+        else nearbyMap.setView([lat, lng], 13);
+      }, 80);
+    });
+  }
   function loadNearbyProviders(){
     var btn = document.getElementById('nearby-map-btn');
     var sub = document.getElementById('nearby-map-sub');
-    if (!navigator.geolocation) { if (sub) sub.textContent = 'Location is not supported on this device.'; return; }
+    if (!navigator.geolocation) { if (sub) sub.textContent = 'Location is not supported on this device.'; setMapMessage('Location is not supported on this device.'); return; }
     if (btn) { btn.textContent = 'Loading...'; btn.disabled = true; }
+    setMapMessage('Getting your location...');
     navigator.geolocation.getCurrentPosition(function(pos){
-      fetch('/api/providers/nearby?lat=' + encodeURIComponent(pos.coords.latitude) + '&lng=' + encodeURIComponent(pos.coords.longitude) + '&limit=20')
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+      fetch('/api/providers/nearby?lat=' + encodeURIComponent(lat) + '&lng=' + encodeURIComponent(lng) + '&limit=20')
         .then(function(response){ return response.json(); })
         .then(function(data){
           var providers = data.providers || [];
+          var pinnedCount = providers.filter(function(provider){ return providerLat(provider) !== null && providerLng(provider) !== null; }).length;
           if (sub) sub.textContent = providers.length ? 'Showing providers around your current location.' : 'No nearby providers found yet.';
           renderProviders(providers);
+          renderMap(lat, lng, providers);
+          if (!pinnedCount && providers.length) setMapMessage('Provider list loaded. These providers have not pinned map locations yet.');
           if (btn) { btn.textContent = 'Refresh'; btn.disabled = false; }
         })
         .catch(function(){
+          renderMap(lat, lng, []);
           if (sub) sub.textContent = 'Could not load nearby providers. Please try again.';
           if (btn) { btn.textContent = 'Try again'; btn.disabled = false; }
         });
     }, function(){
       if (sub) sub.textContent = 'Allow location to see providers near you.';
+      setMapMessage('Allow location to show your nearby map.');
       if (btn) { btn.textContent = 'Use location'; btn.disabled = false; }
     });
   }
