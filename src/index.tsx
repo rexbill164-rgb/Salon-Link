@@ -30,8 +30,6 @@ import { notificationsPage } from './pages/notifications'
 import { paymentPage, paymentSuccessPage } from './pages/paymentPage'
 import { messagesPage } from './pages/messages'
 import { repairInlineScriptText } from './utils/generatedScriptRepairs'
-import { withAdminKycDocumentViewer } from './utils/adminKycDocumentViewer'
-import { withDiscoveryNearbyUi, withProviderDashboardMessagesButton, withProviderProfileServiceUi } from './utils/chatMapServiceEnhancements'
 
 type Bindings = {
   DB: D1Database
@@ -67,12 +65,12 @@ app.get('/', (c) => c.html(homePage()))
 app.get('/login', (c) => c.html(loginPage()))
 app.get('/register', (c) => c.html(registerPage()))
 app.get('/dashboard', (c) => c.html(dashboardPage()))
-app.get('/provider/dashboard', (c) => c.html(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage()))))
+app.get('/provider/dashboard', (c) => c.html(repairInlineScriptText(providerDashboardPage())))
 app.get('/provider/onboarding', (c) => c.html(onboardingPage()))
-app.get('/discover', (c) => c.html(withDiscoveryNearbyUi(discoveryPage())))
-app.get('/provider/:id', (c) => c.html(withProviderProfileServiceUi(providerProfilePage(c.req.param('id')))))
+app.get('/discover', (c) => c.html(discoveryPage()))
+app.get('/provider/:id', (c) => c.html(providerProfilePage(c.req.param('id'))))
 app.get('/book/:id', (c) => c.html(bookingPage(c.req.param('id'))))
-app.get('/admin', (c) => c.html(withAdminKycDocumentViewer(repairInlineScriptText(adminPanelPage()))))
+app.get('/admin', (c) => c.html(repairInlineScriptText(adminPanelPage())))
 app.get('/messages', (c) => c.html(messagesPage()))
 app.get('/messages/:conversation_id', (c) => c.html(messagesPage(c.req.param('conversation_id'))))
 app.get('/hairstyle-history', (c) => c.html(hairstyleHistoryPage()))
@@ -85,7 +83,7 @@ app.get('/payment/success', (c) => c.html(paymentSuccessPage()))
 app.get('/api/health', (c) => c.json({
   status: 'ok',
   app: 'SalonLink',
-  version: '2.0.3-kyc-viewer',
+  version: '2.1.0',
   db: 'D1 Connected',
   timestamp: new Date().toISOString()
 }))
