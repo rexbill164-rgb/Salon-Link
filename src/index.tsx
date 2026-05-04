@@ -32,6 +32,7 @@ import { messagesPage } from './pages/messages'
 import { repairInlineScriptText } from './utils/generatedScriptRepairs'
 import { withAdminKycDocumentViewer } from './utils/adminKycDocumentViewer'
 import { withDiscoveryNearbyUi, withProviderDashboardMessagesButton, withProviderProfileServiceUi } from './utils/chatMapServiceEnhancements'
+import { withProviderMapLinks } from './utils/providerMapLinks'
 
 type Bindings = {
   DB: D1Database
@@ -70,7 +71,7 @@ app.get('/dashboard', (c) => c.html(dashboardPage()))
 app.get('/provider/dashboard', (c) => c.html(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage()))))
 app.get('/provider/onboarding', (c) => c.html(onboardingPage()))
 app.get('/discover', (c) => c.html(withDiscoveryNearbyUi(discoveryPage())))
-app.get('/provider/:id', (c) => c.html(withProviderProfileServiceUi(providerProfilePage(c.req.param('id')))))
+app.get('/provider/:id', (c) => c.html(withProviderMapLinks(withProviderProfileServiceUi(providerProfilePage(c.req.param('id'))))))
 app.get('/book/:id', (c) => c.html(bookingPage(c.req.param('id'))))
 app.get('/admin', (c) => c.html(withAdminKycDocumentViewer(repairInlineScriptText(adminPanelPage()))))
 app.get('/messages', (c) => c.html(messagesPage()))
@@ -85,7 +86,7 @@ app.get('/payment/success', (c) => c.html(paymentSuccessPage()))
 app.get('/api/health', (c) => c.json({
   status: 'ok',
   app: 'SalonLink',
-  version: '2.0.3-kyc-viewer',
+  version: '2.0.4-provider-map-links',
   db: 'D1 Connected',
   timestamp: new Date().toISOString()
 }))
