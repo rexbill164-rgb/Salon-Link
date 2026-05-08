@@ -1,7 +1,7 @@
 Deploy trigger for Cloudflare Pages.
 Latest fixes:
+- Standard Change Password wording
 - Login notice for existing users
 - Settings profile reload from API after save
-- Account security update form for all roles
-- Account/Security link from admin and provider dashboard
-Triggered at: 2026-05-08T09:25:00Z
+- Change Password link from admin and provider dashboard
+Triggered at: 2026-05-08T09:35:00Z
