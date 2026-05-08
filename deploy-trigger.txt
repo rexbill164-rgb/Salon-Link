@@ -1,8 +1,7 @@
 Deploy trigger for Cloudflare Pages.
 Latest fixes:
-- Final standard Change Password wording only
-- Current Password, New Password, Confirm New Password labels
-- Login notice for existing users
+- Notification preference toggles now persist after refresh
+- Promotions & Discounts toggle persistence
+- New Provider Alerts toggle persistence
 - Settings profile reload from API after save
-- Change Password link from admin and provider dashboard
-Triggered at: 2026-05-08T09:45:00Z
+Triggered at: 2026-05-08T09:55:00Z
