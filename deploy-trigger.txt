@@ -1,3 +1,7 @@
 Deploy trigger for Cloudflare Pages.
-Hotfix commit to deploy: 00c6065b85e63cf7cc59d09d2c91c8e2b693877b
-Triggered at: 2026-05-08T08:59:00Z
+Latest fixes:
+- Login notice for existing users
+- Settings profile reload from API after save
+- Account security update form for all roles
+- Account/Security link from admin and provider dashboard
+Triggered at: 2026-05-08T09:25:00Z
