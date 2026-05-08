@@ -28,7 +28,7 @@ import { notificationsPage } from './pages/notifications'
 import { paymentPage, paymentSuccessPage } from './pages/paymentPage'
 import { messagesPage } from './pages/messages'
 import { repairInlineScriptText } from './utils/generatedScriptRepairs'
-import { withPremiumCustomerRedesign } from './utils/customerPremiumRedesign'
+import { withoutTemporaryPasswordNotice } from './utils/loginNoticeCleanup'
 
 type Bindings = { DB: D1Database; [key: string]: any }
 
@@ -48,14 +48,14 @@ app.route('/api/notifications', notificationRoutes)
 app.route('/api/messages', messageRoutes)
 
 app.get('/', (c) => c.html(homePage()))
-app.get('/login', (c) => c.html(loginPage()))
+app.get('/login', (c) => c.html(withoutTemporaryPasswordNotice(loginPage())))
 app.get('/register', (c) => c.html(registerPage()))
 app.get('/dashboard', (c) => c.html(dashboardPage()))
 app.get('/provider/dashboard', (c) => c.html(repairInlineScriptText(providerDashboardPage())))
 app.get('/provider/onboarding', (c) => c.html(onboardingPage()))
-app.get('/discover', (c) => c.html(withPremiumCustomerRedesign(discoveryPage())))
+app.get('/discover', (c) => c.html(discoveryPage()))
 app.get('/provider/:id', (c) => c.html(providerProfilePage(c.req.param('id'))))
-app.get('/book/:id', (c) => c.html(withPremiumCustomerRedesign(bookingPage(c.req.param('id')))))
+app.get('/book/:id', (c) => c.html(bookingPage(c.req.param('id'))))
 app.get('/admin', (c) => c.html(repairInlineScriptText(adminPanelPage())))
 app.get('/messages', (c) => c.html(messagesPage()))
 app.get('/messages/:conversation_id', (c) => c.html(messagesPage(c.req.param('conversation_id'))))
@@ -65,7 +65,7 @@ app.get('/notifications', (c) => c.html(notificationsPage()))
 app.get('/payment/pay', (c) => c.html(paymentPage()))
 app.get('/payment/success', (c) => c.html(paymentSuccessPage()))
 
-app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.0', db: 'D1 Connected', timestamp: new Date().toISOString() }))
+app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.1-hotfix', db: 'D1 Connected', timestamp: new Date().toISOString() }))
 
 app.notFound((c) => c.html(homePage()))
 
