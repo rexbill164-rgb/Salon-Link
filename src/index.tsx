@@ -2,7 +2,6 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
 
-// Route imports
 import authRoutes from './routes/auth'
 import providerRoutes from './routes/providers'
 import bookingRoutes from './routes/bookings'
@@ -13,7 +12,6 @@ import uploadRoutes from './routes/uploads'
 import notificationRoutes from './routes/notifications'
 import messageRoutes from './routes/messages'
 
-// Page imports
 import { homePage } from './pages/home'
 import { loginPage } from './pages/login'
 import { registerPage } from './pages/register'
@@ -30,26 +28,15 @@ import { notificationsPage } from './pages/notifications'
 import { paymentPage, paymentSuccessPage } from './pages/paymentPage'
 import { messagesPage } from './pages/messages'
 import { repairInlineScriptText } from './utils/generatedScriptRepairs'
+import { withPremiumCustomerRedesign } from './utils/customerPremiumRedesign'
 
-type Bindings = {
-  DB: D1Database
-  [key: string]: any
-}
+type Bindings = { DB: D1Database; [key: string]: any }
 
 const app = new Hono<{ Bindings: Bindings }>()
 
-// Middleware
 app.use('*', logger())
-app.use('*', cors({
-  origin: '*',
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
-}))
-// Do not enable strict secureHeaders yet. This build relies on inline scripts, inline click handlers,
-// CDN scripts, dynamic client-side UI, and maps. A strict default CSP blocks those scripts and makes
-// admin/provider pages feel static.
+app.use('*', cors({ origin: '*', allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], allowHeaders: ['Content-Type', 'Authorization'] }))
 
-// API routes
 app.route('/api/auth', authRoutes)
 app.route('/api/providers', providerRoutes)
 app.route('/api/bookings', bookingRoutes)
@@ -60,16 +47,15 @@ app.route('/api/uploads', uploadRoutes)
 app.route('/api/notifications', notificationRoutes)
 app.route('/api/messages', messageRoutes)
 
-// Frontend pages
 app.get('/', (c) => c.html(homePage()))
 app.get('/login', (c) => c.html(loginPage()))
 app.get('/register', (c) => c.html(registerPage()))
 app.get('/dashboard', (c) => c.html(dashboardPage()))
 app.get('/provider/dashboard', (c) => c.html(repairInlineScriptText(providerDashboardPage())))
 app.get('/provider/onboarding', (c) => c.html(onboardingPage()))
-app.get('/discover', (c) => c.html(discoveryPage()))
+app.get('/discover', (c) => c.html(withPremiumCustomerRedesign(discoveryPage())))
 app.get('/provider/:id', (c) => c.html(providerProfilePage(c.req.param('id'))))
-app.get('/book/:id', (c) => c.html(bookingPage(c.req.param('id'))))
+app.get('/book/:id', (c) => c.html(withPremiumCustomerRedesign(bookingPage(c.req.param('id')))))
 app.get('/admin', (c) => c.html(repairInlineScriptText(adminPanelPage())))
 app.get('/messages', (c) => c.html(messagesPage()))
 app.get('/messages/:conversation_id', (c) => c.html(messagesPage(c.req.param('conversation_id'))))
@@ -79,16 +65,8 @@ app.get('/notifications', (c) => c.html(notificationsPage()))
 app.get('/payment/pay', (c) => c.html(paymentPage()))
 app.get('/payment/success', (c) => c.html(paymentSuccessPage()))
 
-// Health check
-app.get('/api/health', (c) => c.json({
-  status: 'ok',
-  app: 'SalonLink',
-  version: '2.1.0',
-  db: 'D1 Connected',
-  timestamp: new Date().toISOString()
-}))
+app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.0', db: 'D1 Connected', timestamp: new Date().toISOString() }))
 
-// 404 fallback
 app.notFound((c) => c.html(homePage()))
 
 export default app
