@@ -30,6 +30,7 @@ import { messagesPage } from './pages/messages'
 import { repairInlineScriptText } from './utils/generatedScriptRepairs'
 import { withoutTemporaryPasswordNotice } from './utils/loginNoticeCleanup'
 import { withAccountSecurityPatch } from './utils/accountSecurityPatch'
+import { withPasswordLabelPatch } from './utils/passwordLabelPatch'
 
 type Bindings = { DB: D1Database; [key: string]: any }
 
@@ -48,25 +49,27 @@ app.route('/api/uploads', uploadRoutes)
 app.route('/api/notifications', notificationRoutes)
 app.route('/api/messages', messageRoutes)
 
+const accountPage = (html: string) => withPasswordLabelPatch(withAccountSecurityPatch(html))
+
 app.get('/', (c) => c.html(homePage()))
 app.get('/login', (c) => c.html(withoutTemporaryPasswordNotice(loginPage())))
 app.get('/register', (c) => c.html(registerPage()))
 app.get('/dashboard', (c) => c.html(dashboardPage()))
-app.get('/provider/dashboard', (c) => c.html(withAccountSecurityPatch(repairInlineScriptText(providerDashboardPage()))))
+app.get('/provider/dashboard', (c) => c.html(accountPage(repairInlineScriptText(providerDashboardPage()))))
 app.get('/provider/onboarding', (c) => c.html(onboardingPage()))
 app.get('/discover', (c) => c.html(discoveryPage()))
 app.get('/provider/:id', (c) => c.html(providerProfilePage(c.req.param('id'))))
 app.get('/book/:id', (c) => c.html(bookingPage(c.req.param('id'))))
-app.get('/admin', (c) => c.html(withAccountSecurityPatch(repairInlineScriptText(adminPanelPage()))))
+app.get('/admin', (c) => c.html(accountPage(repairInlineScriptText(adminPanelPage()))))
 app.get('/messages', (c) => c.html(messagesPage()))
 app.get('/messages/:conversation_id', (c) => c.html(messagesPage(c.req.param('conversation_id'))))
 app.get('/hairstyle-history', (c) => c.html(hairstyleHistoryPage()))
-app.get('/settings', (c) => c.html(withAccountSecurityPatch(settingsPage())))
+app.get('/settings', (c) => c.html(accountPage(settingsPage())))
 app.get('/notifications', (c) => c.html(notificationsPage()))
 app.get('/payment/pay', (c) => c.html(paymentPage()))
 app.get('/payment/success', (c) => c.html(paymentSuccessPage()))
 
-app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.2-account-hotfix', db: 'D1 Connected', timestamp: new Date().toISOString() }))
+app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.3-password-labels', db: 'D1 Connected', timestamp: new Date().toISOString() }))
 
 app.notFound((c) => c.html(homePage()))
 
