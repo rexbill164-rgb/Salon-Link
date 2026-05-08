@@ -31,6 +31,7 @@ import { repairInlineScriptText } from './utils/generatedScriptRepairs'
 import { withoutTemporaryPasswordNotice } from './utils/loginNoticeCleanup'
 import { withAccountSecurityPatch } from './utils/accountSecurityPatch'
 import { withPasswordLabelPatch } from './utils/passwordLabelPatch'
+import { withNotificationPreferencesPatch } from './utils/notificationPreferencesPatch'
 
 type Bindings = { DB: D1Database; [key: string]: any }
 
@@ -49,7 +50,7 @@ app.route('/api/uploads', uploadRoutes)
 app.route('/api/notifications', notificationRoutes)
 app.route('/api/messages', messageRoutes)
 
-const accountPage = (html: string) => withPasswordLabelPatch(withAccountSecurityPatch(html))
+const accountPage = (html: string) => withNotificationPreferencesPatch(withPasswordLabelPatch(withAccountSecurityPatch(html)))
 
 app.get('/', (c) => c.html(homePage()))
 app.get('/login', (c) => c.html(withoutTemporaryPasswordNotice(loginPage())))
@@ -69,7 +70,7 @@ app.get('/notifications', (c) => c.html(notificationsPage()))
 app.get('/payment/pay', (c) => c.html(paymentPage()))
 app.get('/payment/success', (c) => c.html(paymentSuccessPage()))
 
-app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.3-password-labels', db: 'D1 Connected', timestamp: new Date().toISOString() }))
+app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.4-notification-prefs', db: 'D1 Connected', timestamp: new Date().toISOString() }))
 
 app.notFound((c) => c.html(homePage()))
 
