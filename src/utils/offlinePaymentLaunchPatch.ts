@@ -23,7 +23,7 @@ const offlinePaymentPatchScript = `
   }
 
   function patchBookingPaymentUi() {
-    if (!window.location.pathname.indexOf('/book/') === 0) return;
+    if (window.location.pathname.indexOf('/book/') !== 0) return;
 
     window.payWhen = 'later';
 
@@ -218,7 +218,7 @@ export function withOfflinePaymentLaunchPatch(html: string): string {
     [/Select Payment Method/g, 'Payment Method'],
     [/Mobile Money Number/g, 'Mobile Money unavailable'],
     [/Secure Payment/g, 'Payment paused'],
-    [/256-bit SSL encryption · Powered by Paystack/g, OFFLINE_PAYMENT_MESSAGE]
+    [/256-bit SSL encryption \u00b7 Powered by Paystack/g, OFFLINE_PAYMENT_MESSAGE]
   ]
 
   const patchedHtml = replacements.reduce((current, [pattern, replacement]) => current.replace(pattern, replacement), html)
