@@ -22,6 +22,39 @@ const offlinePaymentPatchScript = `
     if (load) load.style.display = 'none';
   }
 
+  function disableOnlinePaymentElement(el) {
+    el.removeAttribute('href');
+    el.removeAttribute('onclick');
+    el.setAttribute('aria-disabled', 'true');
+    el.setAttribute('title', MSG);
+    el.style.opacity = '0.65';
+    el.style.cursor = 'not-allowed';
+    if (/^(A|BUTTON)$/i.test(el.tagName)) el.textContent = 'Payment Unavailable';
+    el.addEventListener('click', function(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      notify();
+    });
+  }
+
+  function patchDashboardPaymentActions() {
+    if (window.location.pathname !== '/dashboard') return;
+    document.querySelectorAll('a,button').forEach(function(el) {
+      var href = el.getAttribute('href') || '';
+      var onclick = el.getAttribute('onclick') || '';
+      var text = el.textContent || '';
+      var haystack = (href + ' ' + onclick + ' ' + text).toLowerCase();
+      var isOnlinePaymentAction = href.indexOf('/payment/pay') !== -1 ||
+        onclick.indexOf('/api/payments/initialize') !== -1 ||
+        onclick.indexOf('/api/payments/mock-success') !== -1 ||
+        haystack.indexOf('pay with paystack') !== -1 ||
+        haystack.indexOf('pay now') !== -1 ||
+        haystack.indexOf('confirm & pay') !== -1 ||
+        haystack.indexOf('send momo prompt') !== -1;
+      if (isOnlinePaymentAction) disableOnlinePaymentElement(el);
+    });
+  }
+
   function patchBookingPaymentUi() {
     if (window.location.pathname.indexOf('/book/') !== 0) return;
 
@@ -186,15 +219,19 @@ const offlinePaymentPatchScript = `
 
   function patchPaymentSuccessPage() {
     if (window.location.pathname.indexOf('/payment/success') !== 0) return;
-    setTimeout(function() {
+    function renderUnavailable() {
       var title = document.getElementById('status-title');
       var msg = document.getElementById('status-msg');
       if (title) title.textContent = 'Online payment unavailable';
       if (msg) msg.textContent = MSG;
-    }, 0);
+    }
+    renderUnavailable();
+    setTimeout(renderUnavailable, 500);
+    setTimeout(renderUnavailable, 1500);
   }
 
   function patch() {
+    patchDashboardPaymentActions();
     patchBookingPage();
     patchPaymentPage();
     patchPaymentSuccessPage();
@@ -212,7 +249,7 @@ export function withOfflinePaymentLaunchPatch(html: string): string {
     [/Confirm Cash Booking/g, 'Confirm Booking'],
     [/Pay with Paystack/g, 'Payment Unavailable'],
     [/Redirecting to Paystack\.\.\./g, 'Payment unavailable'],
-    [/Pay Now/g, 'Mobile Money unavailable'],
+    [/Pay Now/g, 'Payment Unavailable'],
     [/Secure your slot instantly with MoMo or Card/g, OFFLINE_PAYMENT_MESSAGE],
     [/Recommended/g, 'Coming soon'],
     [/Select Payment Method/g, 'Payment Method'],
