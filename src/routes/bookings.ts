@@ -6,6 +6,7 @@ import { sendPushToUser } from '../utils/push'
 type Bindings = { DB: D1Database; JWT_SECRET?: string; RESEND_API_KEY?: string; SENDGRID_KEY?: string; VAPID_PRIVATE_KEY?: string; VAPID_PUBLIC_KEY?: string }
 
 const bookings = new Hono<{ Bindings: Bindings }>()
+const SLOT_CONFLICT_MESSAGE = 'This time slot is no longer available. Please select another time.'
 
 function getJwtSecret(c: any): string {
   return c.env.JWT_SECRET || ['salonlink', 'jwt', 'secret', '2026'].join('_')
@@ -17,6 +18,27 @@ async function getUser(c: any) {
     if (!auth?.startsWith('Bearer ')) return null
     return await verify(auth.split(' ')[1], getJwtSecret(c), 'HS256') as any
   } catch { return null }
+}
+
+function isUniqueBookingSlotError(error: any): boolean {
+  const message = String(error?.message || error || '').toLowerCase()
+  const hasConstraintError = message.includes('unique constraint') ||
+    message.includes('constraint failed') ||
+    message.includes('sqlite_constraint')
+
+  if (!hasConstraintError) return false
+
+  return message.includes('idx_unique_active_booking_slot') ||
+    (
+      message.includes('bookings.provider_id') &&
+      message.includes('bookings.service_id') &&
+      message.includes('bookings.booking_date') &&
+      message.includes('bookings.booking_time')
+    )
+}
+
+function slotConflictResponse(c: any) {
+  return c.json({ success: false, error: SLOT_CONFLICT_MESSAGE, message: SLOT_CONFLICT_MESSAGE }, 409)
 }
 
 // POST /api/bookings — create new booking
@@ -67,20 +89,22 @@ bookings.post('/', async (c) => {
       SELECT b.booking_time, COALESCE(s.duration_minutes, 30) as duration_minutes
       FROM bookings b
       LEFT JOIN services s ON b.service_id = s.id
-      WHERE b.provider_id = ? AND b.booking_date = ? AND b.status NOT IN ('cancelled')
+      WHERE b.provider_id = ?
+        AND b.booking_date = ?
+        AND COALESCE(b.status, 'pending') NOT IN ('cancelled', 'rejected')
     `).bind(provider_id, booking_date).all()
 
     for (const eb of (existingBookings.results as any[])) {
       const eStart = timeToMins(eb.booking_time)
       const eEnd   = eStart + (eb.duration_minutes || 30)
       if (newStart < eEnd && newEnd > eStart) {
-        return c.json({ success: false, error: 'That time slot overlaps an existing booking. Please choose another time.' }, 409)
+        return slotConflictResponse(c)
       }
     }
 
     // Check customer doesn't have conflicting booking
     const customerConflict = await c.env.DB.prepare(
-      "SELECT id FROM bookings WHERE customer_id = ? AND booking_date = ? AND booking_time = ? AND status NOT IN ('cancelled')"
+      "SELECT id FROM bookings WHERE customer_id = ? AND booking_date = ? AND booking_time = ? AND COALESCE(status, 'pending') NOT IN ('cancelled', 'rejected')"
     ).bind(user.sub, booking_date, booking_time).first()
     if (customerConflict) return c.json({ success: false, error: 'You already have a booking at this time.' }, 409)
 
@@ -89,10 +113,17 @@ bookings.post('/', async (c) => {
     const totalWithFee = (service.price || 0) + SERVICE_FEE
 
     // Create booking (total_amount includes 3 GHS service fee)
-    const result = await c.env.DB.prepare(`
-      INSERT INTO bookings (customer_id, provider_id, service_id, booking_date, booking_time, total_amount, service_fee, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(user.sub, provider_id, service_id, booking_date, booking_time, totalWithFee, SERVICE_FEE, notes || null).run()
+    // The unique active slot index is the final concurrency guard for simultaneous requests.
+    let result: any
+    try {
+      result = await c.env.DB.prepare(`
+        INSERT INTO bookings (customer_id, provider_id, service_id, booking_date, booking_time, total_amount, service_fee, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).bind(user.sub, provider_id, service_id, booking_date, booking_time, totalWithFee, SERVICE_FEE, notes || null).run()
+    } catch (error) {
+      if (isUniqueBookingSlotError(error)) return slotConflictResponse(c)
+      throw error
+    }
 
     const bookingId = result.meta.last_row_id
 
@@ -167,6 +198,7 @@ bookings.post('/', async (c) => {
 
     return c.json({ success: true, booking_id: bookingId, message: 'Booking created successfully' })
   } catch (e: any) {
+    if (isUniqueBookingSlotError(e)) return slotConflictResponse(c)
     return c.json({ success: false, error: e.message }, 500)
   }
 })
