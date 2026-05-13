@@ -120,6 +120,12 @@ const offlinePaymentPatchScript = `
       momoInput.innerHTML = '<div style="font-size:13px;font-weight:700;color:var(--t-primary);margin-bottom:8px;">Mobile Money unavailable</div><div style="font-size:12px;color:var(--t-secondary);line-height:1.6;">' + MSG + '</div>';
     }
 
+    var momoPromptButton = document.getElementById('pm-momo-btn');
+    if (momoPromptButton) {
+      disableOnlinePaymentElement(momoPromptButton);
+      momoPromptButton.textContent = 'Mobile Money Unavailable';
+    }
+
     var cashNotice = document.getElementById('cash-booking-notice');
     if (cashNotice) {
       cashNotice.style.display = 'block';
@@ -250,6 +256,7 @@ export function withOfflinePaymentLaunchPatch(html: string): string {
     [/Pay with Paystack/g, 'Payment Unavailable'],
     [/Redirecting to Paystack\.\.\./g, 'Payment unavailable'],
     [/Pay Now/g, 'Payment Unavailable'],
+    [/Send MoMo Prompt/g, 'Mobile Money Unavailable'],
     [/Secure your slot instantly with MoMo or Card/g, OFFLINE_PAYMENT_MESSAGE],
     [/Recommended/g, 'Coming soon'],
     [/Select Payment Method/g, 'Payment Method'],
