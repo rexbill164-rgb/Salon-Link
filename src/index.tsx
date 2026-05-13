@@ -32,6 +32,7 @@ import { withoutTemporaryPasswordNotice } from './utils/loginNoticeCleanup'
 import { withAccountSecurityPatch } from './utils/accountSecurityPatch'
 import { withPasswordLabelPatch } from './utils/passwordLabelPatch'
 import { withNotificationPreferencesPatch } from './utils/notificationPreferencesPatch'
+import { OFFLINE_PAYMENT_MESSAGE, withOfflinePaymentLaunchPatch } from './utils/offlinePaymentLaunchPatch'
 
 type Bindings = { DB: D1Database; [key: string]: any }
 
@@ -39,6 +40,19 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 app.use('*', logger())
 app.use('*', cors({ origin: '*', allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], allowHeaders: ['Content-Type', 'Authorization'] }))
+
+const onlinePaymentDisabledPayload = () => ({
+  success: false,
+  error: OFFLINE_PAYMENT_MESSAGE,
+  message: OFFLINE_PAYMENT_MESSAGE,
+  payment_disabled: true
+})
+
+app.all('/api/payments/initialize', (c) => c.json(onlinePaymentDisabledPayload(), 503))
+app.all('/api/payments/mock-success', (c) => c.json(onlinePaymentDisabledPayload(), 503))
+app.all('/api/payments/verify/:reference', (c) => c.json(onlinePaymentDisabledPayload(), 503))
+app.all('/api/payments/public-key', (c) => c.json({ ...onlinePaymentDisabledPayload(), public_key: null }, 503))
+app.all('/api/payments/webhook', (c) => c.json({ received: true, processed: false, payment_disabled: true, message: OFFLINE_PAYMENT_MESSAGE }))
 
 app.route('/api/auth', authRoutes)
 app.route('/api/providers', providerRoutes)
@@ -51,24 +65,25 @@ app.route('/api/notifications', notificationRoutes)
 app.route('/api/messages', messageRoutes)
 
 const accountPage = (html: string) => withNotificationPreferencesPatch(withPasswordLabelPatch(withAccountSecurityPatch(html)))
+const offlinePaymentPage = (html: string) => withOfflinePaymentLaunchPatch(html)
 
 app.get('/', (c) => c.html(homePage()))
 app.get('/login', (c) => c.html(withoutTemporaryPasswordNotice(loginPage())))
 app.get('/register', (c) => c.html(registerPage()))
-app.get('/dashboard', (c) => c.html(dashboardPage()))
+app.get('/dashboard', (c) => c.html(offlinePaymentPage(dashboardPage())))
 app.get('/provider/dashboard', (c) => c.html(accountPage(repairInlineScriptText(providerDashboardPage()))))
 app.get('/provider/onboarding', (c) => c.html(onboardingPage()))
 app.get('/discover', (c) => c.html(discoveryPage()))
 app.get('/provider/:id', (c) => c.html(providerProfilePage(c.req.param('id'))))
-app.get('/book/:id', (c) => c.html(bookingPage(c.req.param('id'))))
+app.get('/book/:id', (c) => c.html(offlinePaymentPage(bookingPage(c.req.param('id')))))
 app.get('/admin', (c) => c.html(accountPage(repairInlineScriptText(adminPanelPage()))))
 app.get('/messages', (c) => c.html(messagesPage()))
 app.get('/messages/:conversation_id', (c) => c.html(messagesPage(c.req.param('conversation_id'))))
 app.get('/hairstyle-history', (c) => c.html(hairstyleHistoryPage()))
 app.get('/settings', (c) => c.html(accountPage(settingsPage())))
 app.get('/notifications', (c) => c.html(notificationsPage()))
-app.get('/payment/pay', (c) => c.html(paymentPage()))
-app.get('/payment/success', (c) => c.html(paymentSuccessPage()))
+app.get('/payment/pay', (c) => c.html(offlinePaymentPage(paymentPage())))
+app.get('/payment/success', (c) => c.html(offlinePaymentPage(paymentSuccessPage())))
 
 app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.4-notification-prefs', db: 'D1 Connected', timestamp: new Date().toISOString() }))
 
