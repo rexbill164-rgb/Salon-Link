@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
+import { verify } from 'hono/jwt'
 
 import authRoutes from './routes/auth'
 import providerRoutes from './routes/providers'
@@ -48,6 +49,21 @@ const onlinePaymentDisabledPayload = () => ({
   payment_disabled: true
 })
 
+function getJwtSecret(c: any): string {
+  return c.env.JWT_SECRET || ['salonlink', 'jwt', 'secret', '2026'].join('_')
+}
+
+async function getMigrationAdmin(c: any) {
+  try {
+    const auth = c.req.header('Authorization')
+    if (!auth?.startsWith('Bearer ')) return null
+    const payload = await verify(auth.split(' ')[1], getJwtSecret(c), 'HS256') as any
+    return payload.role === 'admin' ? payload : null
+  } catch {
+    return null
+  }
+}
+
 app.all('/api/payments/initialize', (c) => c.json(onlinePaymentDisabledPayload(), 503))
 app.all('/api/payments/mock-success', (c) => c.json(onlinePaymentDisabledPayload(), 503))
 app.all('/api/payments/verify/:reference', (c) => c.json(onlinePaymentDisabledPayload(), 503))
@@ -59,6 +75,54 @@ app.route('/api/providers', providerRoutes)
 app.route('/api/bookings', bookingRoutes)
 app.route('/api/payments', paymentRoutes)
 app.route('/api/reviews', reviewRoutes)
+
+app.post('/api/admin/migrations/0008-unique-active-booking-slot', async (c) => {
+  try {
+    const user = await getMigrationAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+
+    const duplicates = await c.env.DB.prepare(`
+      SELECT provider_id, service_id, booking_date, booking_time, COUNT(*) AS duplicate_count
+      FROM bookings
+      WHERE COALESCE(status, 'pending') NOT IN ('cancelled', 'rejected')
+      GROUP BY provider_id, service_id, booking_date, booking_time
+      HAVING COUNT(*) > 1
+      LIMIT 20
+    `).all()
+
+    if ((duplicates.results || []).length) {
+      return c.json({
+        success: false,
+        error: 'Duplicate active bookings must be resolved before migration 0008 can be applied',
+        duplicates: duplicates.results
+      }, 409)
+    }
+
+    await c.env.DB.prepare(`
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_active_booking_slot
+      ON bookings (provider_id, service_id, booking_date, booking_time)
+      WHERE COALESCE(status, 'pending') NOT IN ('cancelled', 'rejected')
+    `).run()
+
+    const index = await c.env.DB.prepare(`
+      SELECT name, sql
+      FROM sqlite_master
+      WHERE type = 'index'
+        AND tbl_name = 'bookings'
+        AND name = 'idx_unique_active_booking_slot'
+    `).first()
+
+    if (!index) {
+      return c.json({ success: false, error: 'Migration attempted but unique index was not found' }, 500)
+    }
+
+    return c.json({ success: true, applied: true, index })
+  } catch (error) {
+    console.error('MIGRATION 0008 ERROR:', error)
+    return c.json({ success: false, error: 'Migration 0008 failed', details: String(error) }, 500)
+  }
+})
+
 app.route('/api/admin', adminRoutes)
 app.route('/api/uploads', uploadRoutes)
 app.route('/api/notifications', notificationRoutes)
