@@ -23,9 +23,19 @@ function userId(user: any): number {
   return Number(user?.sub || user?.id || 0)
 }
 
-function messagesMigrationMissing(error: any): boolean {
+function messagesSchemaError(error: any): boolean {
   const message = String(error?.message || error || '').toLowerCase()
-  return message.includes('no such table: messages')
+  return message.includes('no such table: messages') ||
+    message.includes('no column named') ||
+    message.includes('no such column')
+}
+
+async function addColumnIfMissing(c: any, columnName: string, columnSql: string) {
+  const columns = await c.env.DB.prepare('PRAGMA table_info(messages)').all()
+  const exists = (columns.results || []).some((col: any) => String(col.name).toLowerCase() === columnName.toLowerCase())
+  if (!exists) {
+    await c.env.DB.prepare(`ALTER TABLE messages ADD COLUMN ${columnSql}`).run()
+  }
 }
 
 async function ensureMessagesSchema(c: any) {
@@ -42,6 +52,16 @@ async function ensureMessagesSchema(c: any) {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `).run()
+
+  await addColumnIfMissing(c, 'conversation_id', 'conversation_id TEXT')
+  await addColumnIfMissing(c, 'sender_id', 'sender_id INTEGER')
+  await addColumnIfMissing(c, 'receiver_id', 'receiver_id INTEGER')
+  await addColumnIfMissing(c, 'provider_id', 'provider_id INTEGER')
+  await addColumnIfMissing(c, 'booking_id', 'booking_id INTEGER')
+  await addColumnIfMissing(c, 'message', 'message TEXT')
+  await addColumnIfMissing(c, 'is_read', 'is_read INTEGER DEFAULT 0')
+  await addColumnIfMissing(c, 'created_at', 'created_at DATETIME DEFAULT CURRENT_TIMESTAMP')
+
   await c.env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id)').run()
   await c.env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id)').run()
   await c.env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_messages_receiver_id ON messages(receiver_id)').run()
@@ -53,7 +73,7 @@ async function retryWithSchema(c: any, fn: () => Promise<any>) {
   try {
     return await fn()
   } catch (error) {
-    if (!messagesMigrationMissing(error)) throw error
+    if (!messagesSchemaError(error)) throw error
     await ensureMessagesSchema(c)
     return await fn()
   }
@@ -111,9 +131,9 @@ async function bookingBelongsToConversation(c: any, bookingId: number, providerI
   return !!booking
 }
 
-// POST /api/messages/send
 messages.post('/send', async (c) => {
   try {
+    await ensureMessagesSchema(c)
     const user = await getUser(c)
     if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
 
@@ -188,9 +208,9 @@ messages.post('/send', async (c) => {
   }
 })
 
-// GET /api/messages/conversation/:conversation_id
 messages.get('/conversation/:conversation_id', async (c) => {
   try {
+    await ensureMessagesSchema(c)
     const user = await getUser(c)
     if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
 
@@ -217,9 +237,9 @@ messages.get('/conversation/:conversation_id', async (c) => {
   }
 })
 
-// GET /api/messages/inbox
 messages.get('/inbox', async (c) => {
   try {
+    await ensureMessagesSchema(c)
     const user = await getUser(c)
     if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
     const currentUserId = userId(user)
@@ -251,9 +271,9 @@ messages.get('/inbox', async (c) => {
   }
 })
 
-// PATCH /api/messages/read/:conversation_id
 messages.patch('/read/:conversation_id', async (c) => {
   try {
+    await ensureMessagesSchema(c)
     const user = await getUser(c)
     if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
 
