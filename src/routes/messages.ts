@@ -28,12 +28,35 @@ function messagesMigrationMissing(error: any): boolean {
   return message.includes('no such table: messages')
 }
 
-function migrationRequired(c: any, status = 503) {
-  return c.json({
-    success: false,
-    error: 'Messages database migration required',
-    migration: 'migrations/0007_messages.sql'
-  }, status)
+async function ensureMessagesSchema(c: any) {
+  await c.env.DB.prepare(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      conversation_id TEXT NOT NULL,
+      sender_id INTEGER NOT NULL,
+      receiver_id INTEGER NOT NULL,
+      provider_id INTEGER,
+      booking_id INTEGER,
+      message TEXT NOT NULL,
+      is_read INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `).run()
+  await c.env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id)').run()
+  await c.env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_messages_sender_id ON messages(sender_id)').run()
+  await c.env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_messages_receiver_id ON messages(receiver_id)').run()
+  await c.env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_messages_provider_id ON messages(provider_id)').run()
+  await c.env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at)').run()
+}
+
+async function retryWithSchema(c: any, fn: () => Promise<any>) {
+  try {
+    return await fn()
+  } catch (error) {
+    if (!messagesMigrationMissing(error)) throw error
+    await ensureMessagesSchema(c)
+    return await fn()
+  }
 }
 
 function makeConversationId(providerId: number, customerId: number): string {
@@ -61,11 +84,11 @@ async function providerById(c: any, providerId: number) {
 async function canAccessConversation(c: any, user: any, conversationId: string): Promise<boolean> {
   const currentUserId = userId(user)
 
-  const existing = await c.env.DB.prepare(`
+  const existing = await retryWithSchema(c, async () => await c.env.DB.prepare(`
     SELECT COUNT(*) as count
     FROM messages
     WHERE conversation_id = ? AND (sender_id = ? OR receiver_id = ?)
-  `).bind(conversationId, currentUserId, currentUserId).first() as any
+  `).bind(conversationId, currentUserId, currentUserId).first() as any)
 
   if (Number(existing?.count || 0) > 0) return true
 
@@ -129,6 +152,7 @@ messages.post('/send', async (c) => {
       if (!requestedProviderId) return c.json({ success: false, error: 'Provider is required' }, 400)
       const provider = await providerById(c, requestedProviderId)
       if (!provider) return c.json({ success: false, error: 'Provider not found' }, 404)
+      if (!provider.user_id) return c.json({ success: false, error: 'Provider account is not linked to a user yet' }, 409)
 
       providerId = Number(provider.id)
       receiverId = Number(provider.user_id)
@@ -145,10 +169,10 @@ messages.post('/send', async (c) => {
     }
 
     const conversationId = makeConversationId(providerId, customerId)
-    const result = await c.env.DB.prepare(`
+    const result = await retryWithSchema(c, async () => await c.env.DB.prepare(`
       INSERT INTO messages (conversation_id, sender_id, receiver_id, provider_id, booking_id, message)
       VALUES (?, ?, ?, ?, ?, ?)
-    `).bind(conversationId, currentUserId, receiverId, providerId, bookingId, text).run()
+    `).bind(conversationId, currentUserId, receiverId, providerId, bookingId, text).run())
 
     const message = await c.env.DB.prepare(`
       SELECT m.*, su.first_name as sender_first_name, su.last_name as sender_last_name
@@ -159,9 +183,8 @@ messages.post('/send', async (c) => {
 
     return c.json({ success: true, conversation_id: conversationId, message })
   } catch (error: any) {
-    if (messagesMigrationMissing(error)) return migrationRequired(c)
     console.error('MESSAGES SEND ERROR:', error)
-    return c.json({ success: false, error: 'Failed to send message' }, 500)
+    return c.json({ success: false, error: error?.message || 'Failed to send message' }, 500)
   }
 })
 
@@ -175,7 +198,7 @@ messages.get('/conversation/:conversation_id', async (c) => {
     const allowed = await canAccessConversation(c, user, conversationId)
     if (!allowed) return c.json({ success: false, error: 'Conversation not found' }, 404)
 
-    const result = await c.env.DB.prepare(`
+    const result = await retryWithSchema(c, async () => await c.env.DB.prepare(`
       SELECT m.*, su.first_name as sender_first_name, su.last_name as sender_last_name,
         ru.first_name as receiver_first_name, ru.last_name as receiver_last_name,
         p.business_name, p.logo_url
@@ -185,15 +208,12 @@ messages.get('/conversation/:conversation_id', async (c) => {
       LEFT JOIN providers p ON p.id = m.provider_id
       WHERE m.conversation_id = ?
       ORDER BY m.created_at ASC, m.id ASC
-    `).bind(conversationId).all()
+    `).bind(conversationId).all())
 
     return c.json({ success: true, conversation_id: conversationId, messages: result.results })
   } catch (error: any) {
-    if (messagesMigrationMissing(error)) {
-      return c.json({ success: true, messages: [], note: 'Messages database migration required' })
-    }
     console.error('MESSAGES CONVERSATION ERROR:', error)
-    return c.json({ success: false, error: 'Failed to load conversation' }, 500)
+    return c.json({ success: false, error: error?.message || 'Failed to load conversation' }, 500)
   }
 })
 
@@ -204,7 +224,7 @@ messages.get('/inbox', async (c) => {
     if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
     const currentUserId = userId(user)
 
-    const result = await c.env.DB.prepare(`
+    const result = await retryWithSchema(c, async () => await c.env.DB.prepare(`
       SELECT latest.conversation_id, latest.id as last_message_id, latest.sender_id, latest.receiver_id,
         latest.provider_id, latest.booking_id, latest.message as last_message, latest.created_at,
         grouped.unread_count,
@@ -222,15 +242,12 @@ messages.get('/inbox', async (c) => {
       LEFT JOIN users other ON other.id = CASE WHEN latest.sender_id = ? THEN latest.receiver_id ELSE latest.sender_id END
       LEFT JOIN providers p ON p.id = latest.provider_id
       ORDER BY latest.created_at DESC, latest.id DESC
-    `).bind(currentUserId, currentUserId, currentUserId, currentUserId).all()
+    `).bind(currentUserId, currentUserId, currentUserId, currentUserId).all())
 
     return c.json({ success: true, conversations: result.results })
   } catch (error: any) {
-    if (messagesMigrationMissing(error)) {
-      return c.json({ success: true, conversations: [], note: 'Messages database migration required' })
-    }
     console.error('MESSAGES INBOX ERROR:', error)
-    return c.json({ success: false, error: 'Failed to load inbox' }, 500)
+    return c.json({ success: false, error: error?.message || 'Failed to load inbox' }, 500)
   }
 })
 
@@ -244,15 +261,14 @@ messages.patch('/read/:conversation_id', async (c) => {
     const allowed = await canAccessConversation(c, user, conversationId)
     if (!allowed) return c.json({ success: false, error: 'Conversation not found' }, 404)
 
-    await c.env.DB.prepare(
+    await retryWithSchema(c, async () => await c.env.DB.prepare(
       'UPDATE messages SET is_read = 1 WHERE conversation_id = ? AND receiver_id = ?'
-    ).bind(conversationId, userId(user)).run()
+    ).bind(conversationId, userId(user)).run())
 
     return c.json({ success: true })
   } catch (error: any) {
-    if (messagesMigrationMissing(error)) return c.json({ success: true, note: 'Messages database migration required' })
     console.error('MESSAGES READ ERROR:', error)
-    return c.json({ success: false, error: 'Failed to mark messages as read' }, 500)
+    return c.json({ success: false, error: error?.message || 'Failed to mark messages as read' }, 500)
   }
 })
 
