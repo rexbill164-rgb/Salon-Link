@@ -5,6 +5,8 @@ const SCRIPT_TEXT_REPAIRS: Array<[string, string]> = [
   ["Review takes 24-48 hrs. We\\'ll email you.", 'Review takes 24-48 hrs. We will email you.'],
   ["Review takes 24\u201348 hrs. We'll email you.", 'Review takes 24-48 hrs. We will email you.'],
   ["Review takes 24\u201348 hrs. We\\'ll email you.", 'Review takes 24-48 hrs. We will email you.'],
+  ["e.response?.data?.error||'Failed to save'", "e.response && e.response.data && e.response.data.error ? e.response.data.error : 'Failed to save'"],
+  ["e.response?.data?.error || 'Failed to save'", "e.response && e.response.data && e.response.data.error ? e.response.data.error : 'Failed to save'"],
 ]
 
 export function repairInlineScriptText(html: string): string {
