@@ -30,6 +30,7 @@ import { withDiscoveryNearbyUi, withProviderDashboardMessagesButton, withProvide
 import { withProviderDashboardStaticFix } from './utils/providerDashboardStaticFix'
 import { withProviderGalleryDeleteFix } from './utils/providerGalleryDeleteFix'
 import { withPaymentDisabledUi } from './utils/paymentDisabledUi'
+import { withProviderKycLogoutFix } from './utils/providerKycLogoutFix'
 
 type Bindings = { DB: D1Database; [key: string]: any }
 const app = new Hono<{ Bindings: Bindings }>()
@@ -45,7 +46,7 @@ app.route('/api/uploads', uploadRoutes)
 app.route('/api/notifications', notificationRoutes)
 app.route('/api/messages', messageRoutes)
 
-const providerDash = () => withProviderGalleryDeleteFix(withProviderDashboardStaticFix(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage()))))
+const providerDash = () => withProviderKycLogoutFix(withProviderGalleryDeleteFix(withProviderDashboardStaticFix(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage())))))
 const noPay = (html: string) => withPaymentDisabledUi(html)
 
 app.get('/', (c) => c.html(homePage()))
@@ -65,6 +66,6 @@ app.get('/settings', (c) => c.html(settingsPage()))
 app.get('/notifications', (c) => c.html(notificationsPage()))
 app.get('/payment/pay', (c) => c.html(noPay(paymentPage())))
 app.get('/payment/success', (c) => c.html(noPay(paymentSuccessPage())))
-app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.3-gallery-delete-payment-hide', db: 'D1 Connected', timestamp: new Date().toISOString() }))
+app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.4-provider-kyc-logout-fix', db: 'D1 Connected', timestamp: new Date().toISOString() }))
 app.notFound((c) => c.html(homePage()))
 export default app
