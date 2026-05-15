@@ -30,6 +30,7 @@ import { notificationsPage } from './pages/notifications'
 import { paymentPage, paymentSuccessPage } from './pages/paymentPage'
 import { messagesPage } from './pages/messages'
 import { repairInlineScriptText } from './utils/generatedScriptRepairs'
+import { withDiscoveryNearbyUi, withProviderDashboardMessagesButton, withProviderProfileServiceUi } from './utils/chatMapServiceEnhancements'
 
 type Bindings = {
   DB: D1Database
@@ -65,10 +66,10 @@ app.get('/', (c) => c.html(homePage()))
 app.get('/login', (c) => c.html(loginPage()))
 app.get('/register', (c) => c.html(registerPage()))
 app.get('/dashboard', (c) => c.html(dashboardPage()))
-app.get('/provider/dashboard', (c) => c.html(repairInlineScriptText(providerDashboardPage())))
+app.get('/provider/dashboard', (c) => c.html(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage()))))
 app.get('/provider/onboarding', (c) => c.html(onboardingPage()))
-app.get('/discover', (c) => c.html(discoveryPage()))
-app.get('/provider/:id', (c) => c.html(providerProfilePage(c.req.param('id'))))
+app.get('/discover', (c) => c.html(withDiscoveryNearbyUi(discoveryPage())))
+app.get('/provider/:id', (c) => c.html(withProviderProfileServiceUi(providerProfilePage(c.req.param('id')))))
 app.get('/book/:id', (c) => c.html(bookingPage(c.req.param('id'))))
 app.get('/admin', (c) => c.html(repairInlineScriptText(adminPanelPage())))
 app.get('/messages', (c) => c.html(messagesPage()))
