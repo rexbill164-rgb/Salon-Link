@@ -34,6 +34,8 @@ import { withProviderKycLogoutFix } from './utils/providerKycLogoutFix'
 import { withMessagesKeyboardFix } from './utils/messagesKeyboardFix'
 import { withZoomLock } from './utils/zoomLock'
 import { withCustomerMessagesShortcut } from './utils/customerMessagesShortcut'
+import { withAppLaunchSplash } from './utils/appLaunchSplash'
+import { iconSvg, salonLinkManifest } from './utils/pwaManifest'
 
 type Bindings = { DB: D1Database; [key: string]: any }
 const app = new Hono<{ Bindings: Bindings }>()
@@ -49,10 +51,16 @@ app.route('/api/uploads', uploadRoutes)
 app.route('/api/notifications', notificationRoutes)
 app.route('/api/messages', messageRoutes)
 
-const page = (html: string) => withZoomLock(withCustomerMessagesShortcut(html))
-const providerDash = () => withZoomLock(withProviderKycLogoutFix(withProviderGalleryDeleteFix(withProviderDashboardStaticFix(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage()))))))
+const page = (html: string) => withAppLaunchSplash(withZoomLock(withCustomerMessagesShortcut(html)))
+const providerDash = () => withAppLaunchSplash(withZoomLock(withProviderKycLogoutFix(withProviderGalleryDeleteFix(withProviderDashboardStaticFix(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage())))))))
 const noPay = (html: string) => page(withPaymentDisabledUi(html))
-const msgPage = (conversationId = '') => withZoomLock(withMessagesKeyboardFix(messagesPage(conversationId)))
+const msgPage = (conversationId = '') => withAppLaunchSplash(withZoomLock(withMessagesKeyboardFix(messagesPage(conversationId))))
+
+app.get('/manifest.json', (c) => c.json(salonLinkManifest()))
+app.get('/icon-192.png', (c) => c.body(iconSvg(192), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
+app.get('/icon-512.png', (c) => c.body(iconSvg(512), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
+app.get('/favicon.png', (c) => c.body(iconSvg(192), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
+app.get('/apple-touch-icon.png', (c) => c.body(iconSvg(512), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
 
 app.get('/', (c) => c.html(page(homePage())))
 app.get('/login', (c) => c.html(page(loginPage())))
@@ -63,7 +71,7 @@ app.get('/provider/onboarding', (c) => c.html(page(onboardingPage())))
 app.get('/discover', (c) => c.html(page(withDiscoveryNearbyUi(discoveryPage()))))
 app.get('/provider/:id', (c) => c.html(page(withProviderProfileServiceUi(providerProfilePage(c.req.param('id'))))))
 app.get('/book/:id', (c) => c.html(noPay(bookingPage(c.req.param('id')))))
-app.get('/admin', (c) => c.html(withZoomLock(repairInlineScriptText(adminPanelPage()))))
+app.get('/admin', (c) => c.html(withAppLaunchSplash(withZoomLock(repairInlineScriptText(adminPanelPage())))))
 app.get('/messages', (c) => c.html(msgPage()))
 app.get('/messages/:conversation_id', (c) => c.html(msgPage(c.req.param('conversation_id'))))
 app.get('/hairstyle-history', (c) => c.html(page(hairstyleHistoryPage())))
@@ -71,6 +79,6 @@ app.get('/settings', (c) => c.html(page(settingsPage())))
 app.get('/notifications', (c) => c.html(page(notificationsPage())))
 app.get('/payment/pay', (c) => c.html(noPay(paymentPage())))
 app.get('/payment/success', (c) => c.html(noPay(paymentSuccessPage())))
-app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.7-customer-messages-shortcut', db: 'D1 Connected', timestamp: new Date().toISOString() }))
+app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.8-launch-splash', db: 'D1 Connected', timestamp: new Date().toISOString() }))
 app.notFound((c) => c.html(page(homePage())))
 export default app
