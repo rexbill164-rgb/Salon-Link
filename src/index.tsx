@@ -28,6 +28,8 @@ import { messagesPage } from './pages/messages'
 import { repairInlineScriptText } from './utils/generatedScriptRepairs'
 import { withDiscoveryNearbyUi, withProviderDashboardMessagesButton, withProviderProfileServiceUi } from './utils/chatMapServiceEnhancements'
 import { withProviderDashboardStaticFix } from './utils/providerDashboardStaticFix'
+import { withProviderGalleryDeleteFix } from './utils/providerGalleryDeleteFix'
+import { withPaymentDisabledUi } from './utils/paymentDisabledUi'
 
 type Bindings = { DB: D1Database; [key: string]: any }
 const app = new Hono<{ Bindings: Bindings }>()
@@ -42,23 +44,27 @@ app.route('/api/admin', adminRoutes)
 app.route('/api/uploads', uploadRoutes)
 app.route('/api/notifications', notificationRoutes)
 app.route('/api/messages', messageRoutes)
+
+const providerDash = () => withProviderGalleryDeleteFix(withProviderDashboardStaticFix(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage()))))
+const noPay = (html: string) => withPaymentDisabledUi(html)
+
 app.get('/', (c) => c.html(homePage()))
 app.get('/login', (c) => c.html(loginPage()))
 app.get('/register', (c) => c.html(registerPage()))
-app.get('/dashboard', (c) => c.html(dashboardPage()))
-app.get('/provider/dashboard', (c) => c.html(withProviderDashboardStaticFix(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage())))))
+app.get('/dashboard', (c) => c.html(noPay(dashboardPage())))
+app.get('/provider/dashboard', (c) => c.html(providerDash()))
 app.get('/provider/onboarding', (c) => c.html(onboardingPage()))
 app.get('/discover', (c) => c.html(withDiscoveryNearbyUi(discoveryPage())))
 app.get('/provider/:id', (c) => c.html(withProviderProfileServiceUi(providerProfilePage(c.req.param('id')))))
-app.get('/book/:id', (c) => c.html(bookingPage(c.req.param('id'))))
+app.get('/book/:id', (c) => c.html(noPay(bookingPage(c.req.param('id')))))
 app.get('/admin', (c) => c.html(repairInlineScriptText(adminPanelPage())))
 app.get('/messages', (c) => c.html(messagesPage()))
 app.get('/messages/:conversation_id', (c) => c.html(messagesPage(c.req.param('conversation_id'))))
 app.get('/hairstyle-history', (c) => c.html(hairstyleHistoryPage()))
 app.get('/settings', (c) => c.html(settingsPage()))
 app.get('/notifications', (c) => c.html(notificationsPage()))
-app.get('/payment/pay', (c) => c.html(paymentPage()))
-app.get('/payment/success', (c) => c.html(paymentSuccessPage()))
-app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.1-provider-dashboard-static-fix', db: 'D1 Connected', timestamp: new Date().toISOString() }))
+app.get('/payment/pay', (c) => c.html(noPay(paymentPage())))
+app.get('/payment/success', (c) => c.html(noPay(paymentSuccessPage())))
+app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.3-gallery-delete-payment-hide', db: 'D1 Connected', timestamp: new Date().toISOString() }))
 app.notFound((c) => c.html(homePage()))
 export default app
