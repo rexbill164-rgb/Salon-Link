@@ -35,7 +35,7 @@ import { withMessagesKeyboardFix } from './utils/messagesKeyboardFix'
 import { withZoomLock } from './utils/zoomLock'
 import { withCustomerMessagesShortcut } from './utils/customerMessagesShortcut'
 import { withAppLaunchSplash } from './utils/appLaunchSplash'
-import { iconSvg, salonLinkManifest } from './utils/pwaManifest'
+import { iconSvg, salonLinkManifest, splashSvg } from './utils/pwaManifest'
 
 type Bindings = { DB: D1Database; [key: string]: any }
 const app = new Hono<{ Bindings: Bindings }>()
@@ -57,6 +57,7 @@ const noPay = (html: string) => page(withPaymentDisabledUi(html))
 const msgPage = (conversationId = '') => withAppLaunchSplash(withZoomLock(withMessagesKeyboardFix(messagesPage(conversationId))))
 
 app.get('/manifest.json', (c) => c.json(salonLinkManifest()))
+app.get('/splash.svg', (c) => c.body(splashSvg(), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
 app.get('/icon-192.png', (c) => c.body(iconSvg(192), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
 app.get('/icon-512.png', (c) => c.body(iconSvg(512), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
 app.get('/favicon.png', (c) => c.body(iconSvg(192), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
@@ -79,6 +80,6 @@ app.get('/settings', (c) => c.html(page(settingsPage())))
 app.get('/notifications', (c) => c.html(page(notificationsPage())))
 app.get('/payment/pay', (c) => c.html(noPay(paymentPage())))
 app.get('/payment/success', (c) => c.html(noPay(paymentSuccessPage())))
-app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.8-launch-splash', db: 'D1 Connected', timestamp: new Date().toISOString() }))
+app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.9-splash-route', db: 'D1 Connected', timestamp: new Date().toISOString() }))
 app.notFound((c) => c.html(page(homePage())))
 export default app
