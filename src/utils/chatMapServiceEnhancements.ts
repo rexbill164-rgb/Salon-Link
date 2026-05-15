@@ -66,7 +66,8 @@ export function withProviderProfileServiceUi(html: string): string {
 export function withDiscoveryNearbyUi(html: string): string {
   const style = `
 <style id="nearby-map-panel-styles">
-  .nearby-map-panel { background:#fff; border:1px solid #eee; border-radius:22px; padding:18px; margin:0 0 18px; box-shadow:0 8px 24px rgba(0,0,0,.06); }
+  .nearby-map-panel { display:none; background:#fff; border:1px solid #eee; border-radius:22px; padding:18px; margin:0 0 18px; box-shadow:0 8px 24px rgba(0,0,0,.06); }
+  .nearby-map-panel.is-open { display:block; }
   .nearby-map-top { display:flex; align-items:center; justify-content:space-between; gap:12px; }
   .nearby-map-box { margin-top:14px; height:220px; min-height:220px; border-radius:18px; border:1px solid #e3e3e3; background:#f2f2f2; overflow:hidden; position:relative; }
   #nearby-map { width:100%; height:100%; min-height:220px; }
@@ -89,6 +90,7 @@ export function withDiscoveryNearbyUi(html: string): string {
   var nearbyMap = null;
   var nearbyMapLayers = [];
   var leafletLoadPromise = null;
+  var nearbyLoadedOnce = false;
 
   function esc(value){
     return String(value || '').replace(/[&<>"']/g, function(ch){
@@ -177,9 +179,33 @@ export function withDiscoveryNearbyUi(html: string): string {
     var panel = document.createElement('section');
     panel.id = 'nearby-map-panel';
     panel.className = 'nearby-map-panel';
-    panel.innerHTML = '<div class="nearby-map-top"><div><div style="font-weight:900;font-size:16px;color:#111;">Near You</div><div id="nearby-map-sub" style="font-size:12px;color:#777;margin-top:3px;">Allow location to see providers near you.</div></div><button id="nearby-map-btn" type="button" style="border:none;background:#111;color:#fff;border-radius:999px;padding:10px 14px;font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap;">Use location</button></div><div class="nearby-map-box"><div id="nearby-map"></div><div id="nearby-map-message" class="nearby-map-message">Use your location to load the nearby map.</div></div><div id="nearby-provider-list" class="nearby-provider-list"></div>';
+    panel.innerHTML = '<div class="nearby-map-top"><div><div style="font-weight:900;font-size:16px;color:#111;">Map View</div><div id="nearby-map-sub" style="font-size:12px;color:#777;margin-top:3px;">Tap Refresh to show providers around your current location.</div></div><button id="nearby-map-btn" type="button" style="border:none;background:#111;color:#fff;border-radius:999px;padding:10px 14px;font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap;">Refresh</button></div><div class="nearby-map-box"><div id="nearby-map"></div><div id="nearby-map-message" class="nearby-map-message">Tap Refresh to load the map.</div></div><div id="nearby-provider-list" class="nearby-provider-list"></div>';
     grid.parentNode.insertBefore(panel, grid);
     document.getElementById('nearby-map-btn').addEventListener('click', loadNearbyProviders);
+  }
+  function openMapPanel(loadImmediately){
+    insertPanel();
+    var panel = document.getElementById('nearby-map-panel');
+    if (!panel) {
+      setTimeout(function(){ openMapPanel(loadImmediately); }, 100);
+      return;
+    }
+    panel.classList.add('is-open');
+    panel.scrollIntoView({ behavior:'smooth', block:'start' });
+    if (nearbyMap) setTimeout(function(){ nearbyMap.invalidateSize(); }, 250);
+    if (loadImmediately && !nearbyLoadedOnce) loadNearbyProviders();
+  }
+  window.openNearbyMapView = function(){ openMapPanel(true); };
+  function wireMapButtons(){
+    Array.prototype.slice.call(document.querySelectorAll('.map-btn')).forEach(function(btn){
+      if (btn.dataset.salonlinkMapWired === '1') return;
+      btn.dataset.salonlinkMapWired = '1';
+      btn.removeAttribute('onclick');
+      btn.addEventListener('click', function(event){
+        event.preventDefault();
+        openMapPanel(true);
+      });
+    });
   }
   function renderProviders(providers){
     var list = document.getElementById('nearby-provider-list');
@@ -288,6 +314,7 @@ export function withDiscoveryNearbyUi(html: string): string {
     });
   }
   function loadNearbyProviders(){
+    openMapPanel(false);
     var btn = document.getElementById('nearby-map-btn');
     var sub = document.getElementById('nearby-map-sub');
     if (!navigator.geolocation) { if (sub) sub.textContent = 'Location is not supported on this device.'; setMapMessage('Location is not supported on this device.'); return; }
@@ -296,6 +323,7 @@ export function withDiscoveryNearbyUi(html: string): string {
     navigator.geolocation.getCurrentPosition(function(pos){
       var lat = pos.coords.latitude;
       var lng = pos.coords.longitude;
+      nearbyLoadedOnce = true;
       renderUserLocation(lat, lng);
       fetch('/api/providers/nearby?lat=' + encodeURIComponent(lat) + '&lng=' + encodeURIComponent(lng) + '&limit=20')
         .then(function(response){ return response.json(); })
@@ -314,14 +342,18 @@ export function withDiscoveryNearbyUi(html: string): string {
     }, function(){
       if (sub) sub.textContent = 'Allow location to see providers near you.';
       setMapMessage('Allow location to show your nearby map.');
-      if (btn) { btn.textContent = 'Use location'; btn.disabled = false; }
+      if (btn) { btn.textContent = 'Refresh'; btn.disabled = false; }
     }, {
       enableHighAccuracy: true,
       timeout: 12000,
       maximumAge: 60000
     });
   }
-  document.addEventListener('DOMContentLoaded', insertPanel);
+  document.addEventListener('DOMContentLoaded', function(){
+    insertPanel();
+    wireMapButtons();
+  });
+  if (window.MutationObserver) new MutationObserver(wireMapButtons).observe(document.documentElement, { childList:true, subtree:true });
 })();
 </script>`
 
