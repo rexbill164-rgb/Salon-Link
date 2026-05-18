@@ -1,235 +1,385 @@
-import { baseHead, mobileNav, globalScripts } from '../utils/layout'
+import { baseHead, navbar, mobileNav, globalScripts } from '../utils/layout'
 
 export const discoveryPage = () => `<!DOCTYPE html>
 <html lang="en">
 <head>
 ${baseHead('Discover Services', `
 <style>
-  /* ── Classy dark gradient header ── */
-  .disc-header {
-    background: linear-gradient(160deg, #141414 0%, #222222 45%, #1a1a1a 100%);
-    padding: 28px 0 84px;
-    position: relative;
-    overflow: hidden;
-  }
-  .disc-header::before {
-    content:'';
-    position:absolute;inset:0;
-    background: radial-gradient(ellipse 55% 70% at 75% 40%, rgba(255,255,255,0.055) 0%, transparent 65%);
-    pointer-events:none;
-  }
-  .disc-header::after {
-    content:'';
-    position:absolute;bottom:0;left:0;right:0;height:80px;
-    background:linear-gradient(to bottom,transparent,#F8F8F8);
-    pointer-events:none;
+  /* ── Fresha-style Search Header ── */
+  .search-header {
+    background: linear-gradient(135deg, #f8f4ff 0%, #fce8f3 50%, #fff8f8 100%);
+    padding: 32px 0 40px;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
   }
 
-  /* ── Frosted search bar ── */
-  .disc-search-wrap {
-    position: sticky;
-    top: 64px;
-    z-index: 300;
-    padding: 0 0 16px;
-    background: transparent;
-    margin-top: -54px;
-  }
-  .disc-search-inner {
-    background: #FFFFFF;
-    border-radius: 20px;
-    padding: 6px 6px 6px 20px;
+  /* ── Search bar ── */
+  .search-bar {
     display: flex;
     align-items: center;
     gap: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.16);
-    border: 1px solid rgba(255,255,255,0.8);
+    background: #fff;
+    border-radius: 100px;
+    padding: 8px 8px 8px 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    border: 1px solid rgba(0,0,0,0.06);
+    transition: box-shadow 0.2s;
+  }
+  .search-bar:focus-within {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  }
+  .search-bar input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    color: #101010;
+    background: transparent;
+    min-width: 0;
+  }
+  .search-bar input::placeholder { color: #888; }
+  .search-bar-btn {
+    background: #101010;
+    color: #fff;
+    border: none;
+    border-radius: 100px;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+  }
+  .search-bar-btn:hover { background: #2a2a2a; }
+
+  /* ── Filter chips ── */
+  .filter-chips {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 20px 0 4px;
+  }
+  .filter-chips::-webkit-scrollbar { display: none; }
+  .filter-chip {
+    flex-shrink: 0;
+    padding: 10px 20px;
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.08);
+    color: #555;
+    transition: all 0.2s;
+  }
+  .filter-chip:hover { border-color: #101010; color: #101010; }
+  .filter-chip.active {
+    background: #101010;
+    color: #fff;
+    border-color: #101010;
   }
 
-  /* ── Filter chips – iPhone bubble style ── */
-  .filter-chip-row { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; }
-  .filter-chip-row::-webkit-scrollbar { display:none; }
-  .fchip {
-    flex-shrink:0; padding:8px 18px; border-radius:100px;
-    font-size:12px; font-weight:600;
-    cursor:pointer; transition:all 0.25s cubic-bezier(.34,1.56,.64,1); white-space:nowrap;
-    background:rgba(255,255,255,0.14); border:1px solid rgba(255,255,255,0.20);
-    color:rgba(255,255,255,0.80); backdrop-filter:blur(12px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.12);
-  }
-  .fchip:hover { background:rgba(255,255,255,0.22); color:#FFFFFF; transform:scale(1.04); }
-  .fchip.active {
-    background:#FFFFFF; color:#111111; border-color:#FFFFFF;
-    box-shadow:0 4px 16px rgba(0,0,0,0.22);
-    font-weight:700;
-  }
-
-  /* ── 2-column provider grid (Fresha style) ── */
-  .prov-grid {
+  /* ── Provider grid ── */
+  .provider-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
   }
-  @media(min-width:768px){ .prov-grid { grid-template-columns: repeat(3,1fr); gap:16px; } }
-  @media(min-width:1200px){ .prov-grid { grid-template-columns: repeat(4,1fr); } }
+  @media(max-width:1024px) { .provider-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media(max-width:768px) { .provider-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; } }
+  @media(max-width:480px) { .provider-grid { grid-template-columns: 1fr 1fr; gap: 12px; } }
 
-  /* ── Provider card – refined ── */
-  .pcard {
-    background:#FFFFFF; border-radius:20px; overflow:hidden; cursor:pointer;
-    border:1px solid #F0F0F0; transition:all 0.3s cubic-bezier(.34,1.56,.64,1);
-    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  /* ── Provider card (Fresha style) ── */
+  .provider-card {
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: box-shadow 0.25s, transform 0.25s;
   }
-  .pcard:hover { transform:translateY(-6px); box-shadow:0 18px 44px rgba(0,0,0,0.13); border-color:#E0E0E0; }
-  .pcard:hover .pcard-img { transform:scale(1.04); }
-  .pcard-img { width:100%;height:160px;object-fit:cover;display:block;transition:transform 0.5s var(--ease-luxury); }
+  .provider-card:hover {
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    transform: translateY(-4px);
+  }
+  .provider-card-img {
+    position: relative;
+    aspect-ratio: 4/3;
+    overflow: hidden;
+  }
+  .provider-card-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s;
+  }
+  .provider-card:hover .provider-card-img img { transform: scale(1.05); }
+  .provider-card-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    gap: 6px;
+  }
+  .provider-card-heart {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #101010;
+    font-size: 14px;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .provider-card-heart:hover { transform: scale(1.1); }
+  .provider-card-content { padding: 14px 16px; }
+  .provider-card-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #101010;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .verified-badge {
+    width: 16px;
+    height: 16px;
+    background: #00a862;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 9px;
+  }
+  .provider-card-meta {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 4px;
+  }
+  .provider-card-rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .provider-card-rating .star { color: #101010; font-size: 14px; }
+  .provider-card-rating .score { font-size: 14px; font-weight: 700; color: #101010; }
+  .provider-card-rating .count { font-size: 13px; color: #888; }
 
   /* ── Filter panel ── */
   .filter-panel {
-    background:#FFFFFF; border:1px solid #EEEEEE; border-radius:22px;
-    padding:28px; margin-bottom:20px;
-    box-shadow:0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05);
-    animation:fadeUp 0.25s var(--ease-luxury) both;
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   }
-  .radio-opt { display:flex; align-items:center; gap:10px; margin-bottom:10px; cursor:pointer; }
-  .radio-dot {
-    width:18px; height:18px; border-radius:50%;
-    border:1.5px solid var(--i-faint); display:flex; align-items:center;
-    justify-content:center; transition:all 0.2s; flex-shrink:0;
+  .filter-group-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #888;
+    margin-bottom: 12px;
   }
-  .radio-opt.selected .radio-dot { border-color:#111111; background:#111111; }
-  .radio-opt.selected .radio-dot::after { content:''; width:6px; height:6px; border-radius:50%; background:#FFFFFF; display:block; }
+  .filter-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    cursor: pointer;
+  }
+  .filter-radio {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .filter-option.selected .filter-radio {
+    border-color: #101010;
+    background: #101010;
+  }
+  .filter-option.selected .filter-radio::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #fff;
+  }
+  .filter-option-label {
+    font-size: 14px;
+    color: #333;
+  }
 
-  /* ── Map button (floating) ── */
-  .map-btn {
-    position:fixed; bottom:100px; right:20px; z-index:400;
-    background:var(--t-primary); color:#FFFFFF;
-    border:none; border-radius:100px; padding:12px 22px;
-    font-size:13px; font-weight:700;
-    display:flex; align-items:center; gap:8px; cursor:pointer;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.20);
-    transition: transform 0.25s, box-shadow 0.25s;
+  /* ── Results bar ── */
+  .results-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    flex-wrap: wrap;
+    gap: 12px;
   }
-  .map-btn:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(0,0,0,0.25); }
+  .results-count { font-size: 14px; color: #555; }
+  .results-count strong { color: #101010; }
+  .sort-select {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 100px;
+    padding: 10px 36px 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #101010;
+    cursor: pointer;
+    outline: none;
+    -webkit-appearance: none;
+    background-image: url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%23888%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 14px;
+  }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+  }
+  .empty-state-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    font-size: 28px;
+    color: #888;
+  }
+  .empty-state h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #101010;
+    margin-bottom: 8px;
+  }
+  .empty-state p {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 24px;
+  }
+
+  /* ── Skeleton loader ── */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+    background-size: 400%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 8px;
+  }
 </style>
 `)}
 </head>
-<body style="background:#F8F8F8;">
-
-<!-- ── Navbar (transparent on top) ── -->
-<nav id="nav-main" style="position:fixed;top:0;left:0;right:0;z-index:800;background:transparent;transition:all 0.3s ease;width:100%;max-width:100vw;">
-  <div style="padding:0 20px;height:64px;display:flex;align-items:center;justify-content:space-between;max-width:1440px;margin:0 auto;width:100%;">
-    <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;">
-      <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.15);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid rgba(255,255,255,0.3);">
-        <i class="fas fa-spa" style="color:#FFFFFF;font-size:14px;"></i>
-      </div>
-      <span style="font-family:'Poppins',sans-serif;font-size:18px;font-weight:800;letter-spacing:-0.02em;color:#FFFFFF;line-height:1;">Salon<span style="opacity:0.8;">Link</span></span>
-    </a>
-    <div id="nav-auth" style="display:flex;align-items:center;gap:10px;">
-      <a href="/login" style="padding:9px 20px;font-size:13px;background:rgba(255,255,255,0.15);color:#FFFFFF;border:1.5px solid rgba(255,255,255,0.35);border-radius:100px;text-decoration:none;font-weight:600;backdrop-filter:blur(10px);">Sign In</a>
-      <a href="/register" style="padding:10px 20px;font-size:13px;background:#FFFFFF;color:#111111;border:none;border-radius:100px;text-decoration:none;font-weight:700;">Join Free</a>
-    </div>
-  </div>
-</nav>
+<body style="background:#fafafa;">
+${navbar('discover')}
 
 <!-- ══════════════════════════════════════════════
-     DARK GRADIENT HEADER (Fresha Explore)
+     SEARCH HEADER
 ══════════════════════════════════════════════ -->
-<div class="disc-header">
-  <div class="container" style="padding-top:80px;position:relative;z-index:1;">
-
-    <!-- Title row -->
-    <div style="margin-bottom:28px;">
-      <h1 style="font-size:clamp(22px,4vw,34px);font-weight:800;color:#FFFFFF;margin-bottom:0;line-height:1.15;letter-spacing:-0.02em;">
-        Find beauty services
-      </h1>
-    </div>
-
-    <!-- Search + Near Me row -->
-    <div style="display:flex;gap:10px;align-items:center;margin-bottom:20px;">
-      <div style="flex:1;background:rgba(255,255,255,0.12);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1.5px solid rgba(255,255,255,0.22);border-radius:100px;padding:13px 20px;display:flex;align-items:center;gap:12px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,0.12),0 4px 16px rgba(0,0,0,0.15);" onclick="document.getElementById('search-input-hidden').focus()">
-        <i class="fas fa-search" style="color:rgba(255,255,255,0.7);font-size:15px;"></i>
-        <input id="search-input-hidden" type="text" oninput="filterCards()" placeholder="Search salons, services..." style="background:none;border:none;outline:none;color:#FFFFFF;font-family:'Poppins',sans-serif;font-size:14px;width:100%;" />
+<section class="search-header">
+  <div class="container">
+    <div style="max-width:680px;margin:0 auto;">
+      <div class="search-bar">
+        <i class="fas fa-search" style="color:#888;font-size:16px;"></i>
+        <input id="search-input" type="text" oninput="filterCards()" placeholder="Search salons, services, locations..."/>
+        <button class="search-bar-btn" onclick="filterCards()">Search</button>
       </div>
-      <button id="location-btn" onclick="detectLocation()" style="background:rgba(255,255,255,0.15);backdrop-filter:blur(16px);border:1.5px solid rgba(255,255,255,0.25);border-radius:14px;padding:14px 20px;color:#FFFFFF;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;transition:background 0.25s;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
-        <i class="fas fa-map-marker-alt"></i>
-        <span class="hide-mob">Near You</span>
-      </button>
-      <button onclick="toggleFilters()" id="filter-btn" style="background:rgba(255,255,255,0.15);backdrop-filter:blur(16px);border:1.5px solid rgba(255,255,255,0.25);border-radius:14px;padding:14px 20px;color:#FFFFFF;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;transition:background 0.25s;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
-        <i class="fas fa-sliders-h"></i>
-        <span class="hide-mob">Filters</span>
-      </button>
-    </div>
 
-    <!-- Category chips row -->
-    <div class="filter-chip-row no-scrollbar">
-      ${[
-        {label:'All',          icon:'⬛'},
-        {label:'Hair Styling', icon:'✂️'},
-        {label:'Barbing',      icon:'💈'},
-        {label:'Nail Care',    icon:'💅'},
-        {label:'Massage',      icon:'💆'},
-        {label:'Facials',      icon:'🌿'},
-        {label:'Lashes',       icon:'👁️'},
-        {label:'Makeup',       icon:'💄'},
-        {label:'Bridal',       icon:'💍'},
-      ].map((cat,i)=>
-        `<button onclick="filterCat('${cat.label}',this)" class="fchip ${i===0?'active':''}">${cat.icon} ${cat.label}</button>`
-      ).join('')}
+      <div class="filter-chips">
+        ${[
+          {label:'All', cat:'All'},
+          {label:'Hair Salons', cat:'Hair Styling'},
+          {label:'Barbershops', cat:'Barbing'},
+          {label:'Nail Salons', cat:'Nail Care'},
+          {label:'Massage', cat:'Massage'},
+          {label:'Skincare', cat:'Facials'},
+          {label:'Lashes', cat:'Lashes'},
+          {label:'Makeup', cat:'Makeup'},
+        ].map((c,i)=>
+          `<button onclick="filterCat('${c.cat}',this)" class="filter-chip ${i===0?'active':''}">${c.label}</button>`
+        ).join('')}
+      </div>
     </div>
   </div>
-</div>
+</section>
 
 <!-- ══════════════════════════════════════════════
      MAIN CONTENT
 ══════════════════════════════════════════════ -->
-<div style="padding:20px 0 140px;">
+<main style="padding:32px 0 120px;">
   <div class="container">
 
-    <!-- Filter panel -->
-    <div id="filter-panel" style="display:none;margin-bottom:20px;">
+    <!-- Filter panel (hidden by default) -->
+    <div id="filter-panel" style="display:none;">
       <div class="filter-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-          <h3 style="font-size:16px;font-weight:700;color:var(--t-primary);">Filters</h3>
-          <button onclick="resetFilters()" style="background:none;border:none;color:#111111;font-size:13px;font-weight:600;cursor:pointer;">Reset all</button>
+          <h3 style="font-size:18px;font-weight:700;color:#101010;">Filters</h3>
+          <button onclick="resetFilters()" style="background:none;border:none;color:#101010;font-size:14px;font-weight:500;cursor:pointer;text-decoration:underline;">Reset all</button>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:24px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:32px;">
           ${[
-            {label:'Price Range',    key:'price',  opts:[['Any Price','all'],['Under GHS 50','0-50'],['GHS 50–100','50-100'],['GHS 100–200','100-200'],['GHS 200+','200+']]},
-            {label:'Min Rating',     key:'rating', opts:[['Any Rating','0'],['4.8+ Stars','4.8'],['4.5+ Stars','4.5'],['4.0+ Stars','4.0']]},
-            {label:'Distance',       key:'dist',   opts:[['Anywhere','all'],['Within 2 km','2'],['Within 5 km','5'],['Within 10 km','10']]},
-            {label:'Availability',   key:'avail',  opts:[['Any Time','all'],['Open Now','open'],['Verified Only','verified'],['Available Today','today']]},
+            {label:'Price Range', key:'price', opts:[['Any Price','all'],['Under GHS 50','0-50'],['GHS 50-100','50-100'],['GHS 100-200','100-200'],['GHS 200+','200+']]},
+            {label:'Rating', key:'rating', opts:[['Any Rating','0'],['4.8+ Stars','4.8'],['4.5+ Stars','4.5'],['4.0+ Stars','4.0']]},
+            {label:'Distance', key:'dist', opts:[['Anywhere','all'],['Within 2 km','2'],['Within 5 km','5'],['Within 10 km','10']]},
+            {label:'Availability', key:'avail', opts:[['Any Time','all'],['Open Now','open'],['Verified Only','verified']]},
           ].map(f=>`
             <div>
-              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--t-muted);margin-bottom:12px;">${f.label}</div>
+              <div class="filter-group-title">${f.label}</div>
               ${f.opts.map(([label,val],i)=>`
-                <div class="radio-opt ${i===0?'selected':''}" data-group="${f.key}" data-val="${val}" onclick="selectFilter('${f.key}',this)">
-                  <div class="radio-dot"></div>
-                  <span style="font-size:13px;color:var(--t-secondary);">${label}</span>
+                <div class="filter-option ${i===0?'selected':''}" data-group="${f.key}" data-val="${val}" onclick="selectFilter('${f.key}',this)">
+                  <div class="filter-radio"></div>
+                  <span class="filter-option-label">${label}</span>
                 </div>
               `).join('')}
             </div>
           `).join('')}
         </div>
-        <div style="display:flex;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--i-faint);">
-          <button onclick="toggleFilters()" style="flex:1;background:var(--i-ghost);border:1px solid var(--i-faint);border-radius:100px;padding:12px;font-size:13px;font-weight:600;cursor:pointer;color:var(--t-secondary);transition:background 0.2s;" onmouseover="this.style.background='var(--c-dark)'" onmouseout="this.style.background='var(--i-ghost)'">Cancel</button>
-          <button onclick="applyFilters()" style="flex:2;background:#111111;border:none;border-radius:100px;padding:12px;font-size:13px;font-weight:700;color:#FFFFFF;cursor:pointer;transition:background 0.2s;">
-            <i class="fas fa-check" style="margin-right:6px;"></i> Apply Filters
-          </button>
+        <div style="display:flex;gap:12px;margin-top:28px;padding-top:20px;border-top:1px solid rgba(0,0,0,0.06);">
+          <button onclick="toggleFilters()" style="flex:1;background:#f5f5f5;border:none;border-radius:100px;padding:14px;font-size:14px;font-weight:500;cursor:pointer;color:#555;">Cancel</button>
+          <button onclick="applyFilters()" style="flex:2;background:#101010;border:none;border-radius:100px;padding:14px;font-size:14px;font-weight:600;color:#fff;cursor:pointer;">Apply Filters</button>
         </div>
       </div>
     </div>
 
     <!-- Results bar -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
-      <p style="font-size:14px;color:var(--t-secondary);">
-        <span id="count" style="color:var(--t-primary);font-weight:700;">0</span>
-        <span style="margin-left:5px;">venues found</span>
-      </p>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:12px;color:var(--t-muted);">Sort:</span>
-        <select onchange="sortCards(this.value)" style="background:#FFFFFF;border:1.5px solid var(--i-faint);border-radius:100px;padding:8px 32px 8px 14px;font-size:12px;font-weight:600;color:var(--t-primary);cursor:pointer;outline:none;-webkit-appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%238A8A8A%22 stroke-width=%222%22><polyline points=%226 9 12 15 18 9%22/></svg>');background-repeat:no-repeat;background-position:right 10px center;background-size:11px;">
+    <div class="results-bar">
+      <p class="results-count"><strong id="count">0</strong> venues found</p>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button onclick="toggleFilters()" style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid rgba(0,0,0,0.1);border-radius:100px;padding:10px 20px;font-size:14px;font-weight:500;cursor:pointer;color:#101010;">
+          <i class="fas fa-sliders-h"></i> Filters
+        </button>
+        <button onclick="detectLocation()" id="location-btn" style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid rgba(0,0,0,0.1);border-radius:100px;padding:10px 20px;font-size:14px;font-weight:500;cursor:pointer;color:#101010;">
+          <i class="fas fa-map-marker-alt"></i> Near me
+        </button>
+        <select onchange="sortCards(this.value)" class="sort-select">
           <option>Top Rated</option>
-          <option>Price: Low → High</option>
-          <option>Price: High → Low</option>
+          <option>Price: Low to High</option>
+          <option>Price: High to Low</option>
           <option>Nearest First</option>
           <option>Most Reviews</option>
         </select>
@@ -237,72 +387,43 @@ ${baseHead('Discover Services', `
     </div>
 
     <!-- Provider grid -->
-    <div id="providers-grid" class="prov-grid">
+    <div id="providers-grid" class="provider-grid">
       ${[1,2,3,4,5,6,7,8].map(()=>`
-        <div style="background:#FFFFFF;border-radius:18px;overflow:hidden;border:1px solid var(--i-faint);">
-          <div style="height:160px;background:linear-gradient(90deg,#EEEEEE 25%,#E5E5E5 50%,#EEEEEE 75%);background-size:400%;animation:shimmer 1.8s infinite;"></div>
-          <div style="padding:14px;">
-            <div style="height:16px;background:#EEEEEE;border-radius:6px;margin-bottom:8px;width:70%;animation:shimmer 1.8s infinite;background-size:400%;"></div>
-            <div style="height:12px;background:#EEEEEE;border-radius:6px;margin-bottom:14px;width:50%;animation:shimmer 1.8s infinite;background-size:400%;"></div>
-            <div style="height:36px;background:#EEEEEE;border-radius:100px;animation:shimmer 1.8s infinite;background-size:400%;"></div>
+        <div style="background:#fff;border-radius:16px;overflow:hidden;">
+          <div style="aspect-ratio:4/3;" class="skeleton"></div>
+          <div style="padding:14px 16px;">
+            <div style="height:16px;margin-bottom:8px;width:70%;" class="skeleton"></div>
+            <div style="height:12px;margin-bottom:8px;width:50%;" class="skeleton"></div>
+            <div style="height:14px;width:40%;" class="skeleton"></div>
           </div>
         </div>
       `).join('')}
     </div>
 
     <!-- Empty state -->
-    <div id="empty-state" style="display:none;text-align:center;padding:80px 20px;">
-      <div style="width:80px;height:80px;border-radius:50%;background:#F0F0F0;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;">
-        <i class="fas fa-search" style="font-size:28px;color:#111111;"></i>
+    <div id="empty-state" class="empty-state" style="display:none;">
+      <div class="empty-state-icon">
+        <i class="fas fa-search"></i>
       </div>
-      <h3 style="font-size:20px;font-weight:700;margin-bottom:10px;">No results found</h3>
-      <p style="font-size:14px;color:var(--t-muted);margin-bottom:24px;">Try adjusting your filters or search terms</p>
-      <button onclick="clearSearch();resetFilters()" style="background:#111111;color:#FFFFFF;border:none;border-radius:100px;padding:12px 28px;font-size:13px;font-weight:700;cursor:pointer;">Clear Filters</button>
+      <h3>No results found</h3>
+      <p>Try adjusting your filters or search terms</p>
+      <button onclick="clearSearch();resetFilters()" style="background:#101010;color:#fff;border:none;border-radius:100px;padding:14px 28px;font-size:14px;font-weight:600;cursor:pointer;">Clear Filters</button>
     </div>
 
     <!-- Load more -->
-    <div style="text-align:center;margin-top:48px;" id="load-more-wrap">
-      <button onclick="loadMore()" style="background:#FFFFFF;border:1.5px solid #E0E0E0;border-radius:100px;padding:13px 36px;font-size:13px;font-weight:600;cursor:pointer;color:#555555;transition:all 0.25s;box-shadow:0 2px 10px rgba(0,0,0,0.06);">
-        Load More <i class="fas fa-chevron-down" style="font-size:11px;margin-left:4px;"></i>
+    <div id="load-more-wrap" style="text-align:center;margin-top:48px;">
+      <button onclick="loadMore()" style="background:#fff;border:1px solid rgba(0,0,0,0.1);border-radius:100px;padding:14px 32px;font-size:14px;font-weight:500;cursor:pointer;color:#555;">
+        Load more
       </button>
     </div>
 
   </div>
-</div>
-
-<!-- Floating map button -->
-<button class="map-btn hide-mob" onclick="showToast('Map view coming soon!','info')">
-  <i class="fas fa-map"></i> Map
-</button>
+</main>
 
 ${mobileNav('discover')}
 ${globalScripts()}
 
 <script>
-// ── Make navbar solid on scroll ──
-(function(){
-  var n = document.getElementById('nav-main');
-  function updateNav() {
-    if (window.scrollY > 100) {
-      n.style.background = 'rgba(255,255,255,0.97)';
-      n.style.borderBottom = '1px solid rgba(0,0,0,0.08)';
-      n.style.boxShadow = '0 2px 16px rgba(0,0,0,0.08)';
-      // Update text colors
-      n.querySelectorAll('a,span').forEach(function(el){
-        if(el.tagName==='A' && el.href && el.style.color==='rgb(255, 255, 255)') {
-          el.style.color = 'var(--t-primary)';
-        }
-      });
-    } else {
-      n.style.background = 'transparent';
-      n.style.borderBottom = 'none';
-      n.style.boxShadow = 'none';
-    }
-  }
-  window.addEventListener('scroll', updateNav, {passive:true});
-  updateNav();
-})();
-
 var filtersOpen = false;
 var activeFilters = {};
 var allProviders = [];
@@ -321,10 +442,10 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 
 function detectLocation() {
   var btn = document.getElementById('location-btn');
-  if (btn) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true; }
+  if (btn) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Locating...'; btn.disabled = true; }
   if (!navigator.geolocation) {
     showToast('Location not supported', 'error');
-    if (btn) { btn.innerHTML = '<i class="fas fa-map-marker-alt"></i>'; btn.disabled = false; }
+    if (btn) { btn.innerHTML = '<i class="fas fa-map-marker-alt"></i> Near me'; btn.disabled = false; }
     return;
   }
   navigator.geolocation.getCurrentPosition(function(pos) {
@@ -337,22 +458,22 @@ function detectLocation() {
     });
     allProviders.sort(function(a,b){ return (a.distance_km||9999)-(b.distance_km||9999); });
     renderGrid();
-    showToast('Showing nearest services first 📍', 'success');
-    if (btn) { btn.innerHTML = '<i class="fas fa-map-marker-alt"></i> <span>Near You ✓</span>'; btn.style.background='rgba(255,255,255,0.30)'; btn.disabled = false; }
+    showToast('Showing nearest services first', 'success');
+    if (btn) { btn.innerHTML = '<i class="fas fa-map-marker-alt"></i> Near me'; btn.style.background='#f0f0f0'; btn.disabled = false; }
   }, function() {
-    showToast('Could not get location. Please allow access.', 'error');
-    if (btn) { btn.innerHTML = '<i class="fas fa-map-marker-alt"></i>'; btn.disabled = false; }
+    showToast('Could not get location', 'error');
+    if (btn) { btn.innerHTML = '<i class="fas fa-map-marker-alt"></i> Near me'; btn.disabled = false; }
   });
 }
 
 var providerImages = {
-  hair_salon: ['https://images.unsplash.com/photo-1560869713-7d0a29430803?w=480&q=75','https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=480&q=75','https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?w=480&q=75'],
+  hair_salon: ['https://images.unsplash.com/photo-1560869713-7d0a29430803?w=480&q=75','https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=480&q=75'],
   barbershop: ['https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=480&q=75','https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=480&q=75'],
-  nail_tech:  ['https://images.unsplash.com/photo-1604654894610-df63bc536371?w=480&q=75','https://images.unsplash.com/photo-1604093024411-1e8b48aad80d?w=480&q=75'],
-  massage:    ['https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=480&q=75','https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=480&q=75'],
-  lash_tech:  ['https://images.unsplash.com/photo-1583241475880-083f84372725?w=480&q=75','https://images.unsplash.com/photo-1519735777090-ec97162dc266?w=480&q=75'],
-  facial:     ['https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=480&q=75','https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=480&q=75'],
-  makeup:     ['https://images.unsplash.com/photo-1522337660859-02fbefca4702?w=480&q=75','https://images.unsplash.com/photo-1487412840181-b9dedc9e3b20?w=480&q=75']
+  nail_tech: ['https://images.unsplash.com/photo-1604654894610-df63bc536371?w=480&q=75'],
+  massage: ['https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=480&q=75'],
+  lash_tech: ['https://images.unsplash.com/photo-1583241475880-083f84372725?w=480&q=75'],
+  facial: ['https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=480&q=75'],
+  makeup: ['https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=480&q=75']
 };
 
 function getProviderImage(cat, id) {
@@ -362,8 +483,7 @@ function getProviderImage(cat, id) {
 
 function toggleFilters() {
   filtersOpen = !filtersOpen;
-  var p = document.getElementById('filter-panel');
-  p.style.display = filtersOpen ? 'block' : 'none';
+  document.getElementById('filter-panel').style.display = filtersOpen ? 'block' : 'none';
 }
 
 function selectFilter(group, el) {
@@ -380,30 +500,29 @@ function applyFilters() {
 
 function resetFilters() {
   activeFilters = {};
-  document.querySelectorAll('.radio-opt').forEach(function(el, i) { if (i % 4 === 0 || i % 5 === 0) { /* first of each group */ } });
-  document.querySelectorAll('[data-group]').forEach(function(el) { el.classList.remove('selected'); });
+  document.querySelectorAll('.filter-option').forEach(function(el) { el.classList.remove('selected'); });
   document.querySelectorAll('[data-val="all"],[data-val="0"]').forEach(function(el){ el.classList.add('selected'); });
   showToast('Filters reset', 'info');
   renderGrid();
 }
 
 function filterCat(cat, btn) {
-  document.querySelectorAll('.fchip').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.filter-chip').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
   activeCat = cat;
   renderGrid();
 }
 
 function filterCards() { renderGrid(); }
-function clearSearch() { document.getElementById('search-input-hidden').value = ''; filterCards(); }
+function clearSearch() { document.getElementById('search-input').value = ''; filterCards(); }
 
 function sortCards(v) {
   if (v === 'Nearest First' && !userLocation) {
-    showToast('Enable location first using the Near You button', 'info'); return;
+    showToast('Enable location first', 'info'); return;
   }
   allProviders.sort(function(a,b){
-    if (v==='Price: Low → High') return (a.price_from||0)-(b.price_from||0);
-    if (v==='Price: High → Low') return (b.price_from||0)-(a.price_from||0);
+    if (v==='Price: Low to High') return (a.price_from||0)-(b.price_from||0);
+    if (v==='Price: High to Low') return (b.price_from||0)-(a.price_from||0);
     if (v==='Most Reviews') return (b.total_reviews||0)-(a.total_reviews||0);
     if (v==='Nearest First') return (a.distance_km||9999)-(b.distance_km||9999);
     return (parseFloat(b.rating)||0)-(parseFloat(a.rating)||0);
@@ -414,13 +533,13 @@ function sortCards(v) {
 function loadMore() { showToast('All providers loaded','info'); document.getElementById('load-more-wrap').style.display='none'; }
 
 function goToProvider(id, isAvail) {
-  if (!isAvail) { showToast('This provider is currently not accepting bookings','info'); setTimeout(function(){ window.location.href='/provider/'+id; },1000); return; }
+  if (!isAvail) { showToast('Currently not accepting bookings','info'); }
   window.location.href = '/provider/' + id;
 }
 
 function renderGrid() {
-  var q = (document.getElementById('search-input-hidden').value||'').toLowerCase();
-  var catMap = {'Hair Styling':'hair_salon','Barbing':'barbershop','Nail Care':'nail_tech','Massage':'massage','Facials':'facial','Lashes':'lash_tech','Makeup':'makeup','Bridal':'makeup'};
+  var q = (document.getElementById('search-input').value||'').toLowerCase();
+  var catMap = {'Hair Styling':'hair_salon','Barbing':'barbershop','Nail Care':'nail_tech','Massage':'massage','Facials':'facial','Lashes':'lash_tech','Makeup':'makeup'};
   var filtered = allProviders.filter(function(p) {
     var matchCat = activeCat==='All' || p.service_category===catMap[activeCat];
     var matchQ = !q || (p.business_name+' '+p.city+' '+p.service_category).toLowerCase().includes(q);
@@ -439,67 +558,41 @@ function renderGrid() {
 }
 
 function buildCard(p) {
-  var words = (p.service_category||'').replace(/_/g,' ').split(' ').map(function(w){return w.charAt(0).toUpperCase()+w.slice(1);}).join(' ');
-  var catLabel = words;
-  var priceFrom = p.price_from ? 'GHS '+Math.round(p.price_from/100) : 'GHS 40';
+  var catLabel = (p.service_category||'').replace(/_/g,' ').split(' ').map(function(w){return w.charAt(0).toUpperCase()+w.slice(1);}).join(' ');
+  var priceFrom = p.price_from ? 'GHS '+Math.round(p.price_from/100) : '';
   var img = p.cover_url || p.logo_url || getProviderImage(p.service_category, p.id);
-  var isAccepting = !!p.is_accepting_bookings;
-  var isVerified  = !!p.is_verified;
-  var distLabel   = (p.distance_km&&p.distance_km<9999) ? (p.distance_km<1?Math.round(p.distance_km*1000)+'m':p.distance_km.toFixed(1)+'km') : (p.city||'Accra');
+  var isVerified = !!p.is_verified;
+  var distLabel = (p.distance_km&&p.distance_km<9999) ? (p.distance_km<1?Math.round(p.distance_km*1000)+'m':p.distance_km.toFixed(1)+'km') : (p.city||'Accra');
   var stars = parseFloat(p.rating)||4.8;
 
-  return '<div class="pcard" onclick="goToProvider('+p.id+','+isAccepting+')">' +
-    '<div style="position:relative;overflow:hidden;">' +
-      '<img class="pcard-img" src="'+img+'" alt="'+p.business_name+'" loading="lazy"/>' +
-      '<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.3),transparent 55%);"></div>' +
-      '<div style="position:absolute;top:10px;left:10px;">' +
-        (isVerified?'<span style="background:rgba(255,255,255,0.95);border-radius:100px;padding:3px 9px;font-size:10px;font-weight:700;color:#007A3D;display:flex;align-items:center;gap:3px;"><i class="fas fa-shield-alt" style="font-size:8px;"></i> Verified</span>':'') +
+  return '<div class="provider-card" onclick="goToProvider('+p.id+',true)">' +
+    '<div class="provider-card-img">' +
+      '<img src="'+img+'" alt="'+p.business_name+'" loading="lazy"/>' +
+      '<div class="provider-card-badge">' +
+        (isVerified?'<span class="badge badge-verified"><i class="fas fa-check" style="font-size:10px;"></i> Verified</span>':'') +
       '</div>' +
-      '<div style="position:absolute;top:10px;right:10px;">' +
-        '<span style="background:rgba(255,255,255,0.95);border-radius:100px;padding:3px 9px;font-size:10px;font-weight:700;display:flex;align-items:center;gap:4px;color:'+(isAccepting?'#007A3D':'#888')+'">' +
-          (isAccepting?'<span style="width:5px;height:5px;background:#00C853;border-radius:50%;"></span> Open':'<i class="far fa-clock" style="font-size:8px;"></i> Closed') +
-        '</span>' +
-      '</div>' +
-      '<div style="position:absolute;bottom:10px;left:12px;font-size:11px;color:rgba(255,255,255,0.9);display:flex;align-items:center;gap:4px;">' +
-        '<i class="fas fa-map-marker-alt" style="font-size:9px;"></i>' + distLabel +
-      '</div>' +
+      '<div class="provider-card-heart"><i class="far fa-heart"></i></div>' +
     '</div>' +
-    '<div style="padding:14px;">' +
-      '<div style="font-size:15px;font-weight:700;color:var(--t-primary);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + p.business_name + '</div>' +
-      '<div style="font-size:12px;color:var(--t-muted);margin-bottom:10px;">' + catLabel + '</div>' +
-      '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-        '<div style="display:flex;align-items:center;gap:4px;">' +
-          '<span style="color:#FFB800;font-size:13px;">★</span>' +
-          '<span style="font-size:13px;font-weight:700;color:var(--t-primary);">' + stars.toFixed(1) + '</span>' +
-          '<span style="font-size:11px;color:var(--t-muted);">(' + (p.total_reviews||0) + ')</span>' +
-        '</div>' +
-        '<div style="font-size:13px;font-weight:700;color:#111111;">' + priceFrom + '</div>' +
+    '<div class="provider-card-content">' +
+      '<div class="provider-card-name">' + p.business_name + (isVerified?'<span class="verified-badge"><i class="fas fa-check"></i></span>':'') + '</div>' +
+      '<div class="provider-card-meta">' + distLabel + '</div>' +
+      '<div class="provider-card-meta">' + catLabel + (priceFrom?' · '+priceFrom:'') + '</div>' +
+      '<div class="provider-card-rating">' +
+        '<span class="star">★</span>' +
+        '<span class="score">' + stars.toFixed(1) + '</span>' +
+        '<span class="count">(' + (p.total_reviews||0) + ')</span>' +
       '</div>' +
-      '<a href="/book/'+p.id+'" onclick="event.stopPropagation()" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;background:#111111;color:#FFFFFF;border:none;border-radius:100px;padding:10px;font-size:12px;font-weight:700;text-decoration:none;transition:background 0.2s;">' +
-        '<i class="far fa-calendar-check" style="font-size:11px;"></i> Book Now' +
-      '</a>' +
     '</div>' +
   '</div>';
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  // Check URL params for pre-selected category
   var params = new URLSearchParams(window.location.search);
   var svc = params.get('service');
-  if (svc) {
-    document.querySelectorAll('.fchip').forEach(function(b) {
-      if (b.textContent.trim().toLowerCase().includes(svc.toLowerCase())) {
-        b.click();
-      }
-    });
-  }
 
-  // Try location silently
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(function(pos) {
       userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      var btn = document.getElementById('location-btn');
-      if (btn) { btn.innerHTML = '<i class="fas fa-map-marker-alt"></i><span class="hide-mob"> Near You ✓</span>'; btn.style.background='rgba(255,255,255,0.28)'; }
     }, function(){});
   }
 
@@ -514,14 +607,10 @@ document.addEventListener('DOMContentLoaded', function() {
       allProviders.sort(function(a,b){ return (a.distance_km||9999)-(b.distance_km||9999); });
     }
     renderGrid();
-    // Re-apply selected category if any
     if (svc) {
-      document.querySelectorAll('.fchip').forEach(function(b) {
+      document.querySelectorAll('.filter-chip').forEach(function(b) {
         if (b.textContent.trim().toLowerCase().includes(svc.toLowerCase())) {
-          activeCat = b.textContent.trim().replace(/^[^\w]+/,'').trim();
-          document.querySelectorAll('.fchip').forEach(function(x){ x.classList.remove('active'); });
-          b.classList.add('active');
-          renderGrid();
+          b.click();
         }
       });
     }
@@ -529,8 +618,7 @@ document.addEventListener('DOMContentLoaded', function() {
     showToast('Could not load providers', 'error');
     document.getElementById('providers-grid').innerHTML =
       '<div style="grid-column:1/-1;text-align:center;padding:60px 20px;">' +
-      '<i class="fas fa-exclamation-circle" style="font-size:36px;color:var(--s-red);margin-bottom:16px;display:block;"></i>' +
-      '<p style="color:var(--t-secondary);">Failed to load providers. Please refresh.</p></div>';
+      '<p style="color:#666;">Failed to load. Please refresh.</p></div>';
   });
 });
 </script>

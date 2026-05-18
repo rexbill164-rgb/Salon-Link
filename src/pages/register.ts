@@ -5,178 +5,412 @@ export const registerPage = () => `<!DOCTYPE html>
 <head>
 ${baseHead('Create Account', `
 <style>
-  .register-wrap { min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:50px 20px 100px; background:var(--c-deep); }
-  .register-card { max-width:580px; width:100%; }
-  .role-card {
-    padding:22px; background:#FFFFFF; border:1.5px solid var(--i-faint); border-radius:var(--r-lg);
-    text-align:center; cursor:pointer; transition:all 0.35s var(--ease-luxury);
-    box-shadow:0 2px 12px rgba(58,47,30,0.05);
+  body { background: #fafafa; min-height: 100vh; }
+  
+  .auth-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 24px 80px;
   }
-  .role-card:hover { border-color:var(--g-border); background:var(--g-dim); transform:translateY(-2px); box-shadow:0 8px 24px rgba(160,120,48,0.12); }
-  .role-card.selected { border-color:var(--g-main); background:rgba(201,168,76,0.06); box-shadow:0 0 0 3px rgba(201,168,76,0.1), 0 12px 36px rgba(160,120,48,0.14); }
-  .strength-seg { flex:1; height:4px; border-radius:2px; background:var(--c-mist); transition:all 0.4s; }
+  
+  .auth-logo {
+    text-decoration: none;
+    margin-bottom: 40px;
+    text-align: center;
+  }
+  .auth-logo-text {
+    font-size: 28px;
+    font-weight: 800;
+    color: #101010;
+    letter-spacing: -0.02em;
+  }
+  
+  .auth-card {
+    background: #fff;
+    border-radius: 24px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 520px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  }
+  @media(max-width:540px) {
+    .auth-card { padding: 32px 24px; border-radius: 20px; }
+  }
+  
+  .auth-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #101010;
+    margin-bottom: 8px;
+  }
+  .auth-subtitle {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 32px;
+  }
+  .auth-subtitle a {
+    color: #101010;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .auth-subtitle a:hover { text-decoration: underline; }
+  
+  /* Role cards */
+  .role-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .role-card {
+    padding: 20px;
+    background: #fff;
+    border: 2px solid rgba(0,0,0,0.08);
+    border-radius: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .role-card:hover { border-color: rgba(0,0,0,0.15); }
+  .role-card.selected {
+    border-color: #101010;
+    background: #fafafa;
+  }
+  .role-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+    font-size: 20px;
+    color: #555;
+  }
+  .role-card.selected .role-icon {
+    background: #101010;
+    color: #fff;
+  }
+  .role-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #101010;
+    margin-bottom: 4px;
+  }
+  .role-desc {
+    font-size: 12px;
+    color: #888;
+    line-height: 1.5;
+  }
+  
+  /* Form styles */
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media(max-width:480px) {
+    .form-row { grid-template-columns: 1fr; }
+  }
+  .form-group { margin-bottom: 20px; }
+  .form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #101010;
+    margin-bottom: 8px;
+  }
+  .form-input {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 15px;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 12px;
+    background: #fff;
+    color: #101010;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .form-input:focus {
+    border-color: #101010;
+    box-shadow: 0 0 0 3px rgba(16,16,16,0.06);
+  }
+  .form-input::placeholder { color: #999; }
+  
+  .input-group {
+    position: relative;
+  }
+  .input-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    font-size: 14px;
+  }
+  .input-group .form-input {
+    padding-left: 44px;
+  }
+  .toggle-pwd {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    padding: 4px;
+    font-size: 14px;
+  }
+  
+  .phone-row {
+    display: flex;
+    gap: 10px;
+  }
+  .phone-prefix {
+    padding: 14px 16px;
+    background: #f5f5f5;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #555;
+    white-space: nowrap;
+  }
+  
+  /* Strength bar */
+  .strength-bar {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .strength-seg {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: #e5e5e5;
+    transition: all 0.3s;
+  }
+  
+  /* Provider fields */
+  .provider-fields {
+    padding-top: 24px;
+    margin-top: 24px;
+    border-top: 1px solid rgba(0,0,0,0.06);
+  }
+  .provider-fields-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #888;
+    margin-bottom: 20px;
+  }
+  
+  .kyc-notice {
+    background: #f5f5f5;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .kyc-notice-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #101010;
+    margin-bottom: 4px;
+  }
+  .kyc-notice-text {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.5;
+  }
+  
+  /* Terms */
+  .terms-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .terms-checkbox {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(0,0,0,0.15);
+    border-radius: 6px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  .terms-checkbox.checked {
+    background: #101010;
+    border-color: #101010;
+  }
+  .terms-text {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.6;
+    cursor: pointer;
+  }
+  .terms-text a {
+    color: #101010;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  
+  .btn-submit {
+    width: 100%;
+    padding: 16px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    background: #101010;
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-submit:hover { background: #2a2a2a; }
+  .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+  
+  .social-proof {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 13px;
+    color: #888;
+  }
+  
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .spinner { animation: spin 0.8s linear infinite; }
 </style>
 `)}
 </head>
-<body style="background:var(--c-deep);">
-<div class="register-wrap">
-  <div class="register-card afu">
+<body>
 
-    <!-- Top bar -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:44px;">
-      <a href="/" style="display:flex;align-items:center;gap:12px;text-decoration:none;">
-        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--g-deep),var(--g-main));display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(160,120,48,0.3);">
-          <i class="fas fa-star" style="color:#FFFFFF;font-size:13px;"></i>
-        </div>
-        <span style="font-family:'Playfair Display',serif;font-size:19px;letter-spacing:0.1em;color:var(--t-primary);">SALONLINK</span>
-      </a>
-      <a href="/login" style="font-size:13px;color:var(--t-secondary);text-decoration:none;">Already a member? <span style="color:var(--g-deep);font-weight:600;">Sign in</span></a>
-    </div>
+<div class="auth-container">
+  <a href="/" class="auth-logo">
+    <div class="auth-logo-text">salonlink</div>
+  </a>
 
-    <!-- Heading -->
-    <div style="margin-bottom:36px;">
-      <div class="eyebrow" style="margin-bottom:14px;"><i class="fas fa-sparkles" style="margin-right:6px;"></i>Get Started Free</div>
-      <h1 class="font-display" style="font-size:40px;font-weight:400;line-height:1.1;color:var(--t-primary);">Create Your<br/><em class="gold-gradient">Account</em></h1>
-    </div>
+  <div class="auth-card">
+    <h1 class="auth-title">Create your account</h1>
+    <p class="auth-subtitle">
+      Already have an account? <a href="/login">Log in</a>
+    </p>
 
     <!-- Role selection -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:32px;">
+    <div class="role-grid">
       <div id="role-customer" onclick="selectRole('customer')" class="role-card selected">
-        <div style="width:48px;height:48px;border-radius:14px;background:rgba(46,158,94,0.08);border:1px solid rgba(46,158,94,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
-          <i class="fas fa-user" style="color:#1E8050;font-size:20px;"></i>
+        <div class="role-icon">
+          <i class="fas fa-user"></i>
         </div>
-        <div style="font-size:14px;font-weight:700;margin-bottom:5px;color:var(--t-primary);">Customer</div>
-        <div style="font-size:12px;color:var(--t-secondary);line-height:1.5;font-weight:300;">Book beauty services from verified professionals</div>
+        <div class="role-title">Customer</div>
+        <div class="role-desc">Book beauty services</div>
       </div>
       <div id="role-provider" onclick="selectRole('provider')" class="role-card">
-        <div style="width:48px;height:48px;border-radius:14px;background:var(--g-dim);border:1px solid var(--g-border);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;">
-          <i class="fas fa-cut" style="color:var(--g-deep);font-size:20px;"></i>
+        <div class="role-icon">
+          <i class="fas fa-scissors"></i>
         </div>
-        <div style="font-size:14px;font-weight:700;margin-bottom:5px;color:var(--t-primary);">Provider</div>
-        <div style="font-size:12px;color:var(--t-secondary);line-height:1.5;font-weight:300;">List your salon and grow your clientele</div>
+        <div class="role-title">Business</div>
+        <div class="role-desc">List your services</div>
       </div>
     </div>
 
-    <!-- Form card -->
-    <div style="background:#FFFFFF;border:1px solid var(--g-border);border-radius:var(--r-xl);padding:38px;box-shadow:0 8px 32px rgba(160,120,48,0.10);">
-      <form onsubmit="handleRegister(event)" id="reg-form">
-        <input type="hidden" id="role" value="customer"/>
+    <form onsubmit="handleRegister(event)" id="reg-form">
+      <input type="hidden" id="role" value="customer"/>
 
-        <!-- Name row -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-          <div class="form-group">
-            <label class="form-label">First Name</label>
-            <div class="input-wrap">
-              <i class="fas fa-user input-icon" style="font-size:13px;"></i>
-              <input type="text" id="firstName" class="input has-icon-left" placeholder="Kwame" autocomplete="given-name" required/>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Last Name</label>
-            <div class="input-wrap">
-              <i class="fas fa-user input-icon" style="font-size:13px;"></i>
-              <input type="text" id="lastName" class="input has-icon-left" placeholder="Mensah" autocomplete="family-name" required/>
-            </div>
-          </div>
-        </div>
-
+      <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Email Address</label>
-          <div class="input-wrap">
-            <i class="fas fa-envelope input-icon"></i>
-            <input type="email" id="email" class="input has-icon-left" placeholder="you@example.com" autocomplete="username" required/>
-          </div>
+          <label class="form-label">First name</label>
+          <input type="text" id="firstName" class="form-input" placeholder="First name" required/>
         </div>
-
         <div class="form-group">
-          <label class="form-label">Phone Number</label>
-          <div style="display:flex;gap:10px;">
-            <div style="background:var(--c-raise);border:1.5px solid var(--i-faint);border-radius:var(--r-md);padding:15px 16px;font-size:14px;color:var(--t-secondary);white-space:nowrap;display:flex;align-items:center;gap:8px;flex-shrink:0;">
-              🇬🇭 <span style="color:var(--t-muted);">+233</span>
-            </div>
-            <input type="tel" id="phone" class="input" placeholder="20 000 0000" autocomplete="tel" style="flex:1;" required/>
-          </div>
+          <label class="form-label">Last name</label>
+          <input type="text" id="lastName" class="form-input" placeholder="Last name" required/>
         </div>
+      </div>
 
-        <div class="form-group" style="margin-bottom:8px;">
-          <label class="form-label">Password</label>
-          <div class="input-wrap">
-            <i class="fas fa-lock input-icon"></i>
-            <input type="password" id="password" class="input has-icon-left has-icon-right" placeholder="Min. 8 characters" autocomplete="new-password" required minlength="8" oninput="checkStrength(this.value)"/>
-            <button type="button" onclick="togglePwd()" class="input-icon-right">
-              <i id="eye-icon2" class="fas fa-eye"></i>
-            </button>
-          </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <div class="input-group">
+          <i class="fas fa-envelope input-icon"></i>
+          <input type="email" id="email" class="form-input" placeholder="you@example.com" required/>
         </div>
-        <!-- Strength bar -->
-        <div style="display:flex;gap:5px;margin-bottom:22px;">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Phone number</label>
+        <div class="phone-row">
+          <div class="phone-prefix">+233</div>
+          <input type="tel" id="phone" class="form-input" placeholder="20 000 0000" required/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="input-group">
+          <i class="fas fa-lock input-icon"></i>
+          <input type="password" id="password" class="form-input" placeholder="Min. 8 characters" required minlength="8" oninput="checkStrength(this.value)"/>
+          <button type="button" onclick="togglePwd()" class="toggle-pwd">
+            <i id="eye-icon" class="fas fa-eye"></i>
+          </button>
+        </div>
+        <div class="strength-bar">
           ${[1,2,3,4].map(i=>`<div id="str${i}" class="strength-seg"></div>`).join('')}
         </div>
+      </div>
 
-        <!-- Provider-only fields -->
-        <div id="prov-fields" style="display:none;">
-          <div class="divider" style="margin:4px 0 24px;"></div>
-          <div class="eyebrow" style="margin-bottom:18px;"><i class="fas fa-store" style="margin-right:6px;"></i>Business Details</div>
-          <div class="form-group">
-            <label class="form-label">Business Name</label>
-            <div class="input-wrap">
-              <i class="fas fa-store input-icon" style="font-size:13px;"></i>
-              <input type="text" id="bizName" class="input has-icon-left" placeholder="Your Salon Name" autocomplete="organization"/>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Service Category</label>
-            <div class="input-wrap">
-              <i class="fas fa-tag input-icon" style="font-size:13px;"></i>
-              <select id="serviceType" class="input has-icon-left">
-                <option>Hair Salon</option>
-                <option>Barbershop</option>
-                <option>Nail Technician</option>
-                <option>Massage Therapist</option>
-                <option>Makeup Artist</option>
-                <option>Lash Technician</option>
-                <option>Spa &amp; Facials</option>
-              </select>
-            </div>
-          </div>
-          <div style="background:var(--g-dim);border:1px solid var(--g-border);border-radius:var(--r-md);padding:16px;margin-bottom:22px;">
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-              <div style="width:32px;height:32px;border-radius:10px;background:rgba(201,168,76,0.15);display:flex;align-items:center;justify-content:center;">
-                <i class="fas fa-id-card" style="color:var(--g-deep);font-size:14px;"></i>
-              </div>
-              <div>
-                <div style="font-size:13px;font-weight:600;color:var(--t-primary);margin-bottom:2px;">KYC Verification Required</div>
-                <div style="font-size:11px;color:var(--t-secondary);">Ghana Card + Facial scan after registration</div>
-              </div>
-            </div>
-            <div style="font-size:12px;color:var(--t-muted);line-height:1.6;">Your identity will be verified via Smile Identity to build client trust. Takes ~2 minutes.</div>
-          </div>
+      <!-- Provider fields -->
+      <div id="prov-fields" class="provider-fields" style="display:none;">
+        <div class="provider-fields-title">Business details</div>
+        <div class="form-group">
+          <label class="form-label">Business name</label>
+          <input type="text" id="bizName" class="form-input" placeholder="Your salon name"/>
         </div>
-
-        <!-- Terms -->
-        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:26px;">
-          <div style="width:18px;height:18px;border:1.5px solid var(--i-faint);border-radius:5px;margin-top:2px;flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" id="terms-box" onclick="toggleTerms()"></div>
-          <label onclick="toggleTerms()" style="font-size:12px;color:var(--t-secondary);line-height:1.7;cursor:pointer;">
-            I agree to the <a href="#" style="color:var(--g-deep);font-weight:600;">Terms of Service</a> and <a href="#" style="color:var(--g-deep);font-weight:600;">Privacy Policy</a>. I understand SalonLink may contact me about my account.
-          </label>
+        <div class="form-group">
+          <label class="form-label">Service category</label>
+          <select id="serviceType" class="form-input">
+            <option>Hair Salon</option>
+            <option>Barbershop</option>
+            <option>Nail Salon</option>
+            <option>Massage & Spa</option>
+            <option>Makeup Artist</option>
+            <option>Lash Studio</option>
+            <option>Skincare</option>
+          </select>
         </div>
-        <input type="hidden" id="terms-accepted" value="false"/>
+        <div class="kyc-notice">
+          <div class="kyc-notice-title">Verification required</div>
+          <div class="kyc-notice-text">Ghana Card + facial scan needed after signup to verify your identity and build client trust.</div>
+        </div>
+      </div>
 
-        <button type="submit" id="reg-btn" class="btn-primary" style="width:100%;justify-content:center;padding:16px;font-size:13px;">
-          <span id="reg-text"><i class="fas fa-user-plus" style="margin-right:8px;font-size:12px;"></i>Create Account</span>
-          <span id="reg-loader" style="display:none;align-items:center;gap:8px;"><i class="fas fa-circle-notch" style="animation:spin-slow 0.8s linear infinite;font-size:13px;"></i> Creating...</span>
-        </button>
-      </form>
+      <div class="terms-row">
+        <div id="terms-box" onclick="toggleTerms()" class="terms-checkbox"></div>
+        <label onclick="toggleTerms()" class="terms-text">
+          I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+        </label>
+      </div>
+      <input type="hidden" id="terms-accepted" value="false"/>
+
+      <button type="submit" id="reg-btn" class="btn-submit">
+        <span id="reg-text">Create account</span>
+        <span id="reg-loader" style="display:none;"><i class="fas fa-circle-notch spinner"></i></span>
+      </button>
+    </form>
+
+    <div class="social-proof">
+      Join 50,000+ users on SalonLink
     </div>
-
-    <!-- Social proof -->
-    <div style="text-align:center;margin-top:28px;">
-      <p style="font-size:12px;color:var(--t-muted);">
-        <i class="fas fa-users" style="color:var(--g-main);margin-right:5px;"></i>
-        Join <span style="color:var(--g-deep);font-weight:700;">50,000+</span> users already on SalonLink · Free forever
-      </p>
-    </div>
-
   </div>
 </div>
 
@@ -188,9 +422,8 @@ function toggleTerms() {
   termsChecked = !termsChecked;
   document.getElementById('terms-accepted').value = termsChecked;
   var box = document.getElementById('terms-box');
-  box.style.background = termsChecked ? 'var(--g-main)' : 'transparent';
-  box.style.borderColor = termsChecked ? 'var(--g-main)' : 'var(--i-faint)';
-  box.innerHTML = termsChecked ? '<i class="fas fa-check" style="color:#FFFFFF;font-size:9px;"></i>' : '';
+  box.className = 'terms-checkbox' + (termsChecked ? ' checked' : '');
+  box.innerHTML = termsChecked ? '<i class="fas fa-check" style="color:#fff;font-size:11px;"></i>' : '';
 }
 
 function selectRole(role) {
@@ -203,14 +436,9 @@ function selectRole(role) {
 
 function togglePwd() {
   var inp = document.getElementById('password');
-  var icon = document.getElementById('eye-icon2');
-  if (inp.type === 'password') {
-    inp.type = 'text';
-    icon.className = 'fas fa-eye-slash';
-  } else {
-    inp.type = 'password';
-    icon.className = 'fas fa-eye';
-  }
+  var icon = document.getElementById('eye-icon');
+  if (inp.type === 'password') { inp.type='text'; icon.className='fas fa-eye-slash'; }
+  else { inp.type='password'; icon.className='fas fa-eye'; }
 }
 
 function checkStrength(v) {
@@ -219,68 +447,68 @@ function checkStrength(v) {
   if(/[A-Z]/.test(v)) score++;
   if(/[0-9]/.test(v)) score++;
   if(/[^A-Za-z0-9]/.test(v)) score++;
-  var colors = ['','#C04848','#C9A84C','#88AA44','#2E9E5E'];
+  var colors = ['','#e53935','#ff9800','#8bc34a','#00a862'];
   for(var i=1;i<=4;i++){
-    var el = document.getElementById('str'+i);
-    el.style.background = i<=score ? colors[score] : 'var(--c-mist)';
+    document.getElementById('str'+i).style.background = i<=score ? colors[score] : '#e5e5e5';
   }
 }
 
 async function handleRegister(e) {
   e.preventDefault();
-  if (!termsChecked) { showToast('Please accept the Terms of Service', 'error'); return; }
+  if (!termsChecked) { showToast('Please accept the terms', 'error'); return; }
   var btn = document.getElementById('reg-btn');
   var txt = document.getElementById('reg-text');
   var load = document.getElementById('reg-loader');
   btn.disabled=true; txt.style.display='none'; load.style.display='inline-flex';
+  
   var role = document.getElementById('role').value;
   var firstName = document.getElementById('firstName').value.trim();
-  var lastName  = document.getElementById('lastName').value.trim();
-  var email     = document.getElementById('email').value.trim();
-  var phone     = document.getElementById('phone').value.replace(/\s/g,'');
-  var password  = document.getElementById('password').value;
+  var lastName = document.getElementById('lastName').value.trim();
+  var email = document.getElementById('email').value.trim();
+  var phone = document.getElementById('phone').value.replace(/\\s/g,'');
+  var password = document.getElementById('password').value;
 
-  if(!firstName || !lastName) { showToast('Please enter your first and last name', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
-  if(!email)    { showToast('Please enter your email address', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
-  if(!phone)    { showToast('Please enter your phone number', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
-  if(password.length < 8) { showToast('Password must be at least 8 characters', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
+  if(!firstName || !lastName) { showToast('Enter your name', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
+  if(!email) { showToast('Enter your email', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
+  if(!phone) { showToast('Enter your phone', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
+  if(password.length < 8) { showToast('Password must be 8+ characters', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
 
   var payload = {
     first_name: firstName,
-    last_name:  lastName,
-    email:      email,
-    phone:      '+233' + phone,
-    password:   password,
-    role:       role
+    last_name: lastName,
+    email: email,
+    phone: '+233' + phone,
+    password: password,
+    role: role
   };
+  
   if(role==='provider'){
-    var bizName = document.getElementById('bizName') ? document.getElementById('bizName').value.trim() : '';
-    var svcType = document.getElementById('serviceType') ? document.getElementById('serviceType').value : '';
-    if(!bizName) { showToast('Please enter your business name', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
-    if(!svcType) { showToast('Please select your service category', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
-    payload.business_name    = bizName;
+    var bizName = document.getElementById('bizName').value.trim();
+    var svcType = document.getElementById('serviceType').value;
+    if(!bizName) { showToast('Enter business name', 'error'); btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none'; return; }
+    payload.business_name = bizName;
     payload.service_category = svcType;
   }
+  
   try {
     var res = await axios.post('/api/auth/register', payload);
     if (res.data.token) {
-      var uReg = res.data.user;
-      if (!uReg.name) uReg.name = ((uReg.first_name||'') + (uReg.last_name ? ' '+uReg.last_name : '')).trim() || 'User';
+      var u = res.data.user;
+      if (!u.name) u.name = ((u.first_name||'') + (u.last_name ? ' '+u.last_name : '')).trim() || 'User';
       localStorage.setItem('sl_token', res.data.token);
-      localStorage.setItem('sl_user', JSON.stringify(uReg));
-      showToast('Account created! Welcome to SalonLink ✦', 'success');
+      localStorage.setItem('sl_user', JSON.stringify(u));
+      showToast('Welcome to SalonLink!', 'success');
       setTimeout(function() {
         window.location.href = role==='provider' ? '/provider/onboarding' : '/discover';
-      }, 1000);
+      }, 800);
     }
   } catch(err) {
-    var msg = (err.response && err.response.data && err.response.data.error) || 'Registration failed. Please try again.';
+    var msg = (err.response && err.response.data && err.response.data.error) || 'Registration failed';
     showToast(msg, 'error');
     btn.disabled=false; txt.style.display='inline-flex'; load.style.display='none';
   }
 }
 
-// Pre-select from URL
 var urlRole = new URLSearchParams(location.search).get('role');
 if(urlRole) selectRole(urlRole);
 </script>
