@@ -38,6 +38,7 @@ import { withCustomerMessagesShortcut } from './utils/customerMessagesShortcut'
 import { withAppLaunchSplash } from './utils/appLaunchSplash'
 import { withAdminProviderThemeUi } from './utils/adminProviderThemeUi'
 import { withMobilePolish } from './utils/mobilePolish'
+import { withAdminBlueUi } from './utils/adminBlueUi'
 import { iconSvg, salonLinkManifest, splashSvg } from './utils/pwaManifest'
 
 type Bindings = { DB: D1Database; [key: string]: any }
@@ -58,7 +59,7 @@ const page = (html: string) => withMobilePolish(withAppLaunchSplash(withZoomLock
 const providerDash = () => withMobilePolish(withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(withProviderKycLogoutFix(withProviderGalleryDeleteFix(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage()))))))))
 const noPay = (html: string) => page(withPaymentDisabledUi(html))
 const msgPage = (conversationId = '') => withMobilePolish(withAppLaunchSplash(withZoomLock(withMessagesRealtimeFix(withMessagesKeyboardFix(messagesPage(conversationId))))))
-const adminDash = () => withMobilePolish(withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(repairInlineScriptText(adminPanelPage())))))
+const adminDash = () => withAdminBlueUi(withMobilePolish(withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(repairInlineScriptText(adminPanelPage()))))))
 const providerProfile = (id: string) => page(providerProfilePage(id))
 
 app.get('/manifest.json', (c) => c.json(salonLinkManifest()))
