@@ -32,6 +32,7 @@ import { withProviderGalleryDeleteFix } from './utils/providerGalleryDeleteFix'
 import { withPaymentDisabledUi } from './utils/paymentDisabledUi'
 import { withProviderKycLogoutFix } from './utils/providerKycLogoutFix'
 import { withMessagesKeyboardFix } from './utils/messagesKeyboardFix'
+import { withMessagesRealtimeFix } from './utils/messagesRealtimeFix'
 import { withZoomLock } from './utils/zoomLock'
 import { withCustomerMessagesShortcut } from './utils/customerMessagesShortcut'
 import { withAppLaunchSplash } from './utils/appLaunchSplash'
@@ -57,7 +58,7 @@ app.route('/api/messages', messageRoutes)
 const page = (html: string) => withMobilePolish(withAppLaunchSplash(withZoomLock(withCustomerMessagesShortcut(html))))
 const providerDash = () => withMobilePolish(withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(withProviderKycLogoutFix(withProviderGalleryDeleteFix(withProviderDashboardStaticFix(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage())))))))))
 const noPay = (html: string) => page(withPaymentDisabledUi(html))
-const msgPage = (conversationId = '') => withMobilePolish(withAppLaunchSplash(withZoomLock(withMessagesKeyboardFix(messagesPage(conversationId)))))
+const msgPage = (conversationId = '') => withMobilePolish(withAppLaunchSplash(withZoomLock(withMessagesRealtimeFix(withMessagesKeyboardFix(messagesPage(conversationId))))))
 const adminDash = () => withMobilePolish(withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(repairInlineScriptText(adminPanelPage())))))
 const providerProfile = (id: string) => page(withProviderLocationActions(withProviderProfileServiceUi(providerProfilePage(id))))
 
