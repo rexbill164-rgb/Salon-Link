@@ -23,6 +23,13 @@ ${baseHead('Provider Profile', `
   .time-slot:hover, .time-slot.selected { background:var(--g-main); border-color:var(--g-main); color:#FFFFFF; box-shadow:0 4px 14px rgba(0,0,0,0.18); }
   .time-slot.disabled { opacity:0.3; cursor:not-allowed; background:var(--c-dark); }
 
+  /* Clean blue detail icons */
+  .detail-row-clean { display:flex; gap:14px; margin-bottom:18px; align-items:flex-start; }
+  .detail-icon-blue { width:40px; height:40px; border-radius:12px; background:#eef4ff; color:#2563eb; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .detail-icon-blue i { font-size:16px; }
+  .trust-row-clean { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .trust-row-clean:last-child { margin-bottom:0; }
+
   /* Portfolio */
   .portfolio-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
   .portfolio-item { aspect-ratio:1; border-radius:14px; overflow:hidden; background:var(--c-raise); cursor:pointer; transition:transform 0.2s; border:1px solid var(--i-faint); }
@@ -204,41 +211,71 @@ ${navbar('')}
         <!-- Info card -->
         <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:28px;" class="reveal">
           <div class="eyebrow" style="margin-bottom:20px;">Details</div>
-          <div style="display:flex;gap:14px;margin-bottom:18px;align-items:flex-start;">
-            <span style="font-size:18px;flex-shrink:0;">📍</span>
-            <div><div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--t-muted);margin-bottom:3px;">Location</div>
-            <div style="font-size:13px;color:var(--t-primary);" id="info-location">Accra, Ghana</div></div>
+
+          <div class="detail-row-clean">
+            <div class="detail-icon-blue">
+              <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <div>
+              <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--t-muted);margin-bottom:3px;">Location</div>
+              <div style="font-size:13px;color:var(--t-primary);" id="info-location">Accra, Ghana</div>
+            </div>
           </div>
-          <div style="display:flex;gap:14px;margin-bottom:18px;align-items:flex-start;">
-            <span style="font-size:18px;flex-shrink:0;">📞</span>
-            <div><div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--t-muted);margin-bottom:3px;">Contact</div>
-            <div style="font-size:13px;color:var(--t-primary);" id="info-phone">—</div></div>
+
+          <div class="detail-row-clean">
+            <div class="detail-icon-blue">
+              <i class="fas fa-phone"></i>
+            </div>
+            <div>
+              <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--t-muted);margin-bottom:3px;">Contact</div>
+              <div style="font-size:13px;color:var(--t-primary);" id="info-phone">—</div>
+            </div>
           </div>
-          <div style="display:flex;gap:14px;margin-bottom:18px;align-items:flex-start;">
-            <span style="font-size:18px;flex-shrink:0;">💳</span>
-            <div><div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--t-muted);margin-bottom:3px;">Payment</div>
-            <div style="font-size:13px;color:var(--t-primary);">MoMo · Card · Cash</div></div>
+
+          <div class="detail-row-clean">
+            <div class="detail-icon-blue">
+              <i class="fas fa-wallet"></i>
+            </div>
+            <div>
+              <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--t-muted);margin-bottom:3px;">Payment</div>
+              <div style="font-size:13px;color:var(--t-primary);">Pay at salon</div>
+            </div>
           </div>
+
           <!-- Map showing provider location -->
           <div id="provider-map-wrap" style="display:none;margin-top:8px;margin-bottom:4px;">
-            <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--t-muted);margin-bottom:8px;">📍 Location on Map</div>
+            <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--t-muted);margin-bottom:8px;">Location on Map</div>
             <div id="provider-map" style="width:100%;height:180px;border-radius:12px;border:1px solid var(--i-faint);overflow:hidden;"></div>
             <div id="map-distance" style="font-size:11px;color:var(--t-muted);margin-top:6px;"></div>
+            <button id="share-location-btn" onclick="shareProviderLocation()" style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;border:1px solid var(--i-faint);background:#fff;color:#111827;padding:12px 14px;font-size:13px;font-weight:800;cursor:pointer;">
+              <i class="fas fa-share-nodes"></i>
+              Share Location
+            </button>
           </div>
         </div>
 
         <!-- Trust signals -->
         <div style="background:var(--g-dim);border:1px solid var(--g-border);border-radius:var(--r-lg);padding:22px;" class="reveal">
-          ${[
-            {icon:'🪪',text:'Identity verified via Ghana Card'},
-            {icon:'🔒',text:'Secure payments via Paystack'},
-            {icon:'📸',text:'Style history stored per client'},
-          ].map(t=>`
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;last-child:margin-bottom:0;">
-              <span style="font-size:16px;">${t.icon}</span>
-              <span style="font-size:12px;color:var(--t-secondary);">${t.text}</span>
+          <div class="trust-row-clean">
+            <div class="detail-icon-blue">
+              <i class="fas fa-id-card"></i>
             </div>
-          `).join('')}
+            <span style="font-size:12px;color:var(--t-secondary);">Identity verified via Ghana Card</span>
+          </div>
+
+          <div class="trust-row-clean">
+            <div class="detail-icon-blue">
+              <i class="fas fa-lock"></i>
+            </div>
+            <span style="font-size:12px;color:var(--t-secondary);">Secure booking process</span>
+          </div>
+
+          <div class="trust-row-clean">
+            <div class="detail-icon-blue">
+              <i class="fas fa-images"></i>
+            </div>
+            <span style="font-size:12px;color:var(--t-secondary);">Style history stored per client</span>
+          </div>
         </div>
 
       </div>
@@ -453,6 +490,10 @@ window.__portfolioVersion = 'provider-gallery-real-images-v2';
 
     // Show map if provider has coordinates
     if (p.location_lat && p.location_lng) {
+      window.__providerLocation = {
+        lat: p.location_lat,
+        lng: p.location_lng
+      };
       var mapWrap = document.getElementById('provider-map-wrap');
       if (mapWrap) mapWrap.style.display = 'block';
       // Initialize Leaflet map after DOM is ready
@@ -486,7 +527,7 @@ window.__portfolioVersion = 'provider-gallery-real-images-v2';
                     Math.sin(dLng/2)*Math.sin(dLng/2);
             var km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             var distEl = document.getElementById('map-distance');
-            if (distEl) distEl.textContent = '📍 ' + (km < 1 ? Math.round(km*1000) + 'm from your location' : km.toFixed(1) + 'km from your location');
+            if (distEl) distEl.textContent = (km < 1 ? Math.round(km*1000) + 'm from your location' : km.toFixed(1) + 'km from your location');
           }, function(){});
         }
       }
@@ -523,6 +564,38 @@ function openPortfolioModal(index) {
   caption.textContent = item.caption || 'Portfolio image';
   modal.classList.add('open');
 }
+
+function shareProviderLocation() {
+  var providerName = document.getElementById('profile-name') ? document.getElementById('profile-name').textContent : 'SalonLink Provider';
+  var address = document.getElementById('info-location') ? document.getElementById('info-location').textContent : 'Accra, Ghana';
+  var profileLink = window.location.origin + window.location.pathname;
+
+  var mapLink = '';
+  if (window.__providerLocation && window.__providerLocation.lat && window.__providerLocation.lng) {
+    mapLink = 'https://www.google.com/maps?q=' + encodeURIComponent(window.__providerLocation.lat + ',' + window.__providerLocation.lng);
+  } else {
+    mapLink = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(address);
+  }
+
+  var text = 'Check out ' + providerName + ' on SalonLink.\nLocation: ' + address + '\nMap: ' + mapLink + '\nProfile: ' + profileLink;
+
+  if (navigator.share) {
+    navigator.share({
+      title: providerName,
+      text: text,
+      url: mapLink
+    }).catch(function(){});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function() {
+      showToast('Location link copied', 'success');
+    }).catch(function() {
+      showToast('Could not copy link', 'error');
+    });
+  } else {
+    showToast('Sharing is not supported on this device', 'info');
+  }
+}
+
 function closePortfolioModal(ev) {
   if (ev && ev.target && ev.target.closest && ev.target.closest('.portfolio-modal-card')) return;
   var modal = document.getElementById('portfolio-modal');
