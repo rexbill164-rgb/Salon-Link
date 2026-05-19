@@ -2,156 +2,52 @@ import { baseHead, navbar, mobileNav, globalScripts } from '../utils/layout'
 
 export const settingsPage = () => `<!DOCTYPE html>
 <html lang="en">
-<head>${baseHead('Settings')}</head>
-<body style="background:var(--c-deep);">
+<head>
+${baseHead('Settings', `
+<style>
+  body{background:#f7f7f7}.settings-wrap{padding:42px 0 120px}.settings-card{background:#fff;border:1px solid rgba(0,0,0,.07);border-radius:24px;padding:28px;margin-bottom:20px}.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.reward-card{background:linear-gradient(135deg,#fff7ed,#fdf2f8 52%,#eef4ff);border:1px solid rgba(0,0,0,.06);border-radius:24px;padding:28px;margin-bottom:20px}.reward-pill{display:inline-flex;background:#111;color:#fff;border-radius:999px;padding:9px 13px;font-size:12px;font-weight:800}.settings-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:16px;border:1px solid rgba(0,0,0,.06);border-radius:16px;background:#fafafa;margin-bottom:12px}@media(max-width:640px){.settings-grid{grid-template-columns:1fr}.settings-card,.reward-card{padding:22px}}
+</style>
+`)}
+</head>
+<body>
 ${navbar('settings')}
+<div class="settings-wrap"><div class="container-sm">
+  <div style="margin-bottom:26px"><div class="eyebrow" style="margin-bottom:10px">Account</div><h1 class="display-lg font-display">Your Settings</h1></div>
 
-<div style="padding:48px 0 120px;">
-  <div class="container-sm">
+  <section class="reward-card">
+    <div class="eyebrow" style="margin-bottom:10px">Provider Rewards</div>
+    <h2 style="font-size:24px;font-weight:900;letter-spacing:-.03em;margin-bottom:8px">SalonLink Surprise Shop</h2>
+    <p style="font-size:13px;color:#555;line-height:1.7;margin-bottom:16px">Providers earn points when customers complete appointments and leave genuine ratings and comments. Points can later be used to claim salon gadgets and reward items.</p>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap"><span class="reward-pill">3 points per completed review</span><a href="/surprise-shop" class="btn-primary" style="font-size:12px;padding:11px 20px;text-decoration:none">Claim Gift</a></div>
+  </section>
 
-    <div style="margin-bottom:52px;" class="afu">
-      <div class="eyebrow" style="margin-bottom:16px;">Account</div>
-      <h1 class="display-lg font-display">Your <em class="gold-gradient">Settings</em></h1>
-    </div>
+  <section class="settings-card">
+    <div style="display:flex;align-items:center;gap:18px;margin-bottom:24px"><div id="user-avatar" style="width:70px;height:70px;border-radius:22px;background:#f1f1f1;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800">U</div><div><div id="user-name" style="font-size:22px;font-weight:800">Your Name</div><div id="user-email" style="font-size:13px;color:#666">Loading...</div></div></div>
+    <div class="eyebrow" style="margin-bottom:16px">Personal Information</div>
+    <div class="settings-grid"><div><label class="form-label">First Name</label><input id="inp-first" class="input" type="text"></div><div><label class="form-label">Last Name</label><input id="inp-last" class="input" type="text"></div><div><label class="form-label">Email</label><input id="inp-email" class="input" type="email" readonly></div><div><label class="form-label">Phone</label><input id="inp-phone" class="input" type="tel"></div></div>
+    <button id="save-profile-btn" class="btn-primary" style="margin-top:18px;padding:12px 26px;font-size:12px">Save Changes</button>
+  </section>
 
-    <!-- Profile card -->
-    <div style="background:var(--c-surface);border:1px solid var(--g-border);border-radius:var(--r-xl);padding:36px;margin-bottom:24px;" class="afu-1">
-      <div style="display:flex;align-items:center;gap:20px;margin-bottom:32px;flex-wrap:wrap;">
-        <div id="user-avatar" style="width:72px;height:72px;border-radius:22px;background:linear-gradient(135deg,var(--c-mist),var(--g-dim));border:2px solid var(--g-border);display:flex;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-size:28px;color:var(--g-main);cursor:pointer;transition:all 0.3s;" onclick="showToast('Photo upload coming soon','info')">U</div>
-        <div>
-          <div id="user-name" class="font-display" style="font-size:22px;margin-bottom:4px;">Your Name</div>
-          <div id="user-email" style="font-size:13px;color:var(--t-secondary);">Loading...</div>
-          <button onclick="showToast('Photo upload coming soon','info')" class="btn-ghost" style="margin-top:10px;font-size:11px;padding:7px 16px;">Change Photo</button>
-        </div>
-      </div>
-      <div class="eyebrow" style="margin-bottom:20px;">Personal Information</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-        <div class="form-group">
-          <label class="form-label">First Name</label>
-          <input id="inp-first" type="text" class="input" placeholder="First name"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Last Name</label>
-          <input id="inp-last" type="text" class="input" placeholder="Last name"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Email</label>
-          <input id="inp-email" type="email" class="input" placeholder="Email" readonly style="opacity:0.6;cursor:not-allowed;"/>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Phone</label>
-          <input id="inp-phone" type="tel" class="input" placeholder="+233 XX XXX XXXX"/>
-        </div>
-      </div>
-      <div style="display:flex;gap:12px;margin-top:8px;">
-        <button onclick="saveProfile()" class="btn-primary" style="padding:13px 32px;font-size:12px;">Save Changes</button>
-        <button onclick="showToast('Changes discarded','info')" class="btn-ghost" style="padding:12px 24px;font-size:12px;">Discard</button>
-      </div>
-    </div>
-
-    <!-- Security -->
-    <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:36px;margin-bottom:24px;" class="afu-2">
-      <div class="eyebrow" style="margin-bottom:24px;">Security</div>
-      <div style="display:flex;flex-direction:column;gap:16px;">
-        ${[
-          {label:'Change Password',  sub:'Last changed 30 days ago',    action:'Change'},
-          {label:'Two-Factor Auth',  sub:'SMS verification — Enabled',  action:'Manage'},
-          {label:'Active Sessions',  sub:'2 devices currently logged in',action:'View'},
-        ].map(s=>`
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:18px;background:var(--c-raise);border:1px solid var(--i-faint);border-radius:14px;gap:16px;flex-wrap:wrap;">
-            <div>
-              <div style="font-size:14px;font-weight:600;margin-bottom:3px;">${s.label}</div>
-              <div style="font-size:12px;color:var(--t-secondary);">${s.sub}</div>
-            </div>
-            <button onclick="showToast('${s.action} ${s.label.toLowerCase()}','info')" class="btn-ghost" style="font-size:11px;padding:8px 18px;flex-shrink:0;">${s.action}</button>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-
-    <!-- Notifications -->
-    <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:36px;margin-bottom:24px;" class="afu-3">
-      <div class="eyebrow" style="margin-bottom:24px;">Notification Preferences</div>
-      <div style="display:flex;flex-direction:column;gap:16px;">
-        ${[
-          {label:'Booking Confirmations',  on:true},
-          {label:'Appointment Reminders',  on:true},
-          {label:'Promotions & Discounts', on:false},
-          {label:'Re-engagement Nudges',   on:true},
-          {label:'New Provider Alerts',    on:false},
-        ].map((n,i)=>`
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--i-faint);">
-            <span style="font-size:14px;">${n.label}</span>
-            <div id="toggle-${i}" onclick="toggleSwitch(${i})" style="width:44px;height:24px;border-radius:12px;background:${n.on?'var(--g-main)':'var(--c-mist)'};cursor:pointer;position:relative;transition:background 0.3s;flex-shrink:0;">
-              <div id="thumb-${i}" style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:3px;left:${n.on?'23px':'3px'};transition:left 0.3s;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-
-    <!-- Danger zone -->
-    <div style="background:rgba(192,72,72,0.06);border:1px solid rgba(192,72,72,0.2);border-radius:var(--r-xl);padding:28px;">
-      <div class="eyebrow" style="color:var(--s-red);margin-bottom:16px;">Danger Zone</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
-        <div>
-          <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Delete Account</div>
-          <div style="font-size:12px;color:var(--t-secondary);">Permanently delete your SalonLink account and all data</div>
-        </div>
-        <button onclick="showToast('Please contact support to delete your account','error')" style="padding:10px 24px;border-radius:100px;font-size:12px;font-weight:700;cursor:pointer;background:transparent;border:1px solid rgba(192,72,72,0.35);color:var(--s-red);transition:all 0.3s;" onmouseover="this.style.background='rgba(192,72,72,0.1)'" onmouseout="this.style.background='transparent'">Delete Account</button>
-      </div>
-    </div>
-
-  </div>
-</div>
-
+  <section class="settings-card"><div class="eyebrow" style="margin-bottom:16px">Security</div><div class="settings-row"><div><strong>Change Password</strong><div style="font-size:12px;color:#666">Keep your account secure</div></div><button class="btn-ghost" onclick="showToast('Password settings coming soon','info')">Change</button></div><div class="settings-row"><div><strong>Notifications</strong><div style="font-size:12px;color:#666">Manage booking alerts and reminders</div></div><button class="btn-ghost" onclick="showToast('Notification settings saved','success')">Manage</button></div></section>
+</div></div>
 ${mobileNav('settings')}
 ${globalScripts()}
 <script>
-var states = [true,true,false,true,false];
-function toggleSwitch(i) {
-  states[i] = !states[i];
-  document.getElementById('toggle-'+i).style.background = states[i] ? 'var(--g-main)' : 'var(--c-mist)';
-  document.getElementById('thumb-'+i).style.left = states[i] ? '23px' : '3px';
-  showToast(states[i] ? 'Notifications enabled' : 'Notifications disabled', states[i] ? 'success' : 'info');
-}
-
-// Load user info into settings form
-document.addEventListener('DOMContentLoaded', function() {
+(function(){
   var user = JSON.parse(localStorage.getItem('sl_user') || '{}');
-  if (!user.id) { window.location.href = '/login'; return; }
-
-  // Populate avatar initial
-  var avatarEl = document.getElementById('user-avatar');
-  if (avatarEl) avatarEl.textContent = (user.first_name || 'U')[0].toUpperCase();
-
-  // Populate name shown in card
-  var nameEl = document.getElementById('user-name');
-  if (nameEl) nameEl.textContent = (user.first_name || '') + ' ' + (user.last_name || '');
-  var emailEl = document.getElementById('user-email');
-  if (emailEl) emailEl.textContent = user.email || '';
-
-  // Populate input fields by id
-  var fn = document.getElementById('inp-first'); if (fn) fn.value = user.first_name || '';
-  var ln = document.getElementById('inp-last');  if (ln) ln.value = user.last_name  || '';
-  var em = document.getElementById('inp-email'); if (em) em.value = user.email      || '';
-  var ph = document.getElementById('inp-phone'); if (ph) ph.value = user.phone      || '';
-});
-
-function saveProfile() {
-  var token = localStorage.getItem('sl_token');
-  if (!token) { window.location.href = '/login'; return; }
-  var data = {
-    first_name: document.getElementById('inp-first').value,
-    last_name:  document.getElementById('inp-last').value,
-    phone:      document.getElementById('inp-phone').value,
-  };
-  axios.put('/api/auth/profile', data, { headers: { Authorization: 'Bearer ' + token } })
-    .then(function(res) {
-      localStorage.setItem('sl_user', JSON.stringify(res.data.user));
-      showToast('Profile updated ✦', 'success');
-    })
-    .catch(function() { showToast('Could not save profile', 'error'); });
-}
+  if(!user.id){ location.href='/login'; return; }
+  function val(id,v){ var e=document.getElementById(id); if(e) e.value=v||''; }
+  function txt(id,v){ var e=document.getElementById(id); if(e) e.textContent=v||''; }
+  txt('user-avatar',(user.first_name||'U').charAt(0).toUpperCase());
+  txt('user-name',((user.first_name||'')+' '+(user.last_name||'')).trim()||'Your Name');
+  txt('user-email',user.email||'');
+  val('inp-first',user.first_name); val('inp-last',user.last_name); val('inp-email',user.email); val('inp-phone',user.phone);
+  var btn=document.getElementById('save-profile-btn');
+  if(btn) btn.onclick=function(){
+    var token=localStorage.getItem('sl_token');
+    if(!token){ location.href='/login'; return; }
+    axios.put('/api/auth/profile',{first_name:document.getElementById('inp-first').value,last_name:document.getElementById('inp-last').value,phone:document.getElementById('inp-phone').value},{headers:{Authorization:'Bearer '+token}}).then(function(res){localStorage.setItem('sl_user',JSON.stringify(res.data.user));showToast('Profile updated','success')}).catch(function(){showToast('Could not save profile','error')});
+  }
+})();
 </script>
 </body></html>`
