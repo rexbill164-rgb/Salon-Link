@@ -33,6 +33,7 @@ import { withProviderGalleryDeleteFix } from './utils/providerGalleryDeleteFix'
 import { withPaymentDisabledUi } from './utils/paymentDisabledUi'
 import { withBookingFeeDisclosureFix } from './utils/bookingFeeDisclosureFix'
 import { withBookingZeroPriceGuard } from './utils/bookingZeroPriceGuard'
+import { withBookingServicePriceBindingFix } from './utils/bookingServicePriceBindingFix'
 import { withProviderConfirmFlowFix } from './utils/providerConfirmFlowFix'
 import { withProviderRevenueFix } from './utils/providerRevenueFix'
 import { withProviderKycLogoutFix } from './utils/providerKycLogoutFix'
@@ -62,7 +63,7 @@ app.route('/api/messages', messageRoutes)
 
 const page = (html: string) => withMobilePolish(withAppLaunchSplash(withZoomLock(withCustomerMessagesShortcut(html))))
 const providerDash = () => withMobilePolish(withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(withProviderRevenueFix(withProviderConfirmFlowFix(withProviderKycLogoutFix(withProviderGalleryDeleteFix(withProviderDashboardStaticFix(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage())))))))))))
-const noPay = (html: string) => page(withBookingZeroPriceGuard(withBookingFeeDisclosureFix(withPaymentDisabledUi(html))))
+const noPay = (html: string) => page(withBookingServicePriceBindingFix(withBookingZeroPriceGuard(withBookingFeeDisclosureFix(withPaymentDisabledUi(html)))))
 const msgPage = (conversationId = '') => withMobilePolish(withAppLaunchSplash(withZoomLock(withMessagesRealtimeFix(withMessagesKeyboardFix(messagesPage(conversationId))))))
 const adminDash = () => withMobilePolish(withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(repairInlineScriptText(adminPanelPage())))))
 const providerProfile = (id: string) => page(withProviderLocationActions(withProviderProfileServiceUi(providerProfilePage(id))))
