@@ -36,6 +36,7 @@ import { withZoomLock } from './utils/zoomLock'
 import { withCustomerMessagesShortcut } from './utils/customerMessagesShortcut'
 import { withAppLaunchSplash } from './utils/appLaunchSplash'
 import { withAdminProviderThemeUi } from './utils/adminProviderThemeUi'
+import { withMobilePolish } from './utils/mobilePolish'
 import { iconSvg, salonLinkManifest, splashSvg } from './utils/pwaManifest'
 
 type Bindings = { DB: D1Database; [key: string]: any }
@@ -52,11 +53,11 @@ app.route('/api/uploads', uploadRoutes)
 app.route('/api/notifications', notificationRoutes)
 app.route('/api/messages', messageRoutes)
 
-const page = (html: string) => withAppLaunchSplash(withZoomLock(withCustomerMessagesShortcut(html)))
-const providerDash = () => withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(withProviderKycLogoutFix(withProviderGalleryDeleteFix(withProviderDashboardStaticFix(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage()))))))))
+const page = (html: string) => withMobilePolish(withAppLaunchSplash(withZoomLock(withCustomerMessagesShortcut(html))))
+const providerDash = () => withMobilePolish(withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(withProviderKycLogoutFix(withProviderGalleryDeleteFix(withProviderDashboardStaticFix(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage())))))))))
 const noPay = (html: string) => page(withPaymentDisabledUi(html))
-const msgPage = (conversationId = '') => withAppLaunchSplash(withZoomLock(withMessagesKeyboardFix(messagesPage(conversationId))))
-const adminDash = () => withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(repairInlineScriptText(adminPanelPage()))))
+const msgPage = (conversationId = '') => withMobilePolish(withAppLaunchSplash(withZoomLock(withMessagesKeyboardFix(messagesPage(conversationId)))))
+const adminDash = () => withMobilePolish(withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(repairInlineScriptText(adminPanelPage())))))
 
 app.get('/manifest.json', (c) => c.json(salonLinkManifest()))
 app.get('/splash.svg', (c) => c.body(splashSvg(), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
