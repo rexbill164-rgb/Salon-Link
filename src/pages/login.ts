@@ -3,234 +3,396 @@ import { baseHead, globalScripts } from '../utils/layout'
 export const loginPage = () => `<!DOCTYPE html>
 <html lang="en">
 <head>
-${baseHead('Sign In', `
+${baseHead('Log In', `
 <style>
-  html,body { height:100%; margin:0; padding:0; overflow:hidden; }
-  /* Full-screen cinematic layout */
-  .auth-wrap {
-    position:fixed; inset:0;
-    display:flex; align-items:center; justify-content:center;
+  body { background: #fafafa; min-height: 100vh; }
+  
+  /* ── Auth container ── */
+  .auth-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
   }
-  /* Video / image background — always visible on ALL screen sizes */
-  .auth-bg {
-    position:fixed; inset:0; overflow:hidden;
-    background:#0a0a0a; z-index:0;
-  }
-  .auth-bg video, .auth-bg img.bg-img {
-    width:100%; height:100%; object-fit:cover;
-    opacity:0.60;
-    display:block;
-  }
-  .auth-bg::after {
-    content:'';
-    position:absolute; inset:0;
-    background: linear-gradient(160deg,
-      rgba(5,5,5,0.82) 0%,
-      rgba(10,10,10,0.55) 50%,
-      rgba(5,5,5,0.82) 100%);
-  }
-  /* Card */
-  .auth-card {
-    position:relative; z-index:10;
-    background:rgba(255,255,255,0.96);
-    backdrop-filter:blur(28px); -webkit-backdrop-filter:blur(28px);
-    border-radius:26px;
-    padding:44px 48px;
-    width:100%; max-width:440px;
-    box-shadow:0 40px 100px rgba(0,0,0,0.50), 0 0 0 1px rgba(255,255,255,0.10), inset 0 1px 0 rgba(255,255,255,0.6);
-    overflow-y:auto; max-height:92vh;
-  }
-  /* MOBILE — card shrinks to content, background stays visible around it */
-  @media(max-width:520px){
-    html,body { overflow:auto; height:auto; }
-    .auth-wrap { position:relative; min-height:100vh; align-items:flex-start; padding:80px 0 40px; }
-    .auth-bg { position:fixed; }
-    .auth-card {
-      border-radius:22px;
-      padding:32px 22px;
-      max-width:calc(100% - 32px);
-      max-height:none;
-      height:auto;
-      margin:0 16px;
-    }
-    .auth-logo { top:20px; }
-  }
-  /* Logo bar above card */
+  
+  /* ── Logo ── */
   .auth-logo {
-    position:absolute; top:32px; left:50%; transform:translateX(-50%);
-    z-index:10; display:flex; align-items:center; gap:12px;
-    text-decoration:none;
-  }
-  .auth-logo-icon {
-    width:48px; height:48px; border-radius:15px;
-    background:linear-gradient(145deg,#2e2e2e,#0f0f0f);
-    display:flex; align-items:center; justify-content:center;
-    box-shadow:0 8px 24px rgba(0,0,0,0.50), inset 0 1px 0 rgba(255,255,255,0.12);
+    text-decoration: none;
+    margin-bottom: 40px;
+    text-align: center;
   }
   .auth-logo-text {
-    font-family:'Poppins',sans-serif; font-size:20px; font-weight:800;
-    letter-spacing:0.08em; color:#FFFFFF;
-    text-shadow:0 2px 12px rgba(0,0,0,0.4);
+    font-size: 28px;
+    font-weight: 800;
+    color: #101010;
+    letter-spacing: -0.02em;
   }
-  .auth-logo-sub {
-    font-size:10px; color:rgba(255,255,255,0.6);
-    letter-spacing:0.18em; text-transform:uppercase; margin-top:1px;
+  
+  /* ── Auth card ── */
+  .auth-card {
+    background: #fff;
+    border-radius: 24px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
   }
-  .tab-pill { flex:1; padding:11px 12px; border-radius:8px; font-size:11px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; cursor:pointer; transition:all 0.25s; border:none; background:transparent; color:#AAAAAA; }
-  .tab-pill.active { background:#FFFFFF; color:#111111; border:1px solid #EEEEEE; box-shadow:0 2px 14px rgba(0,0,0,0.09); }
-  /* Reset modal */
-  .reset-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px; }
-  .reset-card { background:#FFFFFF;border-radius:24px;padding:36px 32px;width:100%;max-width:400px;box-shadow:0 32px 80px rgba(0,0,0,0.35); }
+  @media(max-width:480px) {
+    .auth-card { padding: 32px 24px; border-radius: 20px; }
+  }
+  
+  .auth-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #101010;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .auth-subtitle {
+    font-size: 14px;
+    color: #666;
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .auth-subtitle a {
+    color: #101010;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .auth-subtitle a:hover { text-decoration: underline; }
+  
+  /* ── Form styles ── */
+  .form-group { margin-bottom: 20px; }
+  .form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #101010;
+    margin-bottom: 8px;
+  }
+  .form-input {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 15px;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 12px;
+    background: #fff;
+    color: #101010;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .form-input:focus {
+    border-color: #101010;
+    box-shadow: 0 0 0 3px rgba(16,16,16,0.06);
+  }
+  .form-input::placeholder { color: #999; }
+  
+  .input-group {
+    position: relative;
+  }
+  .input-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    font-size: 14px;
+  }
+  .input-group .form-input {
+    padding-left: 44px;
+  }
+  .toggle-pwd {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    padding: 4px;
+    font-size: 14px;
+  }
+  
+  .form-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .forgot-link {
+    font-size: 13px;
+    color: #101010;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .forgot-link:hover { text-decoration: underline; }
+  
+  /* ── Buttons ── */
+  .btn-submit {
+    width: 100%;
+    padding: 16px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    background: #101010;
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .btn-submit:hover { background: #2a2a2a; }
+  .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+  
+  /* ── Tabs ── */
+  .tab-container {
+    display: flex;
+    background: #f5f5f5;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 28px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    background: none;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-btn.active {
+    background: #fff;
+    color: #101010;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  
+  /* ── Notice ── */
+  .notice-box {
+    background: #f0f7ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 24px;
+  }
+  .notice-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1d4ed8;
+    margin-bottom: 4px;
+  }
+  .notice-text {
+    font-size: 12px;
+    color: #3b82f6;
+    line-height: 1.5;
+  }
+  
+  /* ── OTP inputs ── */
+  .otp-container {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+  .otp-input {
+    width: 48px;
+    height: 56px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: 700;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .otp-input:focus { border-color: #101010; }
+  
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 9999;
+  }
+  .modal-card {
+    background: #fff;
+    border-radius: 24px;
+    padding: 36px 32px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+  .modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #888;
+    cursor: pointer;
+  }
+  
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .spinner { animation: spin 0.8s linear infinite; }
 </style>
 `)}
 </head>
 <body>
 
-<div class="auth-wrap">
-  <!-- ── Cinematic Background ── -->
-  <div class="auth-bg">
-    <!-- Fallback image shown while video loads or on mobile -->
-    <img class="bg-img" id="bg-img"
-      src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1600&q=80"
-      alt="" loading="eager"/>
-    <!-- Autoplay looping video (muted, no controls) -->
-    <video id="bg-video" autoplay muted loop playsinline
-      style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.55;">
-      <source src="https://cdn.coverr.co/videos/coverr-a-woman-getting-a-haircut-at-a-salon-1584/mp4" type="video/mp4"/>
-    </video>
-  </div>
-
-  <!-- ── Logo (above card) ── -->
+<div class="auth-container">
   <a href="/" class="auth-logo">
-    <div class="auth-logo-icon">
-      <i class="fas fa-cut" style="color:#FFFFFF;font-size:18px;"></i>
-    </div>
-    <div>
-      <div class="auth-logo-text">SALONLINK</div>
-      <div class="auth-logo-sub">Ghana's Beauty Network</div>
-    </div>
+    <div class="auth-logo-text">salonlink</div>
   </a>
 
-  <!-- ── Login Card ── -->
   <div class="auth-card">
-    <h1 style="font-size:26px;font-weight:700;margin-bottom:6px;color:var(--t-primary);">Welcome back</h1>
-    <p style="font-size:13px;color:var(--t-secondary);margin-bottom:16px;">
-      No account? <a href="/register" style="color:#111111;text-decoration:none;font-weight:700;">Create one free →</a>
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-subtitle">
+      Don&apos;t have an account? <a href="/register">Sign up</a>
     </p>
 
-    <!-- Temporary password notice for existing users -->
-    <div id="reset-notice" style="background:#F0F7FF;border:1px solid #BFDBFE;border-radius:14px;padding:12px 14px;margin-bottom:20px;display:flex;align-items:flex-start;gap:10px;">
-      <span style="font-size:16px;flex-shrink:0;">ℹ️</span>
-      <div>
-        <div style="font-size:12px;font-weight:700;color:#1D4ED8;margin-bottom:2px;">Existing users — passwords were reset</div>
-        <div style="font-size:11px;color:#3B82F6;line-height:1.5;">
-          Temporary password: <strong style="font-family:monospace;letter-spacing:1px;">SalonLink2026</strong><br/>
-          Use <strong>Forgot password?</strong> below to set your own.
-        </div>
-        <button onclick="document.getElementById('reset-notice').style.display='none'" style="margin-top:6px;background:none;border:none;color:#93C5FD;font-size:10px;cursor:pointer;padding:0;">Dismiss</button>
+    <!-- Notice for password reset -->
+    <div id="reset-notice" class="notice-box">
+      <div class="notice-title">Existing users</div>
+      <div class="notice-text">
+        Temporary password: <strong>SalonLink2026</strong><br/>
+        Use "Forgot password" to set your own.
       </div>
     </div>
 
     <!-- Tab switcher -->
-    <div style="display:flex;background:var(--c-dark);border-radius:10px;padding:3px;gap:3px;margin-bottom:24px;border:1px solid var(--i-faint);">
-      <button id="tab-email" onclick="switchTab('email')" class="tab-pill active">
-        <i class="fas fa-envelope" style="margin-right:5px;font-size:10px;"></i>Email
-      </button>
-      <button id="tab-phone" onclick="switchTab('phone')" class="tab-pill">
-        <i class="fas fa-phone" style="margin-right:5px;font-size:10px;"></i>Phone / WhatsApp
-      </button>
+    <div class="tab-container">
+      <button id="tab-email" onclick="switchTab('email')" class="tab-btn active">Email</button>
+      <button id="tab-phone" onclick="switchTab('phone')" class="tab-btn">Phone / WhatsApp</button>
     </div>
 
     <!-- Email form -->
-    <form id="form-email" onsubmit="handleLogin(event)" style="display:block;">
+    <form id="form-email" onsubmit="handleLogin(event)">
       <div class="form-group">
-        <label class="form-label">Email Address</label>
-        <div class="input-wrap">
+        <label class="form-label">Email</label>
+        <div class="input-group">
           <i class="fas fa-envelope input-icon"></i>
-          <input type="email" id="email" class="input has-icon-left" placeholder="you@example.com" autocomplete="username" required/>
+          <input type="email" id="email" class="form-input" placeholder="you@example.com" required/>
         </div>
       </div>
       <div class="form-group">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div class="form-row">
           <label class="form-label" style="margin-bottom:0;">Password</label>
-          <a href="#" onclick="showForgot();return false;" style="font-size:11px;color:#111111;text-decoration:none;font-weight:600;">Forgot?</a>
+          <a href="#" onclick="showForgot();return false;" class="forgot-link">Forgot password?</a>
         </div>
-        <div class="input-wrap">
+        <div class="input-group">
           <i class="fas fa-lock input-icon"></i>
-          <input type="password" id="password" class="input has-icon-left has-icon-right" placeholder="••••••••" autocomplete="current-password" required/>
-          <button type="button" onclick="togglePwd()" class="input-icon-right">
+          <input type="password" id="password" class="form-input" placeholder="Enter your password" required/>
+          <button type="button" onclick="togglePwd()" class="toggle-pwd">
             <i id="eye-icon" class="fas fa-eye"></i>
           </button>
         </div>
       </div>
-      <button type="submit" id="login-btn" class="btn-primary" style="width:100%;justify-content:center;padding:15px;font-size:13px;margin-top:4px;">
-        <span id="login-text"><i class="fas fa-sign-in-alt" style="margin-right:8px;font-size:12px;"></i>Sign In</span>
-        <span id="login-loader" style="display:none;align-items:center;gap:8px;"><i class="fas fa-circle-notch" style="animation:spin-slow 0.8s linear infinite;font-size:13px;"></i> Signing in...</span>
+      <button type="submit" id="login-btn" class="btn-submit">
+        <span id="login-text">Log in</span>
+        <span id="login-loader" style="display:none;"><i class="fas fa-circle-notch spinner"></i></span>
       </button>
     </form>
 
-    <!-- Phone / WhatsApp form -->
+    <!-- Phone form -->
     <div id="form-phone" style="display:none;">
       <div id="phone-step-1">
-        <div style="display:flex;align-items:center;gap:10px;background:rgba(37,211,102,0.08);border:1px solid rgba(37,211,102,0.25);border-radius:12px;padding:12px 14px;margin-bottom:18px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M13.507.135C6.07.135 0 6.143 0 13.505c0 2.387.634 4.624 1.737 6.558L0 24l4.073-1.67a13.4 13.4 0 0 0 6.27 1.56h.006c7.437 0 13.5-6.008 13.5-13.37 0-3.573-1.395-6.93-3.926-9.455A13.436 13.436 0 0 0 13.507.135z"/></svg>
-          <span style="font-size:12px;color:#128C7E;font-weight:600;">OTP sent to your WhatsApp</span>
-        </div>
         <div class="form-group">
-          <label class="form-label">Ghana Phone Number</label>
+          <label class="form-label">Phone number</label>
           <div style="display:flex;gap:10px;">
-            <div style="background:var(--c-raise);border:1.5px solid var(--i-faint);border-radius:var(--r-md);padding:15px 16px;font-size:14px;color:var(--t-secondary);white-space:nowrap;display:flex;align-items:center;gap:6px;">
-              🇬🇭 <span style="color:var(--t-muted);">+233</span>
-            </div>
-            <input type="tel" id="phone-input" class="input" placeholder="20 000 0000" style="flex:1;" maxlength="10"/>
+            <div style="padding:14px 16px;background:#f5f5f5;border-radius:12px;font-size:14px;color:#555;white-space:nowrap;">+233</div>
+            <input type="tel" id="phone-input" class="form-input" placeholder="20 000 0000" maxlength="10"/>
           </div>
         </div>
-        <button id="send-otp-btn" onclick="sendOtp()" class="btn-primary" style="width:100%;justify-content:center;padding:15px;font-size:13px;">
-          Send OTP via WhatsApp
+        <button id="send-otp-btn" type="button" onclick="sendOtp()" class="btn-submit">
+          Send code via WhatsApp
         </button>
       </div>
       <div id="phone-step-2" style="display:none;">
-        <div style="text-align:center;margin-bottom:20px;">
-          <div style="font-size:36px;margin-bottom:8px;">📲</div>
-          <div style="font-size:15px;font-weight:700;margin-bottom:4px;">Check your WhatsApp</div>
-          <div style="font-size:13px;color:var(--t-muted);">Code sent to <span id="phone-display" style="color:#111111;font-weight:700;"></span></div>
+        <div style="text-align:center;margin-bottom:24px;">
+          <div style="font-size:14px;color:#666;">Enter the code sent to</div>
+          <div id="phone-display" style="font-size:16px;font-weight:600;color:#101010;margin-top:4px;"></div>
         </div>
-        <div style="display:flex;gap:10px;justify-content:center;margin-bottom:20px;">
-          ${[0,1,2,3,4,5].map(i=>`<input type="tel" maxlength="1" id="otp-${i}" class="input" style="width:46px;height:54px;text-align:center;font-size:22px;font-weight:700;padding:0;border-radius:12px;" oninput="otpInput(this,${i})" onkeydown="otpKey(event,${i})" inputmode="numeric"/>`).join('')}
+        <div class="otp-container">
+          ${[0,1,2,3,4,5].map(i=>`<input type="tel" maxlength="1" id="otp-${i}" class="otp-input" oninput="otpInput(this,${i})" onkeydown="otpKey(event,${i})" inputmode="numeric"/>`).join('')}
         </div>
-        <button id="verify-otp-btn" onclick="verifyOtp()" class="btn-primary" style="width:100%;justify-content:center;padding:15px;font-size:13px;">
-          Verify &amp; Sign In
+        <button id="verify-otp-btn" type="button" onclick="verifyOtp()" class="btn-submit">
+          Verify & log in
         </button>
-        <button onclick="backToPhone()" style="width:100%;margin-top:10px;background:none;border:none;color:var(--t-muted);font-size:12px;cursor:pointer;padding:8px;">
-          ← Change number
-        </button>
-        <div style="text-align:center;margin-top:12px;font-size:12px;color:var(--t-muted);">
-          Didn't receive it? <button onclick="sendOtp(true)" style="background:none;border:none;color:#111111;font-size:12px;cursor:pointer;font-weight:600;">Resend</button>
+        <div style="text-align:center;margin-top:16px;">
+          <button onclick="backToPhone()" style="background:none;border:none;color:#666;font-size:13px;cursor:pointer;">Change number</button>
+          <span style="color:#ddd;margin:0 8px;">|</span>
+          <button onclick="sendOtp(true)" style="background:none;border:none;color:#101010;font-size:13px;font-weight:600;cursor:pointer;">Resend code</button>
         </div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Forgot Password Modal -->
+<div id="forgot-modal" class="modal-overlay" style="display:none;">
+  <div class="modal-card" style="position:relative;">
+    <button onclick="closeForgot()" class="modal-close"><i class="fas fa-times"></i></button>
+    
+    <div id="forgot-step-1">
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;">Reset password</h2>
+      <p style="font-size:14px;color:#666;margin-bottom:24px;">Enter your email and we&apos;ll send you a code.</p>
+      <div class="form-group">
+        <input type="email" id="forgot-email" class="form-input" placeholder="Email address"/>
+      </div>
+      <button id="send-reset-btn" type="button" onclick="sendResetCode()" class="btn-submit">Send reset code</button>
+    </div>
+    
+    <div id="forgot-step-2" style="display:none;">
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;">Enter code</h2>
+      <div id="reset-demo-info" class="notice-box" style="display:none;margin-bottom:16px;">
+        <div class="notice-text">Demo code: <strong id="reset-demo-code"></strong></div>
+      </div>
+      <div class="form-group">
+        <input type="text" id="reset-code-input" class="form-input" placeholder="6-digit code" maxlength="6"/>
+      </div>
+      <div class="form-group">
+        <input type="password" id="reset-pw1" class="form-input" placeholder="New password"/>
+      </div>
+      <div class="form-group">
+        <input type="password" id="reset-pw2" class="form-input" placeholder="Confirm new password"/>
+      </div>
+      <button id="confirm-reset-btn" type="button" onclick="confirmReset()" class="btn-submit">Reset password</button>
+    </div>
+    
+    <div id="forgot-step-3" style="display:none;text-align:center;">
+      <div style="width:64px;height:64px;border-radius:50%;background:#e8f5e9;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+        <i class="fas fa-check" style="font-size:24px;color:#00a862;"></i>
+      </div>
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;">Password reset!</h2>
+      <p style="font-size:14px;color:#666;margin-bottom:24px;">You can now log in with your new password.</p>
+      <button onclick="closeForgot()" class="btn-submit">Continue to login</button>
+    </div>
+  </div>
+</div>
+
 ${globalScripts()}
 <script>
-// Try to play video background, fallback to image
-(function(){
-  var vid = document.getElementById('bg-video');
-  var img = document.getElementById('bg-img');
-  if (!vid) return;
-  vid.addEventListener('canplay', function(){
-    vid.style.display = 'block';
-    if (img) img.style.display = 'none';
-  });
-  vid.load();
-})();
-
 function switchTab(tab) {
   document.getElementById('form-email').style.display = tab==='email' ? 'block' : 'none';
   document.getElementById('form-phone').style.display = tab==='phone' ? 'block' : 'none';
-  document.getElementById('tab-email').className = 'tab-pill ' + (tab==='email' ? 'active' : '');
-  document.getElementById('tab-phone').className = 'tab-pill ' + (tab==='phone' ? 'active' : '');
+  document.getElementById('tab-email').className = 'tab-btn ' + (tab==='email' ? 'active' : '');
+  document.getElementById('tab-phone').className = 'tab-btn ' + (tab==='phone' ? 'active' : '');
 }
 
 function togglePwd() {
@@ -254,11 +416,11 @@ async function handleLogin(e) {
       if (!u.name) u.name = ((u.first_name||'') + (u.last_name ? ' '+u.last_name : '')).trim() || 'User';
       localStorage.setItem('sl_token', res.data.token);
       localStorage.setItem('sl_user', JSON.stringify(u));
-      showToast('Welcome back, ' + u.name + ' \u2726', 'success');
-      setTimeout(function(){ window.location.href = u.role==='admin'?'/admin':u.role==='provider'?'/provider/dashboard':'/discover'; }, 800);
+      showToast('Welcome back!', 'success');
+      setTimeout(function(){ window.location.href = u.role==='admin'?'/admin':u.role==='provider'?'/provider/dashboard':'/discover'; }, 600);
     }
   } catch(err) {
-    var msg = (err.response && err.response.data && err.response.data.error) || 'Invalid credentials. Please try again.';
+    var msg = (err.response && err.response.data && err.response.data.error) || 'Invalid credentials';
     showToast(msg, 'error');
     btn.disabled=false; txt.style.display='inline'; load.style.display='none';
   }
@@ -266,7 +428,7 @@ async function handleLogin(e) {
 
 var _otpPhone = '';
 async function sendOtp(resend) {
-  var raw = resend ? _otpPhone : document.getElementById('phone-input').value.replace(/\D/g,'');
+  var raw = resend ? _otpPhone : document.getElementById('phone-input').value.replace(/\\D/g,'');
   if (!resend && raw.length < 9) { showToast('Enter a valid phone number', 'error'); return; }
   var btn = document.getElementById('send-otp-btn');
   if (btn) { btn.disabled=true; btn.textContent='Sending...'; }
@@ -276,21 +438,21 @@ async function sendOtp(resend) {
     if (res.data.via === 'demo' && res.data.otp_demo) {
       showToast('Demo OTP: ' + res.data.otp_demo, 'info');
       res.data.otp_demo.split('').forEach(function(d,i){ var el=document.getElementById('otp-'+i); if(el) el.value=d; });
-    } else { showToast('OTP sent to WhatsApp \u2726', 'success'); }
+    } else { showToast('Code sent to WhatsApp', 'success'); }
     document.getElementById('phone-display').textContent = '+233 ' + raw;
     document.getElementById('phone-step-1').style.display='none';
     document.getElementById('phone-step-2').style.display='block';
     setTimeout(function(){ var el=document.getElementById('otp-0'); if(el) el.focus(); }, 100);
   } catch(err) {
-    var msg = (err.response && err.response.data && err.response.data.error) || 'Failed to send OTP';
+    var msg = (err.response && err.response.data && err.response.data.error) || 'Failed to send code';
     showToast(msg, 'error');
-    if (btn) { btn.disabled=false; btn.textContent='Send OTP via WhatsApp'; }
+    if (btn) { btn.disabled=false; btn.textContent='Send code via WhatsApp'; }
   }
 }
 
 async function verifyOtp() {
   var otp = [0,1,2,3,4,5].map(function(i){ var el=document.getElementById('otp-'+i); return el?el.value:''; }).join('');
-  if (otp.length < 6) { showToast('Enter the complete 6-digit code', 'error'); return; }
+  if (otp.length < 6) { showToast('Enter the complete code', 'error'); return; }
   var btn = document.getElementById('verify-otp-btn');
   btn.disabled=true; btn.textContent='Verifying...';
   try {
@@ -300,13 +462,13 @@ async function verifyOtp() {
       if (!u.name) u.name = ((u.first_name||'') + (u.last_name ? ' '+u.last_name : '')).trim() || 'User';
       localStorage.setItem('sl_token', res.data.token);
       localStorage.setItem('sl_user', JSON.stringify(u));
-      showToast('Welcome to SalonLink \u2726', 'success');
-      setTimeout(function(){ window.location.href = u.role==='admin'?'/admin':u.role==='provider'?'/provider/dashboard':'/discover'; }, 800);
+      showToast('Welcome!', 'success');
+      setTimeout(function(){ window.location.href = u.role==='admin'?'/admin':u.role==='provider'?'/provider/dashboard':'/discover'; }, 600);
     }
   } catch(err) {
-    var msg = (err.response && err.response.data && err.response.data.error) || 'Incorrect OTP';
+    var msg = (err.response && err.response.data && err.response.data.error) || 'Incorrect code';
     showToast(msg, 'error');
-    btn.disabled=false; btn.textContent='Verify & Sign In';
+    btn.disabled=false; btn.textContent='Verify & log in';
   }
 }
 
@@ -321,14 +483,12 @@ function backToPhone() {
   document.getElementById('phone-step-2').style.display='none';
 }
 
-// ── Forgot Password ────────────────────────────────────────────
 function showForgot() {
-  var m = document.getElementById('forgot-modal');
-  if (m) { m.style.display='flex'; document.getElementById('forgot-email').focus(); }
+  document.getElementById('forgot-modal').style.display='flex';
+  document.getElementById('forgot-email').focus();
 }
 function closeForgot() {
-  var m = document.getElementById('forgot-modal');
-  if (m) m.style.display='none';
+  document.getElementById('forgot-modal').style.display='none';
   document.getElementById('forgot-step-1').style.display='block';
   document.getElementById('forgot-step-2').style.display='none';
   document.getElementById('forgot-step-3').style.display='none';
@@ -336,33 +496,31 @@ function closeForgot() {
 var _forgotEmail = '';
 async function sendResetCode() {
   var email = document.getElementById('forgot-email').value.trim();
-  if (!email) { showToast('Enter your email address', 'error'); return; }
+  if (!email) { showToast('Enter your email', 'error'); return; }
   var btn = document.getElementById('send-reset-btn');
   btn.disabled=true; btn.textContent='Sending...';
   try {
     var res = await axios.post('/api/auth/reset-password/request', { email });
     _forgotEmail = email;
     if (res.data.demo_code) {
-      // No email service — show code directly
       document.getElementById('reset-demo-info').style.display='block';
       document.getElementById('reset-demo-code').textContent = res.data.demo_code;
     }
     document.getElementById('forgot-step-1').style.display='none';
     document.getElementById('forgot-step-2').style.display='block';
-    setTimeout(function(){ document.getElementById('reset-code-input').focus(); }, 100);
   } catch(err) {
     var msg = (err.response && err.response.data && err.response.data.error) || 'Failed to send code';
     showToast(msg, 'error');
-    btn.disabled=false; btn.textContent='Send Reset Code';
+    btn.disabled=false; btn.textContent='Send reset code';
   }
 }
 async function confirmReset() {
   var code = document.getElementById('reset-code-input').value.trim();
-  var pw1  = document.getElementById('reset-pw1').value;
-  var pw2  = document.getElementById('reset-pw2').value;
+  var pw1 = document.getElementById('reset-pw1').value;
+  var pw2 = document.getElementById('reset-pw2').value;
   if (!code || code.length !== 6) { showToast('Enter the 6-digit code', 'error'); return; }
-  if (!pw1 || pw1.length < 8)     { showToast('Password must be at least 8 characters', 'error'); return; }
-  if (pw1 !== pw2)                  { showToast('Passwords do not match', 'error'); return; }
+  if (!pw1 || pw1.length < 8) { showToast('Password must be at least 8 characters', 'error'); return; }
+  if (pw1 !== pw2) { showToast('Passwords do not match', 'error'); return; }
   var btn = document.getElementById('confirm-reset-btn');
   btn.disabled=true; btn.textContent='Resetting...';
   try {
@@ -372,80 +530,8 @@ async function confirmReset() {
   } catch(err) {
     var msg = (err.response && err.response.data && err.response.data.error) || 'Reset failed';
     showToast(msg, 'error');
-    btn.disabled=false; btn.textContent='Reset Password';
+    btn.disabled=false; btn.textContent='Reset password';
   }
 }
 </script>
-
-<!-- ── Forgot Password Modal ── -->
-<div id="forgot-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:99999;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(6px);">
-  <div style="background:#FFFFFF;border-radius:24px;padding:36px 32px;width:100%;max-width:400px;box-shadow:0 40px 80px rgba(0,0,0,0.4);position:relative;">
-    <button onclick="closeForgot()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;color:#AAAAAA;cursor:pointer;line-height:1;">×</button>
-
-    <!-- Step 1: Enter email -->
-    <div id="forgot-step-1">
-      <div style="font-size:24px;margin-bottom:12px;">🔑</div>
-      <h2 style="font-size:20px;font-weight:800;color:#111111;margin-bottom:6px;">Forgot your password?</h2>
-      <p style="font-size:13px;color:#888888;margin-bottom:24px;">Enter your email and we'll send a reset code.</p>
-      <div class="form-group">
-        <label class="form-label">Email Address</label>
-        <div class="input-wrap">
-          <i class="fas fa-envelope input-icon"></i>
-          <input type="email" id="forgot-email" class="input has-icon-left" placeholder="you@example.com" onkeydown="if(event.key==='Enter') sendResetCode()"/>
-        </div>
-      </div>
-      <button id="send-reset-btn" onclick="sendResetCode()" class="btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:13px;">
-        Send Reset Code
-      </button>
-    </div>
-
-    <!-- Step 2: Enter code + new password -->
-    <div id="forgot-step-2" style="display:none;">
-      <div style="font-size:24px;margin-bottom:12px;">📧</div>
-      <h2 style="font-size:20px;font-weight:800;color:#111111;margin-bottom:6px;">Enter reset code</h2>
-      <p style="font-size:13px;color:#888888;margin-bottom:4px;">Check your email for a 6-digit code.</p>
-
-      <!-- Demo info (shown when no email service) -->
-      <div id="reset-demo-info" style="display:none;background:#FFF8E1;border:1px solid #FFD54F;border-radius:12px;padding:12px 14px;margin-bottom:16px;">
-        <div style="font-size:11px;font-weight:700;color:#F57F17;margin-bottom:4px;">⚡ Demo Mode — Email not configured</div>
-        <div style="font-size:13px;color:#555555;">Your reset code is: <strong id="reset-demo-code" style="font-size:18px;letter-spacing:4px;color:#111111;font-family:monospace;"></strong></div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">6-Digit Code</label>
-        <input type="tel" id="reset-code-input" class="input" placeholder="000000" maxlength="6" inputmode="numeric" style="text-align:center;font-size:22px;font-weight:700;letter-spacing:8px;"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">New Password</label>
-        <div class="input-wrap">
-          <i class="fas fa-lock input-icon"></i>
-          <input type="password" id="reset-pw1" class="input has-icon-left" placeholder="Min. 8 characters"/>
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Confirm Password</label>
-        <div class="input-wrap">
-          <i class="fas fa-lock input-icon"></i>
-          <input type="password" id="reset-pw2" class="input has-icon-left" placeholder="Repeat password"/>
-        </div>
-      </div>
-      <button id="confirm-reset-btn" onclick="confirmReset()" class="btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:13px;">
-        Reset Password
-      </button>
-      <button onclick="document.getElementById('forgot-step-1').style.display='block';document.getElementById('forgot-step-2').style.display='none';" style="width:100%;margin-top:10px;background:none;border:none;color:#AAAAAA;font-size:12px;cursor:pointer;padding:8px;">
-        ← Back
-      </button>
-    </div>
-
-    <!-- Step 3: Success -->
-    <div id="forgot-step-3" style="display:none;text-align:center;">
-      <div style="font-size:40px;margin-bottom:16px;">✅</div>
-      <h2 style="font-size:20px;font-weight:800;color:#111111;margin-bottom:8px;">Password reset!</h2>
-      <p style="font-size:13px;color:#888888;margin-bottom:24px;">Your password has been updated. You can now sign in with your new password.</p>
-      <button onclick="closeForgot()" class="btn-primary" style="width:100%;justify-content:center;padding:14px;font-size:13px;">
-        Sign In Now
-      </button>
-    </div>
-  </div>
-</div>
 </body></html>`
