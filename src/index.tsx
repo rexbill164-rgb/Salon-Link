@@ -22,6 +22,7 @@ import { adminPage as adminPanelPage } from './pages/admin'
 import { onboardingPage } from './pages/onboarding'
 import { hairstyleHistoryPage } from './pages/hairstyleHistory'
 import { settingsPage } from './pages/settings'
+import { surpriseShopPage } from './pages/surpriseShop'
 import { notificationsPage } from './pages/notifications'
 import { paymentPage, paymentSuccessPage } from './pages/paymentPage'
 import { messagesPage } from './pages/messages'
@@ -83,6 +84,7 @@ app.get('/messages', (c) => c.html(msgPage()))
 app.get('/messages/:conversation_id', (c) => c.html(msgPage(c.req.param('conversation_id'))))
 app.get('/hairstyle-history', (c) => c.html(page(hairstyleHistoryPage())))
 app.get('/settings', (c) => c.html(page(settingsPage())))
+app.get('/surprise-shop', (c) => c.html(page(surpriseShopPage())))
 app.get('/notifications', (c) => c.html(page(notificationsPage())))
 app.get('/payment/pay', (c) => c.html(noPay(paymentPage())))
 app.get('/payment/success', (c) => c.html(noPay(paymentSuccessPage())))
