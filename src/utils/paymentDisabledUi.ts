@@ -7,6 +7,7 @@ export function withPaymentDisabledUi(html: string): string {
   var MSG = ${JSON.stringify('Payment will be handled at the salon. Mobile Money payment is currently unavailable.')};
   var toastShown = false;
   var lastToastAt = 0;
+  var cleanCashMessage = 'Your booking will be confirmed immediately. Pay the service amount directly to the provider when you arrive.';
 
   function toastOnce(){
     var now = Date.now();
@@ -14,6 +15,35 @@ export function withPaymentDisabledUi(html: string): string {
     toastShown = true;
     lastToastAt = now;
     if (window.showToast) window.showToast(MSG, 'info');
+  }
+
+  function removeFeeText(){
+    var exact = [
+      'Your provider will send a GHS 3 platform fee to SalonLink after your appointment.',
+      'Your provider will send a GHS 2 platform fee to SalonLink after your appointment.',
+      'After your appointment, your provider will send the GHS 3.00 platform fee to:',
+      'After your appointment, your provider will send the GHS 2.00 platform fee to:',
+      'GHS 3 platform fee',
+      'GHS 2 platform fee',
+      'GHS 3.00',
+      'GHS 2.00',
+      'Platform Fee Reminder',
+      'Platform Fee',
+      'platform fee'
+    ];
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    var nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(function(node){
+      var v = node.nodeValue || '';
+      exact.forEach(function(x){ v = v.split(x).join(''); });
+      if (v.indexOf('Your booking will be confirmed immediately') >= 0 && v.indexOf('Pay the full amount directly') >= 0) v = cleanCashMessage;
+      node.nodeValue = v.replace(/\s{2,}/g, ' ').trim();
+    });
+    var cash = document.getElementById('cash-booking-notice');
+    if (cash) {
+      cash.innerHTML = '<div style="font-size:13px;font-weight:700;color:var(--g-main);margin-bottom:6px;">Pay On-Site Details</div><div style="font-size:12px;color:var(--t-secondary);line-height:1.6;">' + cleanCashMessage + '</div>';
+    }
   }
 
   function markDisabled(el, text){
@@ -52,6 +82,7 @@ export function withPaymentDisabledUi(html: string): string {
       paymentMethods.innerHTML = '<div class="pay-method selected" style="cursor:default;"><span style="font-size:22px;">Cash</span><div style="flex:1;"><div style="font-size:13px;font-weight:600;">Pay at salon</div><div style="font-size:11px;color:var(--t-muted);">' + MSG + '</div></div><span class="badge" style="font-size:9px;">Active</span></div>';
     }
 
+    removeFeeText();
     window.payWithMomo = function(){ toastOnce(); };
     window.initiatePayment = function(){ toastOnce(); };
   }
@@ -69,9 +100,17 @@ export function withPaymentDisabledUi(html: string): string {
   document.addEventListener('DOMContentLoaded', patch);
   setTimeout(patch, 300);
   setTimeout(patch, 1200);
+  setTimeout(patch, 2500);
 })();
 </script>`
   let next = html
+    .replace(/Your provider will send a GHS 3 platform fee to SalonLink after your appointment\./g, 'Pay the service amount directly to the provider when you arrive.')
+    .replace(/Your provider will send a GHS 2 platform fee to SalonLink after your appointment\./g, 'Pay the service amount directly to the provider when you arrive.')
+    .replace(/GHS 3 platform fee/g, '')
+    .replace(/GHS 2 platform fee/g, '')
+    .replace(/Platform Fee Reminder/g, 'Booking Reminder')
+    .replace(/Platform Fee/g, '')
+    .replace(/platform fee/g, '')
     .replace(/Send MoMo Prompt/g, 'Payment Unavailable')
     .replace(/Mobile Money Number/g, 'Mobile Money unavailable')
     .replace(/Pay with Paystack/g, 'Payment Unavailable')
