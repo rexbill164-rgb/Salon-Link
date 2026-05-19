@@ -3,6 +3,23 @@ export function withProviderBlueUi(html: string): string {
 
   const patch = `
 <style id="provider-blue-ui-style">
+  :root { --sl-blue:#2563eb; --sl-blue-soft:#eef4ff; --sl-blue-border:#dbeafe; }
+
+  @supports (padding-top: env(safe-area-inset-top)) {
+    .topbar {
+      padding-top: calc(env(safe-area-inset-top) + 12px) !important;
+      min-height: calc(env(safe-area-inset-top) + 62px) !important;
+      align-items:flex-end !important;
+      padding-bottom:12px !important;
+    }
+  }
+  .topbar {
+    background:rgba(255,255,255,.98) !important;
+    border-bottom:1px solid #eef2f7 !important;
+    box-shadow:0 4px 18px rgba(15,23,42,.04) !important;
+  }
+  .main-wrap { background:#fafafa !important; }
+
   .sidebar > div:first-child {
     background:#ffffff !important;
     border-bottom:1px solid #eef2f7 !important;
@@ -24,6 +41,7 @@ export function withProviderBlueUi(html: string): string {
     background:none !important;
     -webkit-text-fill-color:#111827 !important;
   }
+
   .sidebar .sidebar-item {
     display:flex !important;
     align-items:center !important;
@@ -57,14 +75,17 @@ export function withProviderBlueUi(html: string): string {
     display:inline-flex !important;
     align-items:center !important;
     justify-content:center !important;
-    font-size:16px !important;
+    font-size:0 !important;
     box-shadow:none !important;
   }
+  .sidebar .sidebar-item .icon svg,
+  .sl-clean-icon svg { width:18px !important; height:18px !important; stroke:currentColor !important; }
   .sidebar .sidebar-item.active .icon {
     background:#2563eb !important;
     color:#ffffff !important;
   }
   .sidebar nav { padding:12px 10px !important; }
+
   #sb-avatar {
     background:#f8fafc !important;
     border:1px solid #dbeafe !important;
@@ -72,15 +93,50 @@ export function withProviderBlueUi(html: string): string {
     overflow:hidden !important;
   }
   #sb-avatar img { width:100% !important; height:100% !important; object-fit:cover !important; display:block !important; }
+
+  .sl-clean-icon,
+  .kpi-card > div:first-child,
+  .card button > div:first-child {
+    width:42px !important;
+    height:42px !important;
+    border-radius:14px !important;
+    background:#eef4ff !important;
+    color:#2563eb !important;
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    font-size:0 !important;
+    margin-bottom:10px !important;
+  }
+  .card button {
+    border-radius:18px !important;
+    border:1px solid #eef2f7 !important;
+    background:#fff !important;
+  }
+  .card button:hover { background:#f8fafc !important; border-color:#dbeafe !important; }
+
   @media(max-width:768px){
+    body { padding-top:0 !important; }
     .sidebar { width:260px !important; }
     .sidebar .sidebar-item { font-size:13px !important; }
     .sidebar .sidebar-item .icon { width:36px !important; height:36px !important; min-width:36px !important; }
+    .content-pad { padding-top:16px !important; }
   }
 </style>
 <script id="provider-blue-ui-script">
 (function(){
   if(location.pathname !== '/provider/dashboard') return;
+  var icons = {
+    overview:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 13h6v7H4zM14 4h6v16h-6zM4 4h6v5H4z"/></svg>',
+    appts:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>',
+    services:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20l16-16M9 4l11 11M4 9l11 11"/></svg>',
+    gallery:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8" cy="10" r="2"/><path d="M21 15l-5-5L5 21"/></svg>',
+    location:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-5.2 7-11a7 7 0 1 0-14 0c0 5.8 7 11 7 11z"/><circle cx="12" cy="10" r="2"/></svg>',
+    reviews:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 7 .9-5 4.8 1.2 6.8L12 17l-6.2 3.5L7 13.7 2 8.9 9 8z"/></svg>',
+    earnings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg>',
+    kyc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 9h6M7 13h10M7 17h4"/></svg>',
+    settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2 3.4-.2-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V22h-4v-.4a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.2.1-2-3.4.1-.1A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.6-1H3v-4h.4A1.7 1.7 0 0 0 5 9a1.7 1.7 0 0 0-.3-1.9l-.1-.1 2-3.4.2.1A1.7 1.7 0 0 0 8.7 4a1.7 1.7 0 0 0 1-1.6V2h4v.4a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.2-.1 2 3.4-.1.1A1.7 1.7 0 0 0 19 9c.3.6.9 1 1.6 1H21v4h-.4a1.7 1.7 0 0 0-1.2 1z"/></svg>'
+  };
   function token(){return localStorage.getItem('sl_token') || localStorage.getItem('token') || ''}
   function applyLogo(p){
     var box = document.getElementById('sb-avatar');
@@ -95,7 +151,33 @@ export function withProviderBlueUi(html: string): string {
       .then(function(r){return r.json()})
       .then(function(data){applyLogo(data && data.provider)}).catch(function(){});
   }
-  document.addEventListener('DOMContentLoaded', function(){setTimeout(loadLogo, 500); setTimeout(loadLogo, 1800);});
+  function replaceNavIcons(){
+    Object.keys(icons).forEach(function(key){
+      var nav = document.getElementById('nav-' + key);
+      if(!nav) return;
+      var icon = nav.querySelector('.icon');
+      if(icon) icon.innerHTML = icons[key];
+      var mob = document.getElementById('mob-' + key);
+      if(mob){ var mIcon = mob.querySelector('span:first-child'); if(mIcon) mIcon.innerHTML = icons[key]; }
+    });
+  }
+  function replaceQuickActionIcons(){
+    Array.prototype.slice.call(document.querySelectorAll('.card button')).forEach(function(btn){
+      var text = (btn.textContent || '').toLowerCase();
+      var first = btn.querySelector('div:first-child');
+      if(!first) return;
+      first.classList.add('sl-clean-icon');
+      if(text.indexOf('service') >= 0) first.innerHTML = icons.services;
+      else if(text.indexOf('photo') >= 0) first.innerHTML = icons.gallery;
+      else if(text.indexOf('location') >= 0) first.innerHTML = icons.location;
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    replaceNavIcons();
+    replaceQuickActionIcons();
+    setTimeout(loadLogo, 500);
+    setTimeout(function(){ replaceNavIcons(); replaceQuickActionIcons(); loadLogo(); }, 1800);
+  });
 })();
 </script>`
 
