@@ -3,7 +3,7 @@ export function withBookingServicePriceBindingFix(html: string): string {
 
   const patch = `
 <style id="booking-service-price-binding-fix-style">
-  .sl-bound-service-price{margin-left:auto!important;font-size:20px!important;font-weight:500!important;color:#101010!important;white-space:nowrap!important;display:inline-flex!important;align-items:center!important;justify-content:flex-end!important;min-width:78px!important}.sl-price-missing{opacity:.55!important;cursor:not-allowed!important;border-style:dashed!important}.sl-price-missing .sl-bound-service-price{color:#b42318!important;font-size:12px!important;font-weight:800!important}
+  .sl-bound-service-price{margin-left:auto!important;font-size:20px!important;font-weight:500!important;color:#101010!important;white-space:nowrap!important;display:inline-flex!important;align-items:center!important;justify-content:flex-end!important;min-width:78px!important}.sl-price-missing{opacity:.55!important;cursor:not-allowed!important;border-style:dashed!important}.sl-price-missing .sl-bound-service-price{color:#b42318!important;font-size:12px!important;font-weight:800!important}.sl-hidden-old-price{display:none!important;visibility:hidden!important;width:0!important;min-width:0!important;margin:0!important;padding:0!important;overflow:hidden!important}
 </style>
 <script id="booking-service-price-binding-fix-script">
 (function(){
@@ -37,17 +37,25 @@ export function withBookingServicePriceBindingFix(html: string): string {
     setText('pm-total', money(pricePs));
     setText('rc-total', money(pricePs));
   }
+  function hideOldStandalonePrices(row){
+    Array.prototype.slice.call(row.children).forEach(function(child){
+      if(child.classList && child.classList.contains('sl-bound-service-price')) return;
+      var text = (child.textContent || '').trim();
+      var isOldPrice = text === '0' || /^GHS\s*\d+$/i.test(text) || /^\d+$/.test(text);
+      if(isOldPrice) child.classList.add('sl-hidden-old-price');
+    });
+    Array.prototype.slice.call(row.querySelectorAll('span,div')).forEach(function(node){
+      if(node.classList && node.classList.contains('sl-bound-service-price')) return;
+      var text = (node.textContent || '').trim();
+      if(text === '0' && node.children.length === 0) node.classList.add('sl-hidden-old-price');
+    });
+  }
   function ensurePriceElement(row){
     var priceEl = row.querySelector('.sl-bound-service-price');
     if(priceEl) return priceEl;
-    var last = row.lastElementChild;
-    if(last && (last.textContent||'').match(/GHS|^\s*\d+\s*$/)) {
-      priceEl = last;
-    } else {
-      priceEl = document.createElement('span');
-      row.appendChild(priceEl);
-    }
-    priceEl.classList.add('sl-bound-service-price');
+    priceEl = document.createElement('span');
+    priceEl.className = 'sl-bound-service-price';
+    row.appendChild(priceEl);
     return priceEl;
   }
   function updateRow(row, service){
@@ -57,6 +65,7 @@ export function withBookingServicePriceBindingFix(html: string): string {
     row.setAttribute('data-id', String(service.id || row.getAttribute('data-id') || ''));
     row.setAttribute('data-name', service.name || row.getAttribute('data-name') || 'Service');
     row.setAttribute('data-duration', String(service.duration_minutes || service.duration || row.getAttribute('data-duration') || 60));
+    hideOldStandalonePrices(row);
     var priceEl = ensurePriceElement(row);
     priceEl.textContent = pricePs > 0 ? money(pricePs) : 'Price not set';
     if(pricePs <= 0){ row.classList.add('sl-price-missing'); row.setAttribute('aria-disabled','true'); }
