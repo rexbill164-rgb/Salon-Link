@@ -27,7 +27,7 @@ import { notificationsPage } from './pages/notifications'
 import { paymentPage, paymentSuccessPage } from './pages/paymentPage'
 import { messagesPage } from './pages/messages'
 import { repairInlineScriptText } from './utils/generatedScriptRepairs'
-import { withDiscoveryNearbyUi, withProviderDashboardMessagesButton, withProviderProfileServiceUi } from './utils/chatMapServiceEnhancements'
+import { withDiscoveryNearbyUi, withProviderDashboardMessagesButton } from './utils/chatMapServiceEnhancements'
 import { withProviderGalleryDeleteFix } from './utils/providerGalleryDeleteFix'
 import { withPaymentDisabledUi } from './utils/paymentDisabledUi'
 import { withProviderKycLogoutFix } from './utils/providerKycLogoutFix'
@@ -38,7 +38,6 @@ import { withCustomerMessagesShortcut } from './utils/customerMessagesShortcut'
 import { withAppLaunchSplash } from './utils/appLaunchSplash'
 import { withAdminProviderThemeUi } from './utils/adminProviderThemeUi'
 import { withMobilePolish } from './utils/mobilePolish'
-import { withProviderLocationActions } from './utils/providerLocationActions'
 import { iconSvg, salonLinkManifest, splashSvg } from './utils/pwaManifest'
 
 type Bindings = { DB: D1Database; [key: string]: any }
@@ -60,7 +59,7 @@ const providerDash = () => withMobilePolish(withAppLaunchSplash(withZoomLock(wit
 const noPay = (html: string) => page(withPaymentDisabledUi(html))
 const msgPage = (conversationId = '') => withMobilePolish(withAppLaunchSplash(withZoomLock(withMessagesRealtimeFix(withMessagesKeyboardFix(messagesPage(conversationId))))))
 const adminDash = () => withMobilePolish(withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(repairInlineScriptText(adminPanelPage())))))
-const providerProfile = (id: string) => page(withProviderLocationActions(withProviderProfileServiceUi(providerProfilePage(id))))
+const providerProfile = (id: string) => page(providerProfilePage(id))
 
 app.get('/manifest.json', (c) => c.json(salonLinkManifest()))
 app.get('/splash.svg', (c) => c.body(splashSvg(), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
@@ -87,6 +86,6 @@ app.get('/surprise-shop', (c) => c.html(page(surpriseShopPage())))
 app.get('/notifications', (c) => c.html(page(notificationsPage())))
 app.get('/payment/pay', (c) => c.html(noPay(paymentPage())))
 app.get('/payment/success', (c) => c.html(noPay(paymentSuccessPage())))
-app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.9-stable-routing', db: 'D1 Connected', timestamp: new Date().toISOString() }))
+app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.11-provider-profile-direct', db: 'D1 Connected', timestamp: new Date().toISOString() }))
 app.notFound((c) => c.html(page(homePage())))
 export default app
