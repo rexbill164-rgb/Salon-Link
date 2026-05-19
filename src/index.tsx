@@ -37,6 +37,7 @@ import { withCustomerMessagesShortcut } from './utils/customerMessagesShortcut'
 import { withAppLaunchSplash } from './utils/appLaunchSplash'
 import { withAdminProviderThemeUi } from './utils/adminProviderThemeUi'
 import { withMobilePolish } from './utils/mobilePolish'
+import { withProviderLocationActions } from './utils/providerLocationActions'
 import { iconSvg, salonLinkManifest, splashSvg } from './utils/pwaManifest'
 
 type Bindings = { DB: D1Database; [key: string]: any }
@@ -58,6 +59,7 @@ const providerDash = () => withMobilePolish(withAppLaunchSplash(withZoomLock(wit
 const noPay = (html: string) => page(withPaymentDisabledUi(html))
 const msgPage = (conversationId = '') => withMobilePolish(withAppLaunchSplash(withZoomLock(withMessagesKeyboardFix(messagesPage(conversationId)))))
 const adminDash = () => withMobilePolish(withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(repairInlineScriptText(adminPanelPage())))))
+const providerProfile = (id: string) => page(withProviderLocationActions(withProviderProfileServiceUi(providerProfilePage(id))))
 
 app.get('/manifest.json', (c) => c.json(salonLinkManifest()))
 app.get('/splash.svg', (c) => c.body(splashSvg(), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
@@ -73,7 +75,7 @@ app.get('/dashboard', (c) => c.html(noPay(dashboardPage())))
 app.get('/provider/dashboard', (c) => c.html(providerDash()))
 app.get('/provider/onboarding', (c) => c.html(page(onboardingPage())))
 app.get('/discover', (c) => c.html(page(withDiscoveryNearbyUi(discoveryPage()))))
-app.get('/provider/:id', (c) => c.html(page(withProviderProfileServiceUi(providerProfilePage(c.req.param('id'))))))
+app.get('/provider/:id', (c) => c.html(providerProfile(c.req.param('id'))))
 app.get('/book/:id', (c) => c.html(noPay(bookingPage(c.req.param('id')))))
 app.get('/admin', (c) => c.html(adminDash()))
 app.get('/messages', (c) => c.html(msgPage()))
