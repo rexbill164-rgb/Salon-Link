@@ -28,14 +28,8 @@ import { paymentPage, paymentSuccessPage } from './pages/paymentPage'
 import { messagesPage } from './pages/messages'
 import { repairInlineScriptText } from './utils/generatedScriptRepairs'
 import { withDiscoveryNearbyUi, withProviderDashboardMessagesButton, withProviderProfileServiceUi } from './utils/chatMapServiceEnhancements'
-import { withProviderDashboardStaticFix } from './utils/providerDashboardStaticFix'
 import { withProviderGalleryDeleteFix } from './utils/providerGalleryDeleteFix'
 import { withPaymentDisabledUi } from './utils/paymentDisabledUi'
-import { withBookingFeeDisclosureFix } from './utils/bookingFeeDisclosureFix'
-import { withBookingZeroPriceGuard } from './utils/bookingZeroPriceGuard'
-import { withBookingServicePriceBindingFix } from './utils/bookingServicePriceBindingFix'
-import { withProviderConfirmFlowFix } from './utils/providerConfirmFlowFix'
-import { withProviderRevenueFix } from './utils/providerRevenueFix'
 import { withProviderKycLogoutFix } from './utils/providerKycLogoutFix'
 import { withMessagesKeyboardFix } from './utils/messagesKeyboardFix'
 import { withMessagesRealtimeFix } from './utils/messagesRealtimeFix'
@@ -62,8 +56,8 @@ app.route('/api/notifications', notificationRoutes)
 app.route('/api/messages', messageRoutes)
 
 const page = (html: string) => withMobilePolish(withAppLaunchSplash(withZoomLock(withCustomerMessagesShortcut(html))))
-const providerDash = () => withMobilePolish(withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(withProviderRevenueFix(withProviderConfirmFlowFix(withProviderKycLogoutFix(withProviderGalleryDeleteFix(withProviderDashboardStaticFix(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage())))))))))))
-const noPay = (html: string) => page(withBookingServicePriceBindingFix(withBookingZeroPriceGuard(withBookingFeeDisclosureFix(withPaymentDisabledUi(html)))))
+const providerDash = () => withMobilePolish(withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(withProviderKycLogoutFix(withProviderGalleryDeleteFix(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage()))))))))
+const noPay = (html: string) => page(withPaymentDisabledUi(html))
 const msgPage = (conversationId = '') => withMobilePolish(withAppLaunchSplash(withZoomLock(withMessagesRealtimeFix(withMessagesKeyboardFix(messagesPage(conversationId))))))
 const adminDash = () => withMobilePolish(withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(repairInlineScriptText(adminPanelPage())))))
 const providerProfile = (id: string) => page(withProviderLocationActions(withProviderProfileServiceUi(providerProfilePage(id))))
@@ -93,6 +87,6 @@ app.get('/surprise-shop', (c) => c.html(page(surpriseShopPage())))
 app.get('/notifications', (c) => c.html(page(notificationsPage())))
 app.get('/payment/pay', (c) => c.html(noPay(paymentPage())))
 app.get('/payment/success', (c) => c.html(noPay(paymentSuccessPage())))
-app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.9-splash-route', db: 'D1 Connected', timestamp: new Date().toISOString() }))
+app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.9-stable-routing', db: 'D1 Connected', timestamp: new Date().toISOString() }))
 app.notFound((c) => c.html(page(homePage())))
 export default app
