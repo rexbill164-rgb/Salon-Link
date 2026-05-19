@@ -35,6 +35,7 @@ import { withMessagesKeyboardFix } from './utils/messagesKeyboardFix'
 import { withZoomLock } from './utils/zoomLock'
 import { withCustomerMessagesShortcut } from './utils/customerMessagesShortcut'
 import { withAppLaunchSplash } from './utils/appLaunchSplash'
+import { withAdminProviderThemeUi } from './utils/adminProviderThemeUi'
 import { iconSvg, salonLinkManifest, splashSvg } from './utils/pwaManifest'
 
 type Bindings = { DB: D1Database; [key: string]: any }
@@ -52,9 +53,10 @@ app.route('/api/notifications', notificationRoutes)
 app.route('/api/messages', messageRoutes)
 
 const page = (html: string) => withAppLaunchSplash(withZoomLock(withCustomerMessagesShortcut(html)))
-const providerDash = () => withAppLaunchSplash(withZoomLock(withProviderKycLogoutFix(withProviderGalleryDeleteFix(withProviderDashboardStaticFix(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage())))))))
+const providerDash = () => withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(withProviderKycLogoutFix(withProviderGalleryDeleteFix(withProviderDashboardStaticFix(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage()))))))))
 const noPay = (html: string) => page(withPaymentDisabledUi(html))
 const msgPage = (conversationId = '') => withAppLaunchSplash(withZoomLock(withMessagesKeyboardFix(messagesPage(conversationId))))
+const adminDash = () => withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(repairInlineScriptText(adminPanelPage()))))
 
 app.get('/manifest.json', (c) => c.json(salonLinkManifest()))
 app.get('/splash.svg', (c) => c.body(splashSvg(), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
@@ -72,7 +74,7 @@ app.get('/provider/onboarding', (c) => c.html(page(onboardingPage())))
 app.get('/discover', (c) => c.html(page(withDiscoveryNearbyUi(discoveryPage()))))
 app.get('/provider/:id', (c) => c.html(page(withProviderProfileServiceUi(providerProfilePage(c.req.param('id'))))))
 app.get('/book/:id', (c) => c.html(noPay(bookingPage(c.req.param('id')))))
-app.get('/admin', (c) => c.html(withAppLaunchSplash(withZoomLock(repairInlineScriptText(adminPanelPage())))))
+app.get('/admin', (c) => c.html(adminDash()))
 app.get('/messages', (c) => c.html(msgPage()))
 app.get('/messages/:conversation_id', (c) => c.html(msgPage(c.req.param('conversation_id'))))
 app.get('/hairstyle-history', (c) => c.html(page(hairstyleHistoryPage())))
