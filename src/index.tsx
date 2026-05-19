@@ -39,12 +39,19 @@ import { withAppLaunchSplash } from './utils/appLaunchSplash'
 import { withAdminProviderThemeUi } from './utils/adminProviderThemeUi'
 import { withMobilePolish } from './utils/mobilePolish'
 import { withAdminBlueUi } from './utils/adminBlueUi'
+import { withProviderBlueUi } from './utils/providerBlueUi'
 import { iconSvg, salonLinkManifest, splashSvg } from './utils/pwaManifest'
 
 type Bindings = { DB: D1Database; [key: string]: any }
 const app = new Hono<{ Bindings: Bindings }>()
+
 app.use('*', logger())
-app.use('*', cors({ origin: '*', allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], allowHeaders: ['Content-Type', 'Authorization'] }))
+app.use('*', cors({
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization']
+}))
+
 app.route('/api/auth', authRoutes)
 app.route('/api/providers', providerRoutes)
 app.route('/api/bookings', bookingRoutes)
@@ -55,19 +62,77 @@ app.route('/api/uploads', uploadRoutes)
 app.route('/api/notifications', notificationRoutes)
 app.route('/api/messages', messageRoutes)
 
-const page = (html: string) => withMobilePolish(withAppLaunchSplash(withZoomLock(withCustomerMessagesShortcut(html))))
-const providerDash = () => withMobilePolish(withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(withProviderKycLogoutFix(withProviderGalleryDeleteFix(withProviderDashboardMessagesButton(repairInlineScriptText(providerDashboardPage()))))))))
+const page = (html: string) =>
+  withMobilePolish(withAppLaunchSplash(withZoomLock(withCustomerMessagesShortcut(html))))
+
+const providerDash = () =>
+  withProviderBlueUi(
+    withMobilePolish(
+      withAppLaunchSplash(
+        withZoomLock(
+          withAdminProviderThemeUi(
+            withProviderKycLogoutFix(
+              withProviderGalleryDeleteFix(
+                withProviderDashboardMessagesButton(
+                  repairInlineScriptText(providerDashboardPage())
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+
 const noPay = (html: string) => page(withPaymentDisabledUi(html))
-const msgPage = (conversationId = '') => withMobilePolish(withAppLaunchSplash(withZoomLock(withMessagesRealtimeFix(withMessagesKeyboardFix(messagesPage(conversationId))))))
-const adminDash = () => withAdminBlueUi(withMobilePolish(withAppLaunchSplash(withZoomLock(withAdminProviderThemeUi(repairInlineScriptText(adminPanelPage()))))))
+
+const msgPage = (conversationId = '') =>
+  withMobilePolish(
+    withAppLaunchSplash(
+      withZoomLock(
+        withMessagesRealtimeFix(
+          withMessagesKeyboardFix(messagesPage(conversationId))
+        )
+      )
+    )
+  )
+
+const adminDash = () =>
+  withAdminBlueUi(
+    withMobilePolish(
+      withAppLaunchSplash(
+        withZoomLock(
+          withAdminProviderThemeUi(
+            repairInlineScriptText(adminPanelPage())
+          )
+        )
+      )
+    )
+  )
+
 const providerProfile = (id: string) => page(providerProfilePage(id))
 
 app.get('/manifest.json', (c) => c.json(salonLinkManifest()))
-app.get('/splash.svg', (c) => c.body(splashSvg(), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
-app.get('/icon-192.png', (c) => c.body(iconSvg(192), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
-app.get('/icon-512.png', (c) => c.body(iconSvg(512), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
-app.get('/favicon.png', (c) => c.body(iconSvg(192), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
-app.get('/apple-touch-icon.png', (c) => c.body(iconSvg(512), 200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' }))
+app.get('/splash.svg', (c) => c.body(splashSvg(), 200, {
+  'Content-Type': 'image/svg+xml',
+  'Cache-Control': 'public, max-age=86400'
+}))
+app.get('/icon-192.png', (c) => c.body(iconSvg(192), 200, {
+  'Content-Type': 'image/svg+xml',
+  'Cache-Control': 'public, max-age=86400'
+}))
+app.get('/icon-512.png', (c) => c.body(iconSvg(512), 200, {
+  'Content-Type': 'image/svg+xml',
+  'Cache-Control': 'public, max-age=86400'
+}))
+app.get('/favicon.png', (c) => c.body(iconSvg(192), 200, {
+  'Content-Type': 'image/svg+xml',
+  'Cache-Control': 'public, max-age=86400'
+}))
+app.get('/apple-touch-icon.png', (c) => c.body(iconSvg(512), 200, {
+  'Content-Type': 'image/svg+xml',
+  'Cache-Control': 'public, max-age=86400'
+}))
 
 app.get('/', (c) => c.html(page(homePage())))
 app.get('/login', (c) => c.html(page(loginPage())))
@@ -87,6 +152,14 @@ app.get('/surprise-shop', (c) => c.html(page(surpriseShopPage())))
 app.get('/notifications', (c) => c.html(page(notificationsPage())))
 app.get('/payment/pay', (c) => c.html(noPay(paymentPage())))
 app.get('/payment/success', (c) => c.html(noPay(paymentSuccessPage())))
-app.get('/api/health', (c) => c.json({ status: 'ok', app: 'SalonLink', version: '2.1.11-provider-profile-direct', db: 'D1 Connected', timestamp: new Date().toISOString() }))
+app.get('/api/health', (c) => c.json({
+  status: 'ok',
+  app: 'SalonLink',
+  version: '2.1.12-provider-blue-ui',
+  db: 'D1 Connected',
+  timestamp: new Date().toISOString()
+}))
+
 app.notFound((c) => c.html(page(homePage())))
+
 export default app
