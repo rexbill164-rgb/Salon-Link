@@ -471,4 +471,153 @@ admin.get('/users', async (c) => {
   }
 })
 
+// ─── POINTS & REWARDS ENDPOINTS ─────────────────────────────────────────────
+
+// POST /api/admin/points/award — assign points to a provider
+admin.post('/points/award', async (c) => {
+  try {
+    const adminUser = await getAdmin(c)
+    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
+    const { provider_id, points, description } = await c.req.json()
+    if (!provider_id || !points) return c.json({ error: 'provider_id and points are required' }, 400)
+    const provider = await c.env.DB.prepare('SELECT id, user_id, loyalty_points FROM providers WHERE id = ?').bind(provider_id).first() as any
+    if (!provider) return c.json({ error: 'Provider not found' }, 404)
+    await c.env.DB.prepare('UPDATE providers SET loyalty_points = COALESCE(loyalty_points, 0) + ? WHERE id = ?').bind(points, provider_id).run()
+    await c.env.DB.prepare(
+      'INSERT INTO point_transactions (user_id, provider_id, points, type, description, admin_id) VALUES (?, ?, ?, ?, ?, ?)'
+    ).bind(provider.user_id, provider_id, points, 'award', description || 'Admin award', adminUser.id || adminUser.sub).run()
+    return c.json({ success: true, message: `Awarded ${points} points to provider #${provider_id}` })
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500)
+  }
+})
+
+// GET /api/admin/points/history — full transaction log
+admin.get('/points/history', async (c) => {
+  try {
+    const adminUser = await getAdmin(c)
+    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
+    const result = await c.env.DB.prepare(`
+      SELECT pt.id, pt.points, pt.type, pt.description, pt.created_at,
+        p.business_name, u.first_name, u.last_name, u.email
+      FROM point_transactions pt
+      JOIN providers p ON pt.provider_id = p.id
+      JOIN users u ON pt.user_id = u.id
+      ORDER BY pt.created_at DESC LIMIT 100
+    `).all()
+    return c.json({ success: true, transactions: result.results || [] })
+  } catch (e: any) {
+    return c.json({ success: true, transactions: [], error: e.message })
+  }
+})
+
+// GET /api/admin/points/providers — all providers with balances
+admin.get('/points/providers', async (c) => {
+  try {
+    const adminUser = await getAdmin(c)
+    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
+    const result = await c.env.DB.prepare(`
+      SELECT p.id, p.business_name, COALESCE(p.loyalty_points, 0) as loyalty_points,
+        u.first_name, u.last_name, u.email
+      FROM providers p JOIN users u ON p.user_id = u.id
+      ORDER BY p.loyalty_points DESC
+    `).all()
+    return c.json({ success: true, providers: result.results || [] })
+  } catch (e: any) {
+    return c.json({ success: true, providers: [], error: e.message })
+  }
+})
+
+// GET /api/admin/rewards — list reward items
+admin.get('/rewards', async (c) => {
+  try {
+    const adminUser = await getAdmin(c)
+    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
+    const result = await c.env.DB.prepare('SELECT * FROM reward_items ORDER BY points_required ASC').all()
+    return c.json({ success: true, rewards: result.results || [] })
+  } catch (e: any) {
+    return c.json({ success: true, rewards: [], error: e.message })
+  }
+})
+
+// POST /api/admin/rewards — create reward item
+admin.post('/rewards', async (c) => {
+  try {
+    const adminUser = await getAdmin(c)
+    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
+    const { name, description, image_url, points_required, quantity_available, category } = await c.req.json()
+    if (!name || !points_required) return c.json({ error: 'name and points_required are required' }, 400)
+    const result = await c.env.DB.prepare(
+      'INSERT INTO reward_items (name, description, image_url, points_required, quantity_available, category) VALUES (?, ?, ?, ?, ?, ?)'
+    ).bind(name, description || null, image_url || null, points_required, quantity_available || null, category || 'general').run()
+    return c.json({ success: true, id: result.meta.last_row_id })
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500)
+  }
+})
+
+// PUT /api/admin/rewards/:id — update reward item
+admin.put('/rewards/:id', async (c) => {
+  try {
+    const adminUser = await getAdmin(c)
+    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
+    const { name, description, image_url, points_required, quantity_available, is_active, category } = await c.req.json()
+    await c.env.DB.prepare(
+      'UPDATE reward_items SET name=?, description=?, image_url=?, points_required=?, quantity_available=?, is_active=?, category=?, updated_at=CURRENT_TIMESTAMP WHERE id=?'
+    ).bind(name, description || null, image_url || null, points_required, quantity_available || null, is_active !== undefined ? is_active : 1, category || 'general', c.req.param('id')).run()
+    return c.json({ success: true })
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500)
+  }
+})
+
+// DELETE /api/admin/rewards/:id — delete reward item
+admin.delete('/rewards/:id', async (c) => {
+  try {
+    const adminUser = await getAdmin(c)
+    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
+    await c.env.DB.prepare('DELETE FROM reward_items WHERE id = ?').bind(c.req.param('id')).run()
+    return c.json({ success: true })
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500)
+  }
+})
+
+// GET /api/admin/rewards/claims — list all reward claims
+admin.get('/rewards/claims', async (c) => {
+  try {
+    const adminUser = await getAdmin(c)
+    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
+    const result = await c.env.DB.prepare(`
+      SELECT rc.id, rc.points_spent, rc.status, rc.notes, rc.created_at,
+        p.business_name, ri.name as reward_name, ri.category,
+        u.first_name, u.last_name, u.email
+      FROM reward_claims rc
+      JOIN providers p ON rc.provider_id = p.id
+      JOIN reward_items ri ON rc.reward_item_id = ri.id
+      JOIN users u ON p.user_id = u.id
+      ORDER BY rc.created_at DESC
+    `).all()
+    return c.json({ success: true, claims: result.results || [] })
+  } catch (e: any) {
+    return c.json({ success: true, claims: [], error: e.message })
+  }
+})
+
+// PATCH /api/admin/rewards/claims/:id — approve or reject a claim
+admin.patch('/rewards/claims/:id', async (c) => {
+  try {
+    const adminUser = await getAdmin(c)
+    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
+    const { status, notes } = await c.req.json()
+    if (!['approved', 'rejected'].includes(status)) return c.json({ error: 'status must be approved or rejected' }, 400)
+    await c.env.DB.prepare(
+      'UPDATE reward_claims SET status=?, notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=?'
+    ).bind(status, notes || null, c.req.param('id')).run()
+    return c.json({ success: true })
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500)
+  }
+})
+
 export default admin

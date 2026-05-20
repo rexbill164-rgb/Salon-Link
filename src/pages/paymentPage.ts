@@ -52,22 +52,13 @@ ${baseHead('Pay for Booking — SalonLink')}
   <!-- Price breakdown -->
   <div class="breakdown">
     <div class="breakdown-row">
-      <span style="color:var(--t-secondary);">Service Amount</span>
+      <span style="color:var(--t-secondary);">Service</span>
       <span id="svc-amount" style="font-weight:600;">—</span>
     </div>
-    <div class="breakdown-row">
-      <span style="color:var(--t-secondary);">Platform Fee <span class="badge-gold">SalonLink</span></span>
-      <span id="platform-fee" style="font-weight:600;color:var(--g-main);">GHS 3.00</span>
-    </div>
     <div class="breakdown-row breakdown-total">
-      <span>Total Charge</span>
+      <span>Total</span>
       <span id="total-amount" class="font-display gold-gradient">—</span>
     </div>
-  </div>
-
-  <!-- Note -->
-  <div style="font-size:12px;color:var(--t-muted);margin-bottom:20px;padding:12px;background:var(--c-raise);border-radius:10px;border-left:3px solid var(--g-main);">
-    💡 <strong>Transparent pricing:</strong> GHS 3.00 goes to SalonLink platform. The rest goes directly to your provider.
   </div>
 
   <!-- Pay button -->
@@ -110,9 +101,9 @@ var bookingId = null;
         return;
       }
 
-      var svcAmt = b.total_amount / 100;
-      var platformFee = 3.00;
-      var total = svcAmt + platformFee;
+      // total_amount already includes any platform fee — use it directly
+      var total = b.total_amount / 100;
+      var svcAmt = total; // show as service total, no separate fee line
 
       document.getElementById('booking-summary').innerHTML =
         '<div style="display:grid;gap:6px;">' +
@@ -171,27 +162,48 @@ export const paymentSuccessPage = () => `<!DOCTYPE html>
 ${baseHead('Payment Successful — SalonLink')}
 <style>
   body { background:var(--c-deep); display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
-  .success-card { background:var(--c-surface); border:1px solid var(--i-faint); border-radius:24px; padding:48px 36px; max-width:460px; width:100%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.12); }
-  .checkmark { width:80px; height:80px; border-radius:50%; background:rgba(93,201,138,0.12); border:2px solid rgba(93,201,138,0.3); display:flex; align-items:center; justify-content:center; margin:0 auto 24px; font-size:36px; }
-  .details-grid { background:var(--c-raise); border:1px solid var(--i-faint); border-radius:16px; padding:20px; margin:24px 0; text-align:left; }
-  .detail-row { display:flex; justify-content:space-between; padding:8px 0; font-size:13px; }
+  .success-card { background:var(--c-surface); border:1px solid var(--i-faint); border-radius:24px; padding:40px 32px; max-width:460px; width:100%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.12); }
+  .provider-logo-wrap { width:80px; height:80px; border-radius:50%; background:var(--c-raise); border:2px solid var(--g-border); display:flex; align-items:center; justify-content:center; margin:0 auto 12px; overflow:hidden; }
+  .provider-logo-wrap img { width:100%; height:100%; object-fit:cover; }
+  .checkmark { width:64px; height:64px; border-radius:50%; background:rgba(93,201,138,0.12); border:2px solid rgba(93,201,138,0.3); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:28px; }
+  .details-grid { background:var(--c-raise); border:1px solid var(--i-faint); border-radius:16px; padding:20px; margin:20px 0; text-align:left; }
+  .detail-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; font-size:13px; }
   .detail-row:not(:last-child) { border-bottom:1px solid var(--i-faint); }
 </style>
 </head>
 <body>
 <div class="success-card">
-  <div class="checkmark" id="status-icon">✅</div>
-  <h1 id="status-title" class="font-display" style="font-size:26px;font-weight:700;margin-bottom:8px;">Verifying Payment...</h1>
-  <p id="status-msg" style="font-size:14px;color:var(--t-secondary);margin-bottom:0;">Please wait while we confirm your payment.</p>
+  <!-- Provider logo (shown on success) -->
+  <div id="provider-logo-wrap" style="display:none;" class="provider-logo-wrap">
+    <img id="provider-logo-img" src="" alt="Provider" />
+  </div>
+  <div class="checkmark" id="status-icon-wrap">
+    <span id="status-icon" style="font-size:28px;">⏳</span>
+  </div>
+  <h1 id="status-title" class="font-display" style="font-size:24px;font-weight:700;margin-bottom:8px;">Verifying Payment...</h1>
+  <p id="status-msg" style="font-size:13px;color:var(--t-secondary);margin-bottom:0;">Please wait while we confirm your payment.</p>
+  <p id="provider-name-tag" style="display:none;font-size:13px;font-weight:600;color:var(--g-main);margin-top:6px;"></p>
 
   <div class="details-grid" id="payment-details" style="display:none;">
     <div class="detail-row">
-      <span style="color:var(--t-muted);">Reference</span>
-      <span id="det-ref" style="font-family:monospace;font-size:11px;color:var(--t-primary);">—</span>
+      <span style="color:var(--t-muted);">Provider</span>
+      <span id="det-provider" style="font-weight:600;color:var(--t-primary);">—</span>
+    </div>
+    <div class="detail-row">
+      <span style="color:var(--t-muted);">Service</span>
+      <span id="det-service" style="color:var(--t-primary);">—</span>
+    </div>
+    <div class="detail-row">
+      <span style="color:var(--t-muted);">Date & Time</span>
+      <span id="det-datetime" style="color:var(--t-primary);">—</span>
     </div>
     <div class="detail-row">
       <span style="color:var(--t-muted);">Amount Paid</span>
       <span id="det-amount" style="font-weight:700;color:var(--t-primary);">—</span>
+    </div>
+    <div class="detail-row">
+      <span style="color:var(--t-muted);">Reference</span>
+      <span id="det-ref" style="font-family:monospace;font-size:11px;color:var(--t-primary);">—</span>
     </div>
     <div class="detail-row">
       <span style="color:var(--t-muted);">Status</span>
@@ -199,12 +211,12 @@ ${baseHead('Payment Successful — SalonLink')}
     </div>
   </div>
 
-  <div id="action-btns" style="display:none;margin-top:24px;display:flex;flex-direction:column;gap:12px;">
+  <div id="action-btns" style="display:none;margin-top:20px;display:flex;flex-direction:column;gap:12px;">
     <a href="/dashboard" style="display:block;padding:14px;border-radius:14px;background:linear-gradient(135deg,var(--g-deep),var(--g-main));color:white;font-weight:700;font-size:14px;text-decoration:none;">View My Bookings</a>
     <a href="/discover" style="display:block;padding:14px;border-radius:14px;border:1px solid var(--i-faint);color:var(--t-secondary);font-weight:600;font-size:14px;text-decoration:none;">Explore More Salons</a>
   </div>
 
-  <div id="fail-btn" style="display:none;margin-top:24px;">
+  <div id="fail-btn" style="display:none;margin-top:20px;">
     <a href="/dashboard" style="display:block;padding:14px;border-radius:14px;border:1px solid var(--i-faint);color:var(--t-secondary);font-weight:600;font-size:14px;text-decoration:none;">Go to Dashboard</a>
   </div>
 </div>
@@ -223,15 +235,45 @@ ${globalScripts()}
     return;
   }
 
-  // Verify the payment
   axios.get('/api/payments/verify/' + encodeURIComponent(ref))
     .then(function(r) {
       if (r.data.success && r.data.status === 'success') {
         document.getElementById('status-icon').textContent = '🎉';
         document.getElementById('status-title').textContent = 'Payment Successful!';
         document.getElementById('status-msg').textContent = 'Your booking is confirmed. The provider has been notified.';
-        document.getElementById('det-ref').textContent = ref;
-        document.getElementById('det-amount').textContent = r.data.amount ? 'GHS ' + (r.data.amount/100).toFixed(2) : '—';
+
+        var meta = r.data.metadata || {};
+        var booking = r.data.booking || {};
+        var businessName = meta.business_name || booking.business_name || '';
+        var serviceName  = meta.service_name  || booking.service_name  || '';
+        var bookingDate  = meta.booking_date  || booking.booking_date  || '';
+        var bookingTime  = meta.booking_time  || booking.booking_time  || '';
+        var providerId   = meta.provider_id   || booking.provider_id   || '';
+
+        var set = function(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+        set('det-ref',      ref);
+        set('det-amount',   r.data.amount ? 'GHS ' + (r.data.amount/100).toFixed(2) : '—');
+        set('det-provider', businessName || '—');
+        set('det-service',  serviceName  || '—');
+        set('det-datetime', bookingDate && bookingTime ? bookingDate + ' at ' + bookingTime : (bookingDate || '—'));
+
+        if (businessName) {
+          var tag = document.getElementById('provider-name-tag');
+          if (tag) { tag.textContent = businessName; tag.style.display = 'block'; }
+        }
+
+        if (providerId) {
+          axios.get('/api/uploads/provider-gallery/' + providerId).then(function(gr) {
+            var photos = gr.data.photos || gr.data.gallery || [];
+            var logo = photos.find(function(p) { return p.is_logo === 1 || p.is_logo === true; });
+            if (logo && logo.image_url) {
+              var wrap = document.getElementById('provider-logo-wrap');
+              var img  = document.getElementById('provider-logo-img');
+              if (wrap && img) { img.src = logo.image_url; wrap.style.display = 'flex'; }
+            }
+          }).catch(function(){});
+        }
+
         document.getElementById('payment-details').style.display = 'block';
         document.getElementById('action-btns').style.display = 'flex';
       } else {

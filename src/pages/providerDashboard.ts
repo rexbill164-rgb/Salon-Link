@@ -665,43 +665,12 @@ function updateAppt(id, status) {
   axios.patch('/api/bookings/'+id+'/status', { status: status }, { headers: { Authorization: 'Bearer ' + token } })
     .then(function() {
       showToast('Booking '+status+' ✦', 'success');
-      if (status === 'completed') {
-        // Show platform fee reminder for cash bookings
-        setTimeout(function() {
-          showFeeReminder();
-        }, 600);
-      }
-      setTimeout(function(){ location.reload(); }, 2000);
+      setTimeout(function(){ location.reload(); }, 1500);
     })
     .catch(function() { showToast('Update failed', 'error'); });
 }
 
-function showFeeReminder() {
-  var existing = document.getElementById('fee-reminder-modal');
-  if (existing) existing.remove();
-  var modal = document.createElement('div');
-  modal.id = 'fee-reminder-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
-  modal.innerHTML = '<div style="background:#fff;border-radius:20px;padding:28px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
-    '<div style="text-align:center;margin-bottom:16px;font-size:36px;">💰</div>' +
-    '<div style="font-size:16px;font-weight:700;text-align:center;margin-bottom:8px;">Platform Fee Reminder</div>' +
-    '<div style="font-size:13px;color:#666;text-align:center;margin-bottom:20px;">Please send the <strong style="color:#E1306C;">GHS 3.00</strong> platform fee for this booking.</div>' +
-    '<div style="background:#FFF8F0;border:1.5px solid #FFD89B;border-radius:14px;padding:16px;margin-bottom:20px;">' +
-      '<div style="font-size:11px;color:#888;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">Send to</div>' +
-      '<div style="font-size:15px;font-weight:700;margin-bottom:4px;">Nadia Yartey</div>' +
-      '<div style="font-size:18px;font-weight:800;color:#E1306C;letter-spacing:0.05em;">0533 675 960</div>' +
-      '<div style="font-size:11px;color:#888;margin-top:6px;">MTN Mobile Money</div>' +
-    '</div>' +
-    '<div style="font-size:12px;color:#aaa;text-align:center;margin-bottom:16px;">Amount: <strong>GHS 3.00</strong> per completed booking</div>' +
-    '<button onclick="closeFeeReminder()" style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#E1306C,#F77737);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;">Got it \u2713</button>' +
-  '</div>';
-  document.body.appendChild(modal);
-}
 
-function closeFeeReminder() {
-  var m = document.getElementById('fee-reminder-modal');
-  if (m) m.remove();
-}
 
 /* ── Services ── */
 function showAddSvcForm() {
@@ -750,10 +719,50 @@ function loadMyServices(token) {
             '<div style="font-size:11px;color:var(--t-muted);">'+(s.duration_minutes||s.duration||60)+' min</div>' +
           '</div>' +
           '<div style="font-size:15px;font-weight:700;color:var(--g-main);">GHS '+Math.round((s.price||0)/100)+'</div>' +
-          '<button onclick="deleteService('+s.id+')" style="width:28px;height:28px;border-radius:8px;border:1px solid rgba(224,112,112,0.3);background:transparent;color:var(--s-red);cursor:pointer;font-size:12px;">✕</button>' +
+          '<button onclick="openEditService('+s.id+',\''+s.name.replace(/\'/g,"\\\'")+'\',' + Math.round((s.price||0)/100) + ',' + (s.duration_minutes||s.duration||60) + ')" style="width:30px;height:30px;border-radius:8px;border:1px solid var(--i-faint);background:transparent;color:var(--g-main);cursor:pointer;font-size:11px;" title="Edit"><i class="fas fa-pencil-alt"></i></button>' +
+          '<button onclick="deleteService('+s.id+')" style="width:30px;height:30px;border-radius:8px;border:1px solid rgba(224,112,112,0.3);background:transparent;color:var(--s-red);cursor:pointer;font-size:12px;" title="Delete"><i class="fas fa-trash"></i></button>' +
         '</div>';
       }).join('');
     }).catch(function(){ document.getElementById('my-services-list').innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">Could not load services.</div>'; });
+}
+
+function openEditService(id, name, priceGhs, duration) {
+  var existing = document.getElementById('edit-svc-modal');
+  if (existing) existing.remove();
+  var modal = document.createElement('div');
+  modal.id = 'edit-svc-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  modal.innerHTML = '<div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:20px;padding:28px;max-width:380px;width:100%;position:relative;">' +
+    '<button onclick="document.getElementById(\'edit-svc-modal\').remove()" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--t-muted);">✕</button>' +
+    '<div style="font-size:15px;font-weight:700;margin-bottom:18px;">Edit Service</div>' +
+    '<div style="display:flex;flex-direction:column;gap:12px;">' +
+      '<div><div style="font-size:10px;color:var(--t-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px;">Service Name</div>' +
+      '<input id="edit-svc-name" value="'+name.replace(/"/g,'&quot;')+'" style="width:100%;padding:10px 14px;border-radius:10px;background:var(--c-raise);border:1px solid var(--i-faint);color:var(--t-primary);font-size:13px;box-sizing:border-box;"/></div>' +
+      '<div><div style="font-size:10px;color:var(--t-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px;">Price (GHS)</div>' +
+      '<input id="edit-svc-price" type="number" min="1" value="'+priceGhs+'" style="width:100%;padding:10px 14px;border-radius:10px;background:var(--c-raise);border:1px solid var(--i-faint);color:var(--t-primary);font-size:13px;box-sizing:border-box;"/></div>' +
+      '<div><div style="font-size:10px;color:var(--t-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px;">Duration (minutes)</div>' +
+      '<select id="edit-svc-duration" style="width:100%;padding:10px 14px;border-radius:10px;background:var(--c-raise);border:1px solid var(--i-faint);color:var(--t-primary);font-size:13px;">' +
+        [30,45,60,75,90,120].map(function(m){ return '<option value="'+m+'"'+(m===duration?' selected':'')+'>'+m+' min</option>'; }).join('') +
+      '</select></div>' +
+      '<button onclick="saveEditService('+id+')" class="btn-primary" style="padding:12px;font-size:13px;margin-top:4px;">Save Changes</button>' +
+    '</div></div>';
+  document.body.appendChild(modal);
+}
+
+function saveEditService(id) {
+  var token = localStorage.getItem('sl_token');
+  var name = document.getElementById('edit-svc-name').value.trim();
+  var price = parseInt(document.getElementById('edit-svc-price').value || '0');
+  var duration = parseInt(document.getElementById('edit-svc-duration').value || '60');
+  if (!name) { showToast('Service name is required', 'error'); return; }
+  if (!price || price < 1) { showToast('Please enter a valid price', 'error'); return; }
+  axios.put('/api/providers/me/services/'+id, { name: name, price: price*100, duration_minutes: duration }, { headers: { Authorization: 'Bearer '+token } })
+    .then(function() {
+      showToast('Service updated \u2726', 'success');
+      document.getElementById('edit-svc-modal').remove();
+      loadMyServices(token);
+    })
+    .catch(function(e) { showToast((e.response&&e.response.data&&e.response.data.error)||'Update failed', 'error'); });
 }
 
 /* ── Gallery ── */
@@ -1012,7 +1021,7 @@ function loadProviderEarnings() {
           '</div>' +
           '<div style="text-align:right;">' +
             '<div style="font-size:14px;font-weight:700;color:#5DC98A;">GHS '+((t.provider_earning||0)/100).toFixed(2)+'</div>' +
-            '<div style="font-size:9px;color:var(--t-muted);">after GHS 3.00 fee</div>' +
+
             '<span style="padding:2px 8px;border-radius:100px;font-size:9px;font-weight:700;background:'+(isPaid?'rgba(93,201,138,0.12)':'rgba(224,112,112,0.1)')+';color:'+(isPaid?'#5DC98A':'#E07070')+';">'+(isPaid?'Paid':'Pending')+'</span>' +
           '</div>' +
         '</div>';

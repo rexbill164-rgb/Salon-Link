@@ -29,6 +29,23 @@ ${navbar('settings')}
   </section>
 
   <section class="settings-card"><div class="eyebrow" style="margin-bottom:16px">Security</div><div class="settings-row"><div><strong>Change Password</strong><div style="font-size:12px;color:#666">Keep your account secure</div></div><button class="btn-ghost" onclick="showToast('Password settings coming soon','info')">Change</button></div><div class="settings-row"><div><strong>Notifications</strong><div style="font-size:12px;color:#666">Manage booking alerts and reminders</div></div><button class="btn-ghost" onclick="showToast('Notification settings saved','success')">Manage</button></div></section>
+
+  <!-- Points Gathered — providers only -->
+  <section id="points-section" style="display:none;background:linear-gradient(135deg,rgba(201,168,76,0.1),rgba(0,0,0,0.02));border:1px solid var(--g-border);border-radius:24px;padding:28px;margin-bottom:20px;">
+    <div class="eyebrow" style="margin-bottom:6px;">Loyalty Points</div>
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px;">
+      <span id="points-balance" class="font-display gold-gradient" style="font-size:48px;font-weight:800;line-height:1;">0</span>
+      <span style="font-size:14px;color:var(--t-muted);">points</span>
+    </div>
+    <div style="font-size:12px;color:var(--t-muted);margin-bottom:24px;">Awarded by SalonLink admin. Redeem for exclusive rewards.</div>
+
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--t-muted);margin-bottom:10px;">Recent Transactions</div>
+    <div id="points-history" style="margin-bottom:24px;"><div style="text-align:center;color:var(--t-muted);padding:16px;font-size:13px;">Loading...</div></div>
+
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--t-muted);margin-bottom:12px;">Available Rewards</div>
+    <div id="rewards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;"><div style="text-align:center;color:var(--t-muted);padding:20px;font-size:13px;">Loading rewards...</div></div>
+  </section>
+
 </div></div>
 ${mobileNav('settings')}
 ${globalScripts()}
@@ -36,6 +53,60 @@ ${globalScripts()}
 (function(){
   var user = JSON.parse(localStorage.getItem('sl_user') || '{}');
   if(!user.id){ location.href='/login'; return; }
+
+  // Load loyalty points for providers
+  if (user.role === 'provider') {
+    var section = document.getElementById('points-section');
+    if (section) section.style.display = 'block';
+    var token = localStorage.getItem('sl_token');
+    axios.get('/api/providers/me/points', { headers: { Authorization: 'Bearer ' + token } })
+      .then(function(r) {
+        var bal = document.getElementById('points-balance');
+        if (bal) bal.textContent = (r.data.points || 0).toLocaleString();
+
+        var hist = document.getElementById('points-history');
+        var history = r.data.history || [];
+        if (hist) {
+          if (!history.length) {
+            hist.innerHTML = '<div style="text-align:center;color:var(--t-muted);padding:12px;font-size:13px;">No point transactions yet.</div>';
+          } else {
+            hist.innerHTML = history.slice(0,5).map(function(h) {
+              var isPos = h.points > 0;
+              return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--i-faint);">' +
+                '<div style="width:32px;height:32px;border-radius:9px;background:'+(isPos?'rgba(93,201,138,0.1)':'rgba(224,112,112,0.1)')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+                  '<i class="fas '+(isPos?'fa-plus':'fa-minus')+'" style="font-size:12px;color:'+(isPos?'#5DC98A':'#E07070')+';"></i>' +
+                '</div>' +
+                '<div style="flex:1;"><div style="font-size:13px;font-weight:600;">'+(h.description||h.type)+'</div>' +
+                '<div style="font-size:11px;color:var(--t-muted);">'+(h.created_at||'').split('T')[0]+'</div></div>' +
+                '<div style="font-size:15px;font-weight:800;color:'+(isPos?'#5DC98A':'#E07070')+';">'+(isPos?'+':'')+h.points+' pts</div>' +
+              '</div>';
+            }).join('');
+          }
+        }
+
+        var grid = document.getElementById('rewards-grid');
+        var rewards = r.data.available_rewards || [];
+        if (grid) {
+          if (!rewards.length) {
+            grid.innerHTML = '<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:13px;grid-column:1/-1;">No rewards available yet. Check back soon!</div>';
+          } else {
+            var pts = r.data.points || 0;
+            grid.innerHTML = rewards.map(function(rw) {
+              var canClaim = pts >= rw.points_required;
+              return '<div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:16px;padding:16px;text-align:center;">' +
+                '<div style="font-size:13px;font-weight:700;margin-bottom:4px;">' + rw.name + '</div>' +
+                '<div style="font-size:11px;color:var(--t-muted);margin-bottom:10px;">' + (rw.description||'') + '</div>' +
+                '<div style="font-size:16px;font-weight:800;color:var(--g-main);margin-bottom:10px;">' + rw.points_required + ' pts</div>' +
+                (canClaim
+                  ? '<button onclick="claimReward('+rw.id+',\''+rw.name.replace(/\'/g,"\\'")+'\',' + rw.points_required + ')" class="btn-primary" style="width:100%;padding:8px;border-radius:100px;font-size:12px;">Claim</button>'
+                  : '<div style="font-size:11px;color:var(--t-muted);padding:8px 0;">Need '+(rw.points_required-pts)+' more pts</div>'
+                ) +
+              '</div>';
+            }).join('');
+          }
+        }
+      }).catch(function(){});
+  }
   function val(id,v){ var e=document.getElementById(id); if(e) e.value=v||''; }
   function txt(id,v){ var e=document.getElementById(id); if(e) e.textContent=v||''; }
   txt('user-avatar',(user.first_name||'U').charAt(0).toUpperCase());
@@ -49,5 +120,13 @@ ${globalScripts()}
     axios.put('/api/auth/profile',{first_name:document.getElementById('inp-first').value,last_name:document.getElementById('inp-last').value,phone:document.getElementById('inp-phone').value},{headers:{Authorization:'Bearer '+token}}).then(function(res){localStorage.setItem('sl_user',JSON.stringify(res.data.user));showToast('Profile updated','success')}).catch(function(){showToast('Could not save profile','error')});
   }
 })();
+
+function claimReward(rewardId, name, pointsRequired) {
+  if (!confirm('Claim "' + name + '" for ' + pointsRequired + ' points?')) return;
+  var token = localStorage.getItem('sl_token');
+  axios.post('/api/providers/me/claim-reward', { reward_item_id: rewardId }, { headers: { Authorization: 'Bearer ' + token } })
+    .then(function() { showToast('Reward claimed! Admin will process your request. \u2726', 'success'); setTimeout(function(){ location.reload(); }, 2000); })
+    .catch(function(e) { showToast((e.response&&e.response.data&&e.response.data.error)||'Could not claim reward', 'error'); });
+}
 </script>
 </body></html>`
