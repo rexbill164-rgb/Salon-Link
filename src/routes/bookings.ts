@@ -84,23 +84,20 @@ bookings.post('/', async (c) => {
     ).bind(user.sub, booking_date, booking_time).first()
     if (customerConflict) return c.json({ success: false, error: 'You already have a booking at this time.' }, 409)
 
-    // 3 GHS platform service fee (in pesewas)
-    const SERVICE_FEE = 300
-    const totalWithFee = (service.price || 0) + SERVICE_FEE
+    // Customer-facing totals must remain clean: no hidden/platform/service charge is added.
+    // Provider/platform service charges should be handled separately from customer booking totals.
+    const customerTotal = service.price || 0
+    const customerServiceFee = 0
 
-    // Create booking (total_amount includes 3 GHS service fee)
+    // Create booking (total_amount equals provider's actual service price only)
     const result = await c.env.DB.prepare(`
       INSERT INTO bookings (customer_id, provider_id, service_id, booking_date, booking_time, total_amount, service_fee, notes)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(user.sub, provider_id, service_id, booking_date, booking_time, totalWithFee, SERVICE_FEE, notes || null).run()
+    `).bind(user.sub, provider_id, service_id, booking_date, booking_time, customerTotal, customerServiceFee, notes || null).run()
 
     const bookingId = result.meta.last_row_id
 
-    // Record the service fee owed by provider (due by midnight of booking date)
-    await c.env.DB.prepare(`
-      INSERT OR IGNORE INTO service_fees (booking_id, provider_id, fee_amount, status, due_date)
-      VALUES (?, ?, ?, 'pending', ?)
-    `).bind(bookingId, provider_id, SERVICE_FEE, booking_date).run()
+    // Do not create customer-facing fee rows here. Admin/provider service charges are managed separately.
 
     // Get customer and provider info for notifications
     const customer = await c.env.DB.prepare(
@@ -112,7 +109,7 @@ bookings.post('/', async (c) => {
 
     const customerName = `${customer?.first_name || ''} ${customer?.last_name || ''}`.trim()
     const providerName = (provider as any).business_name
-    const totalGhs = totalWithFee / 100
+    const totalGhs = customerTotal / 100
 
     // ── DB notifications ──
     await c.env.DB.prepare(`
@@ -178,7 +175,7 @@ bookings.get('/my', async (c) => {
     if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
 
     const result = await c.env.DB.prepare(`
-      SELECT b.*, p.business_name, p.avatar_url as provider_avatar, p.service_category as category,
+      SELECT b.*, p.business_name, p.avatar_url as provider_avatar, p.logo_url as provider_logo_url, p.service_category as category,
         s.name as service_name, s.duration_minutes,
         u.first_name as provider_first_name, u.last_name as provider_last_name
       FROM bookings b
@@ -230,7 +227,7 @@ bookings.get('/:id', async (c) => {
     if (!user) return c.json({ success: false, error: 'Unauthorized' }, 401)
 
     const booking = await c.env.DB.prepare(`
-      SELECT b.*, p.business_name, p.address, p.city, p.avatar_url as provider_avatar,
+      SELECT b.*, p.business_name, p.address, p.city, p.avatar_url as provider_avatar, p.logo_url as provider_logo_url,
         s.name as service_name, s.duration_minutes, s.price as service_price,
         u.first_name as customer_first_name, u.last_name as customer_last_name, u.phone as customer_phone
       FROM bookings b
