@@ -38,6 +38,7 @@ import { withZoomLock } from './utils/zoomLock'
 import { withCustomerMessagesShortcut } from './utils/customerMessagesShortcut'
 import { withAppLaunchSplash } from './utils/appLaunchSplash'
 import { withSettingsPointsGatheredUi } from './utils/settingsPointsGatheredUi'
+import { withReceiptSettlementCleanup } from './utils/receiptSettlementCleanup'
 import { withAdminProviderThemeUi } from './utils/adminProviderThemeUi'
 import { withMobilePolish } from './utils/mobilePolish'
 import { withAdminBlueUi } from './utils/adminBlueUi'
@@ -67,18 +68,28 @@ app.route('/api/notifications', notificationRoutes)
 app.route('/api/messages', messageRoutes)
 
 const page = (html: string) =>
-  withMobilePolish(withAppLaunchSplash(withZoomLock(withCustomerMessagesShortcut(html))))
-
-const providerDash = () =>
-  withProviderBlueUi(
+  withReceiptSettlementCleanup(
     withMobilePolish(
       withAppLaunchSplash(
         withZoomLock(
-          withAdminProviderThemeUi(
-            withProviderKycLogoutFix(
-              withProviderGalleryDeleteFix(
-                withProviderDashboardMessagesButton(
-                  repairInlineScriptText(providerDashboardPage())
+          withCustomerMessagesShortcut(html)
+        )
+      )
+    )
+  )
+
+const providerDash = () =>
+  withProviderBlueUi(
+    withReceiptSettlementCleanup(
+      withMobilePolish(
+        withAppLaunchSplash(
+          withZoomLock(
+            withAdminProviderThemeUi(
+              withProviderKycLogoutFix(
+                withProviderGalleryDeleteFix(
+                  withProviderDashboardMessagesButton(
+                    repairInlineScriptText(providerDashboardPage())
+                  )
                 )
               )
             )
@@ -91,11 +102,13 @@ const providerDash = () =>
 const noPay = (html: string) => page(withPaymentDisabledUi(html))
 
 const msgPage = (conversationId = '') =>
-  withMobilePolish(
-    withAppLaunchSplash(
-      withZoomLock(
-        withMessagesRealtimeFix(
-          withMessagesKeyboardFix(messagesPage(conversationId))
+  withReceiptSettlementCleanup(
+    withMobilePolish(
+      withAppLaunchSplash(
+        withZoomLock(
+          withMessagesRealtimeFix(
+            withMessagesKeyboardFix(messagesPage(conversationId))
+          )
         )
       )
     )
@@ -103,11 +116,13 @@ const msgPage = (conversationId = '') =>
 
 const adminDash = () =>
   withAdminBlueUi(
-    withMobilePolish(
-      withAppLaunchSplash(
-        withZoomLock(
-          withAdminProviderThemeUi(
-            repairInlineScriptText(adminPanelPage())
+    withReceiptSettlementCleanup(
+      withMobilePolish(
+        withAppLaunchSplash(
+          withZoomLock(
+            withAdminProviderThemeUi(
+              repairInlineScriptText(adminPanelPage())
+            )
           )
         )
       )
@@ -160,7 +175,7 @@ app.get('/payment/success', (c) => c.html(noPay(paymentSuccessPage())))
 app.get('/api/health', (c) => c.json({
   status: 'ok',
   app: 'SalonLink',
-  version: '2.1.14-points-gathered-settings',
+  version: '2.1.15-clean-receipts-points',
   db: 'D1 Connected',
   timestamp: new Date().toISOString()
 }))
