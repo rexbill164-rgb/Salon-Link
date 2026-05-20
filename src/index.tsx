@@ -37,6 +37,7 @@ import { withMessagesRealtimeFix } from './utils/messagesRealtimeFix'
 import { withZoomLock } from './utils/zoomLock'
 import { withCustomerMessagesShortcut } from './utils/customerMessagesShortcut'
 import { withAppLaunchSplash } from './utils/appLaunchSplash'
+import { withSettingsPointsGatheredUi } from './utils/settingsPointsGatheredUi'
 import { withAdminProviderThemeUi } from './utils/adminProviderThemeUi'
 import { withMobilePolish } from './utils/mobilePolish'
 import { withAdminBlueUi } from './utils/adminBlueUi'
@@ -114,6 +115,7 @@ const adminDash = () =>
   )
 
 const providerProfile = (id: string) => page(providerProfilePage(id))
+const settings = () => page(withSettingsPointsGatheredUi(settingsPage()))
 
 app.get('/manifest.json', (c) => c.json(salonLinkManifest()))
 app.get('/splash.svg', (c) => c.body(splashSvg(), 200, {
@@ -150,7 +152,7 @@ app.get('/admin', (c) => c.html(adminDash()))
 app.get('/messages', (c) => c.html(msgPage()))
 app.get('/messages/:conversation_id', (c) => c.html(msgPage(c.req.param('conversation_id'))))
 app.get('/hairstyle-history', (c) => c.html(page(hairstyleHistoryPage())))
-app.get('/settings', (c) => c.html(page(settingsPage())))
+app.get('/settings', (c) => c.html(settings()))
 app.get('/surprise-shop', (c) => c.html(page(surpriseShopPage())))
 app.get('/notifications', (c) => c.html(page(notificationsPage())))
 app.get('/payment/pay', (c) => c.html(noPay(paymentPage())))
@@ -158,7 +160,7 @@ app.get('/payment/success', (c) => c.html(noPay(paymentSuccessPage())))
 app.get('/api/health', (c) => c.json({
   status: 'ok',
   app: 'SalonLink',
-  version: '2.1.13-points-fees-protection',
+  version: '2.1.14-points-gathered-settings',
   db: 'D1 Connected',
   timestamp: new Date().toISOString()
 }))
