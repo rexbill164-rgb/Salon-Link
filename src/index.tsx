@@ -3,6 +3,7 @@ import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
 import authRoutes from './routes/auth'
 import providerRoutes from './routes/providers'
+import providerServiceProtection from './routes/providerServiceProtection'
 import bookingRoutes from './routes/bookings'
 import paymentRoutes from './routes/payments'
 import reviewRoutes from './routes/reviews'
@@ -53,6 +54,8 @@ app.use('*', cors({
 }))
 
 app.route('/api/auth', authRoutes)
+// Protection routes mounted first so safeguards override legacy delete behaviour.
+app.route('/api/providers', providerServiceProtection)
 app.route('/api/providers', providerRoutes)
 app.route('/api/bookings', bookingRoutes)
 app.route('/api/payments', paymentRoutes)
@@ -155,7 +158,7 @@ app.get('/payment/success', (c) => c.html(noPay(paymentSuccessPage())))
 app.get('/api/health', (c) => c.json({
   status: 'ok',
   app: 'SalonLink',
-  version: '2.1.12-provider-blue-ui',
+  version: '2.1.13-points-fees-protection',
   db: 'D1 Connected',
   timestamp: new Date().toISOString()
 }))
