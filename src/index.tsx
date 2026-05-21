@@ -29,6 +29,7 @@ import { messagesPage } from './pages/messages'
 import { repairInlineScriptText } from './utils/generatedScriptRepairs'
 import { withDiscoveryNearbyUi, withProviderDashboardMessagesButton } from './utils/chatMapServiceEnhancements'
 import { withProviderGalleryDeleteFix } from './utils/providerGalleryDeleteFix'
+import { withProviderDashboardStaticFix } from './utils/providerDashboardStaticFix'
 import { withPaymentDisabledUi } from './utils/paymentDisabledUi'
 import { withProviderKycLogoutFix } from './utils/providerKycLogoutFix'
 import { withMessagesKeyboardFix } from './utils/messagesKeyboardFix'
@@ -73,8 +74,10 @@ const providerDash = () =>
           withAdminProviderThemeUi(
             withProviderKycLogoutFix(
               withProviderGalleryDeleteFix(
-                withProviderDashboardMessagesButton(
-                  repairInlineScriptText(providerDashboardPage())
+                withProviderDashboardStaticFix(
+                  withProviderDashboardMessagesButton(
+                    repairInlineScriptText(providerDashboardPage())
+                  )
                 )
               )
             )
@@ -155,7 +158,7 @@ app.get('/payment/success', (c) => c.html(noPay(paymentSuccessPage())))
 app.get('/api/health', (c) => c.json({
   status: 'ok',
   app: 'SalonLink',
-  version: '2.1.12-provider-blue-ui',
+  version: '2.1.13-provider-dashboard-static-fix',
   db: 'D1 Connected',
   timestamp: new Date().toISOString()
 }))
