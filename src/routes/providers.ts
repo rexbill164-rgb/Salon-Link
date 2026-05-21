@@ -46,9 +46,22 @@ providers.get('/', async (c) => {
     let query = `
       SELECT p.id, p.user_id, p.business_name, p.service_category, p.bio, p.address, p.city,
         p.location_lat, p.location_lng, p.price_from, p.price_to, p.rating, p.total_reviews,
-        p.total_bookings, p.is_verified, p.is_accepting_bookings, p.kyc_status, p.logo_url,
+        p.total_bookings, p.is_verified, p.is_accepting_bookings, p.kyc_status,
+
+        CASE
+          WHEN p.logo_url LIKE 'data:%' THEN NULL
+          ELSE p.logo_url
+        END as logo_url,
+
         p.has_pro_gallery, p.created_at,
-        COALESCE(cov.image_url, CASE WHEN p.cover_url NOT IN ('gallery','') THEN p.cover_url ELSE NULL END, p.logo_url) as cover_url,
+
+        CASE
+          WHEN cov.image_url LIKE 'data:%' THEN NULL
+          WHEN p.cover_url LIKE 'data:%' THEN NULL
+          WHEN p.cover_url NOT IN ('gallery','') THEN p.cover_url
+          ELSE NULL
+        END as cover_url,
+
         u.first_name, u.last_name, u.avatar_url as user_avatar,
         (SELECT COUNT(*) FROM services s WHERE s.provider_id = p.id AND s.is_active = 1) as service_count
       FROM providers p
@@ -231,7 +244,6 @@ providers.put('/me', async (c) => {
     const {
       bio, address, city, price_from, price_to, is_accepting_bookings, business_name, phone,
       kyc_status, kyc_card_number,
-      // NOTE: kyc_front_url/back/selfie are handled by POST /me/kyc to avoid D1 row size limits
       location_lat, location_lng, cover_url, logo_url
     } = body
 
@@ -263,7 +275,6 @@ providers.put('/me', async (c) => {
       user.sub
     ).run()
 
-    // Update phone on users table if provided
     if (phone) {
       await c.env.DB.prepare('UPDATE users SET phone = ? WHERE id = ?').bind(phone, user.sub).run()
     }
@@ -274,7 +285,7 @@ providers.put('/me', async (c) => {
   }
 })
 
-// POST /api/providers/me/kyc — upload KYC images separately (avoids D1 row size issues)
+// POST /api/providers/me/kyc — upload KYC images separately
 providers.post('/me/kyc', async (c) => {
   try {
     const user = await getUser(c)
@@ -282,7 +293,6 @@ providers.post('/me/kyc', async (c) => {
 
     const { kyc_card_number, kyc_front_url, kyc_back_url, kyc_selfie_url } = await c.req.json()
 
-    // Validate sizes (max ~200KB each as base64 ~ 150KB raw)
     const MAX_LEN = 270000
     if (kyc_front_url && kyc_front_url.length > MAX_LEN) return c.json({ success: false, error: 'Front image too large. Please use a smaller photo.' }, 400)
     if (kyc_back_url  && kyc_back_url.length  > MAX_LEN) return c.json({ success: false, error: 'Back image too large. Please use a smaller photo.' }, 400)
@@ -320,7 +330,7 @@ providers.post('/me/services', async (c) => {
     if (!provider) return c.json({ success: false, error: 'Provider not found' }, 404)
     const { name, price, duration, description } = await c.req.json()
     if (!name) return c.json({ success: false, error: 'Service name required' }, 400)
-    // Parse duration: accept "60", "2hr", "1.5hrs", "90 min" etc → store as integer minutes
+
     let durationMins = 60
     if (duration) {
       const d = String(duration)
@@ -333,6 +343,7 @@ providers.post('/me/services', async (c) => {
         else if (minMatch) durationMins = parseInt(minMatch[1])
       }
     }
+
     const result = await c.env.DB.prepare(
       'INSERT INTO services (provider_id, name, description, price, duration_minutes, is_active) VALUES (?, ?, ?, ?, ?, 1)'
     ).bind(provider.id, name, description || null, price || 0, durationMins).run()
@@ -360,7 +371,7 @@ providers.put('/me/services/:id', async (c) => {
   }
 })
 
-// DELETE /api/providers/me/services/:id — delete a service (blocked if active bookings)
+// DELETE /api/providers/me/services/:id — delete a service
 providers.delete('/me/services/:id', async (c) => {
   try {
     const user = await getUser(c)
@@ -368,7 +379,6 @@ providers.delete('/me/services/:id', async (c) => {
     const provider = await c.env.DB.prepare('SELECT id FROM providers WHERE user_id = ?').bind(user.sub).first() as any
     if (!provider) return c.json({ success: false, error: 'Provider not found' }, 404)
 
-    // Block delete if active pending/confirmed bookings exist for this service
     const activeBooking = await c.env.DB.prepare(
       "SELECT id FROM bookings WHERE service_id = ? AND status IN ('pending','confirmed') LIMIT 1"
     ).bind(c.req.param('id')).first() as any
@@ -387,15 +397,28 @@ providers.delete('/me/services/:id', async (c) => {
 providers.get('/nearby', async (c) => {
   try {
     const { lat, lng, limit = '20' } = c.req.query()
-    // Fetch all providers and compute distance in JS (D1 has no geo functions)
+
     const result = await c.env.DB.prepare(`
       SELECT p.id, p.user_id, p.business_name, p.service_category, p.bio, p.city,
         p.location_lat, p.location_lng, p.price_from, p.price_to, p.rating, p.total_reviews,
-        p.is_verified, p.is_accepting_bookings, p.logo_url,
-        COALESCE(cov.image_url, CASE WHEN p.cover_url NOT IN ('gallery','') THEN p.cover_url ELSE NULL END, p.logo_url) as cover_url,
+        p.is_verified, p.is_accepting_bookings,
+
+        CASE
+          WHEN p.logo_url LIKE 'data:%' THEN NULL
+          ELSE p.logo_url
+        END as logo_url,
+
+        CASE
+          WHEN cov.image_url LIKE 'data:%' THEN NULL
+          WHEN p.cover_url LIKE 'data:%' THEN NULL
+          WHEN p.cover_url NOT IN ('gallery','') THEN p.cover_url
+          ELSE NULL
+        END as cover_url,
+
         u.first_name, u.last_name,
         (SELECT COUNT(*) FROM services s WHERE s.provider_id = p.id AND s.is_active = 1) as service_count
-      FROM providers p JOIN users u ON p.user_id = u.id
+      FROM providers p
+      JOIN users u ON p.user_id = u.id
       LEFT JOIN provider_gallery cov ON cov.provider_id = p.id AND cov.is_logo = 2
     `).all()
 
@@ -404,10 +427,10 @@ providers.get('/nearby', async (c) => {
     if (lat && lng) {
       const userLat = parseFloat(lat)
       const userLng = parseFloat(lng)
-      // Haversine distance formula
+
       providersList = providersList.map((p: any) => {
         if (p.location_lat && p.location_lng) {
-          const R = 6371 // km
+          const R = 6371
           const dLat = (p.location_lat - userLat) * Math.PI / 180
           const dLng = (p.location_lng - userLng) * Math.PI / 180
           const a = Math.sin(dLat/2)**2 + Math.cos(userLat*Math.PI/180)*Math.cos(p.location_lat*Math.PI/180)*Math.sin(dLng/2)**2
@@ -436,11 +459,25 @@ providers.get('/:id', async (c) => {
     const provider = await c.env.DB.prepare(`
       SELECT p.id, p.user_id, p.business_name, p.service_category, p.bio, p.address, p.city,
         p.location_lat, p.location_lng, p.price_from, p.price_to, p.rating, p.total_reviews,
-        p.total_bookings, p.is_verified, p.is_accepting_bookings, p.kyc_status, p.logo_url,
+        p.total_bookings, p.is_verified, p.is_accepting_bookings, p.kyc_status,
+
+        CASE
+          WHEN p.logo_url LIKE 'data:%' THEN NULL
+          ELSE p.logo_url
+        END as logo_url,
+
         p.has_pro_gallery, p.working_hours, p.kyc_card_number, p.created_at,
-        COALESCE(cov.image_url, CASE WHEN p.cover_url NOT IN ('gallery','') THEN p.cover_url ELSE NULL END, p.logo_url) as cover_url,
+
+        CASE
+          WHEN cov.image_url LIKE 'data:%' THEN NULL
+          WHEN p.cover_url LIKE 'data:%' THEN NULL
+          WHEN p.cover_url NOT IN ('gallery','') THEN p.cover_url
+          ELSE NULL
+        END as cover_url,
+
         u.first_name, u.last_name, u.email, u.phone
-      FROM providers p JOIN users u ON p.user_id = u.id
+      FROM providers p
+      JOIN users u ON p.user_id = u.id
       LEFT JOIN provider_gallery cov ON cov.provider_id = p.id AND cov.is_logo = 2
       WHERE p.id = ?
     `).bind(id).first()
@@ -452,26 +489,33 @@ providers.get('/:id', async (c) => {
     ).bind(id).all()
 
     const reviews = await safeAll(c, 'PUBLIC REVIEWS', `
-      SELECT r.*, u.first_name, u.last_name, u.avatar_url
-      FROM reviews r JOIN users u ON r.customer_id = u.id
-      WHERE r.provider_id = ? ORDER BY r.created_at DESC LIMIT 10
+      SELECT r.id, r.provider_id, r.customer_id, r.rating, r.comment, r.created_at,
+        u.first_name, u.last_name
+      FROM reviews r
+      JOIN users u ON r.customer_id = u.id
+      WHERE r.provider_id = ?
+      ORDER BY r.created_at DESC
+      LIMIT 10
     `, [id])
 
-    return c.json({ success: true, provider, services: services.results, reviews: reviews.results })
+    return c.json({
+      success: true,
+      provider,
+      services: services.results,
+      reviews: reviews.results
+    })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
 })
 
 // GET /api/providers/:id/availability — available slots for a given provider
-// Accepts optional ?service_id= to account for service duration when blocking slots
 providers.get('/:id/availability', async (c) => {
   try {
     const id = c.req.param('id')
     const { date, service_id } = c.req.query()
     if (!date) return c.json({ success: false, error: 'Date required' }, 400)
 
-    // Get duration of requested service (default 30 min slot if not provided)
     let serviceDuration = 30
     if (service_id) {
       const svc = await c.env.DB.prepare(
@@ -480,7 +524,6 @@ providers.get('/:id/availability', async (c) => {
       if (svc && svc.duration_minutes) serviceDuration = svc.duration_minutes
     }
 
-    // Get all active bookings for this provider on this date (with their durations)
     const booked = await c.env.DB.prepare(`
       SELECT b.booking_time, COALESCE(s.duration_minutes, 30) as duration_minutes
       FROM bookings b
@@ -488,10 +531,9 @@ providers.get('/:id/availability', async (c) => {
       WHERE b.provider_id = ? AND b.booking_date = ? AND b.status NOT IN ('cancelled')
     `).bind(id, date).all()
 
-    // Convert booking times to minutes-from-midnight and block out their duration ranges
     const blockedRanges: Array<{start: number, end: number}> = []
     for (const b of (booked.results as any[])) {
-      const t = b.booking_time // e.g. "9:30 AM"
+      const t = b.booking_time
       const match = t.match(/(\d+):(\d+)\s*(AM|PM)/i)
       if (!match) continue
       let h = parseInt(match[1])
@@ -504,7 +546,6 @@ providers.get('/:id/availability', async (c) => {
       blockedRanges.push({ start: startMin, end: endMin })
     }
 
-    // Helper: convert minutes-from-midnight to 12hr time string
     function minToTime(totalMin: number): string {
       const h24 = Math.floor(totalMin / 60)
       const m = totalMin % 60
@@ -513,15 +554,11 @@ providers.get('/:id/availability', async (c) => {
       return `${h12}:${String(m).padStart(2, '0')} ${period}`
     }
 
-    // Generate slots from 9am to 6pm in 30-min increments
-    // A slot is available only if [slotStart, slotStart + serviceDuration) doesn't overlap any blocked range
     const slots = []
     for (let totalMin = 9 * 60; totalMin < 18 * 60; totalMin += 30) {
       const slotEnd = totalMin + serviceDuration
-      // Don't show slots that would run past 7 PM (19:00)
       if (slotEnd > 19 * 60) break
       const time = minToTime(totalMin)
-      // Check overlap with any booked slot
       const isBlocked = blockedRanges.some(r => totalMin < r.end && slotEnd > r.start)
       slots.push({ time, available: !isBlocked })
     }
@@ -531,8 +568,6 @@ providers.get('/:id/availability', async (c) => {
     return c.json({ success: false, error: e.message }, 500)
   }
 })
-
-export default providers
 
 // GET /api/providers/me/points — provider's points and history
 providers.get('/me/points', async (c) => {
@@ -558,3 +593,5 @@ providers.get('/me/points', async (c) => {
     return c.json({ success: false, error: e.message }, 500)
   }
 })
+
+export default providers
