@@ -30,6 +30,7 @@ import { repairInlineScriptText } from './utils/generatedScriptRepairs'
 import { withDiscoveryNearbyUi, withProviderDashboardMessagesButton } from './utils/chatMapServiceEnhancements'
 import { withProviderGalleryDeleteFix } from './utils/providerGalleryDeleteFix'
 import { withProviderDashboardStaticFix } from './utils/providerDashboardStaticFix'
+import { withAdminDashboardStaticFix } from './utils/adminDashboardStaticFix'
 import { withPaymentDisabledUi } from './utils/paymentDisabledUi'
 import { withProviderKycLogoutFix } from './utils/providerKycLogoutFix'
 import { withMessagesKeyboardFix } from './utils/messagesKeyboardFix'
@@ -106,7 +107,9 @@ const adminDash = () =>
       withAppLaunchSplash(
         withZoomLock(
           withAdminProviderThemeUi(
-            repairInlineScriptText(adminPanelPage())
+            withAdminDashboardStaticFix(
+              repairInlineScriptText(adminPanelPage())
+            )
           )
         )
       )
@@ -158,7 +161,7 @@ app.get('/payment/success', (c) => c.html(noPay(paymentSuccessPage())))
 app.get('/api/health', (c) => c.json({
   status: 'ok',
   app: 'SalonLink',
-  version: '2.1.13-provider-dashboard-static-fix',
+  version: '2.1.14-admin-dashboard-static-fix',
   db: 'D1 Connected',
   timestamp: new Date().toISOString()
 }))
