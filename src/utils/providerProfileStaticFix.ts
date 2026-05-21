@@ -8,26 +8,35 @@ export function withProviderProfileStaticFix(html: string): string {
   #portfolio-grid.portfolio-carousel {
     display:flex !important;
     grid-template-columns:none !important;
-    gap:12px !important;
+    gap:0 !important;
+    width:100% !important;
+    max-width:100% !important;
     overflow-x:auto !important;
     overflow-y:hidden !important;
-    scroll-snap-type:x proximity !important;
+    scroll-snap-type:x mandatory !important;
+    scroll-behavior:smooth !important;
     -webkit-overflow-scrolling:touch !important;
-    padding:4px 2px 14px !important;
-    scrollbar-width:thin !important;
+    padding:0 !important;
+    scrollbar-width:none !important;
     cursor:grab !important;
+    border-radius:18px !important;
   }
+  #portfolio-grid.portfolio-carousel::-webkit-scrollbar { display:none !important; }
   #portfolio-grid.portfolio-carousel:active { cursor:grabbing !important; }
   #portfolio-grid.portfolio-carousel .portfolio-item {
-    flex:0 0 210px !important;
-    width:210px !important;
-    height:210px !important;
-    aspect-ratio:1 / 1 !important;
+    flex:0 0 100% !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:100% !important;
+    height:280px !important;
+    aspect-ratio:auto !important;
     border-radius:18px !important;
     scroll-snap-align:start !important;
-    box-shadow:0 8px 22px rgba(0,0,0,.10) !important;
+    scroll-snap-stop:always !important;
+    box-shadow:none !important;
     border:1px solid rgba(0,0,0,.08) !important;
     background:#fff !important;
+    overflow:hidden !important;
   }
   #portfolio-grid.portfolio-carousel .portfolio-item img {
     width:100% !important;
@@ -36,11 +45,7 @@ export function withProviderProfileStaticFix(html: string): string {
     display:block !important;
   }
   @media(max-width:700px){
-    #portfolio-grid.portfolio-carousel .portfolio-item {
-      flex-basis:68vw !important;
-      width:68vw !important;
-      height:220px !important;
-    }
+    #portfolio-grid.portfolio-carousel .portfolio-item { height:230px !important; }
   }
   .sl-share-round {
     position:absolute !important;
