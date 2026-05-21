@@ -11,32 +11,19 @@ export function withProviderProfileStaticFix(html: string): string {
   .hero-cover > div[style*="bottom:0"] {
     padding-bottom:30px !important;
   }
-  .sl-hero-actions-row {
-    display:flex !important;
-    align-items:center !important;
-    gap:10px !important;
-    margin-top:10px !important;
-    flex-wrap:wrap !important;
+  .sl-hero-actions-row,
+  #sl-hero-actions-row,
+  #sl-fav-btn,
+  #sl-share-btn {
+    display:none !important;
   }
   .sl-hero-pill {
-    height:34px !important;
-    padding:0 14px !important;
-    border-radius:999px !important;
-    border:1px solid rgba(255,255,255,.42) !important;
-    background:rgba(255,255,255,.16) !important;
-    color:#fff !important;
-    display:inline-flex !important;
-    align-items:center !important;
-    justify-content:center !important;
-    gap:7px !important;
-    font-size:12px !important;
-    font-weight:800 !important;
-    cursor:pointer !important;
-    backdrop-filter:blur(12px) !important;
-    -webkit-backdrop-filter:blur(12px) !important;
-    box-shadow:0 8px 24px rgba(0,0,0,.14) !important;
+    display:none !important;
   }
   .sl-logo-open-badge {
+    display:none !important;
+  }
+  .sl-logo-verified-badge {
     position:absolute !important;
     left:50% !important;
     bottom:-25px !important;
@@ -44,18 +31,20 @@ export function withProviderProfileStaticFix(html: string): string {
     height:23px !important;
     padding:0 10px !important;
     border-radius:999px !important;
-    background:rgba(255,255,255,.95) !important;
+    background:rgba(255,255,255,.96) !important;
     color:#0f7a3d !important;
     display:inline-flex !important;
     align-items:center !important;
     justify-content:center !important;
+    gap:4px !important;
     font-size:10px !important;
     font-weight:900 !important;
     white-space:nowrap !important;
     box-shadow:0 6px 16px rgba(0,0,0,.16) !important;
-    z-index:10 !important;
+    z-index:20 !important;
   }
-  #profile-status-badge {
+  #profile-status-badge,
+  #profile-verified-badge {
     display:none !important;
   }
   #portfolio-grid.portfolio-carousel {
@@ -137,7 +126,6 @@ export function withProviderProfileStaticFix(html: string): string {
   }
   @media(max-width:700px){
     #portfolio-grid.portfolio-carousel .portfolio-item { height:230px !important; }
-    .sl-hero-pill { height:32px !important; padding:0 12px !important; font-size:11px !important; }
   }
 </style>
 <script id="provider-profile-static-rescue">
@@ -151,38 +139,33 @@ export function withProviderProfileStaticFix(html: string): string {
   function money(v){ return 'GHS ' + Math.round(Number(v||0)/100).toLocaleString(); }
   function cleanText(v){ return String(v||'').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]||c}); }
 
-  function setupHeroActions(){
-    var cat=q('profile-category-loc');
-    if(!cat) return;
-    var old=document.getElementById('sl-hero-actions-row');
-    if(old) old.remove();
-    var row=document.createElement('div');
-    row.id='sl-hero-actions-row';
-    row.className='sl-hero-actions-row';
-    row.innerHTML='<button type="button" class="sl-hero-pill" id="sl-fav-btn">♡ Fav</button><button type="button" class="sl-hero-pill" id="sl-share-btn">↗ Share</button>';
-    cat.insertAdjacentElement('afterend', row);
-    var fav=q('sl-fav-btn');
-    var share=q('sl-share-btn');
-    if(fav) fav.onclick=function(){ if(window.showToast) showToast('Saved to favourites ✦','success'); };
-    if(share) share.onclick=window.shareProviderProfile;
-
-    var buttons=Array.prototype.slice.call(document.querySelectorAll('button'));
-    buttons.forEach(function(b){
+  function removeHeroActions(){
+    var row=document.getElementById('sl-hero-actions-row');
+    if(row && row.parentNode) row.parentNode.removeChild(row);
+    var fav=document.getElementById('sl-fav-btn');
+    if(fav && fav.parentNode) fav.parentNode.removeChild(fav);
+    var share=document.getElementById('sl-share-btn');
+    if(share && share.parentNode) share.parentNode.removeChild(share);
+    Array.prototype.slice.call(document.querySelectorAll('button')).forEach(function(b){
       var text=(b.textContent||'').toLowerCase();
-      if(text.indexOf('share profile') >= 0) b.style.display='none';
+      if(text.indexOf('fav') >= 0 || text.indexOf('share') >= 0 || text.indexOf('share profile') >= 0){
+        if(!b.closest('.sl-portfolio-controls')) b.style.display='none';
+      }
     });
   }
 
-  function placeOpenUnderLogo(isOpen){
+  function placeVerifiedUnderLogo(isVerified){
     var ring=document.querySelector('.avatar-ring');
     if(!ring) return;
-    var old=document.getElementById('sl-logo-open-badge');
-    if(old) old.remove();
+    var oldOpen=document.getElementById('sl-logo-open-badge');
+    if(oldOpen && oldOpen.parentNode) oldOpen.parentNode.removeChild(oldOpen);
+    var old=document.getElementById('sl-logo-verified-badge');
+    if(old && old.parentNode) old.parentNode.removeChild(old);
+    if(!isVerified) return;
     var badge=document.createElement('span');
-    badge.id='sl-logo-open-badge';
-    badge.className='sl-logo-open-badge';
-    badge.textContent=isOpen ? 'Open' : 'Closed';
-    badge.style.color=isOpen ? '#0f7a3d' : '#b42318';
+    badge.id='sl-logo-verified-badge';
+    badge.className='sl-logo-verified-badge';
+    badge.innerHTML='✓ Verified';
     ring.appendChild(badge);
   }
 
@@ -241,8 +224,8 @@ export function withProviderProfileStaticFix(html: string): string {
     set('info-phone', '—');
     var svc=q('services-grid'); if(svc)svc.innerHTML='<div style="text-align:center;padding:32px;color:var(--t-muted);">Services are loading slowly. Please refresh if they do not appear.</div>';
     var grid=q('portfolio-grid'); if(grid)grid.innerHTML='<div class="portfolio-empty">Portfolio is loading slowly. Please refresh if it does not appear.</div>';
-    setupHeroActions();
-    placeOpenUnderLogo(true);
+    removeHeroActions();
+    placeVerifiedUnderLogo(true);
   }
 
   function applyGalleryImages(items){
@@ -345,10 +328,9 @@ export function withProviderProfileStaticFix(html: string): string {
     set('info-phone', p.phone || '—');
 
     var status=q('profile-status-badge'); if(status){ status.style.display='none'; }
-    placeOpenUnderLogo(!!p.is_accepting_bookings);
-    var ver=q('profile-verified-badge'); if(ver){ ver.style.display='inline-flex'; ver.textContent = p.is_verified ? 'Verified' : 'New'; }
-
-    setupHeroActions();
+    var ver=q('profile-verified-badge'); if(ver){ ver.style.display='none'; }
+    removeHeroActions();
+    placeVerifiedUnderLogo(!!p.is_verified);
 
     var svc=q('services-grid');
     if(svc){
