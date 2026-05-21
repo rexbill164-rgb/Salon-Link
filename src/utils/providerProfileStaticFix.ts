@@ -9,7 +9,11 @@ export function withProviderProfileStaticFix(html: string): string {
   function pid(){ return location.pathname.split('/').filter(Boolean).pop() || ''; }
   function money(v){ return 'GHS ' + Math.round(Number(v||0)/100).toLocaleString(); }
   function cleanText(v){ return String(v||'').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]||c}); }
-  function lightImage(url){ return url && (!String(url).startsWith('data:') || String(url).length < 250000); }
+
+  function getJson(url){
+    if (window.axios) return window.axios.get(url, { timeout: 4500 }).then(function(r){ return r.data; });
+    return fetch(url, { cache:'no-store' }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
+  }
 
   function showFallback(){
     var id=pid();
@@ -17,7 +21,7 @@ export function withProviderProfileStaticFix(html: string): string {
     set('profile-name', id === '2' ? 'Classy Salon - East Cant' : 'Provider Profile');
     set('profile-category-loc', 'Hair Salon · Accra');
     set('profile-rating', '—');
-    set('profile-bio', 'This provider profile is available, but the full image data is taking too long to load. You can still book an appointment.');
+    set('profile-bio', 'This provider profile is available, but some details are taking too long to load. You can still book an appointment.');
     set('stat-reviews', '0');
     set('stat-bookings', '0');
     set('stat-price', '0');
@@ -26,13 +30,6 @@ export function withProviderProfileStaticFix(html: string): string {
     set('info-phone', '—');
     var svc=q('services-grid'); if(svc)svc.innerHTML='<div style="text-align:center;padding:32px;color:var(--t-muted);">Services are loading slowly. Please refresh if they do not appear.</div>';
     var grid=q('portfolio-grid'); if(grid)grid.innerHTML='<div class="portfolio-empty">Portfolio is loading slowly. Please refresh if it does not appear.</div>';
-  }
-
-  function getJson(url){
-    if (window.axios) return window.axios.get(url, { timeout: 4500 }).then(function(r){ return r.data; });
-    var ctrl = window.AbortController ? new AbortController() : null;
-    var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, 4500) : null;
-    return fetch(url, { cache:'no-store', signal: ctrl ? ctrl.signal : undefined }).then(function(r){ if(timer)clearTimeout(timer); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
   }
 
   function renderPortfolio(providerId){
@@ -45,7 +42,15 @@ export function withProviderProfileStaticFix(html: string): string {
       window.__portfolioPhotos = photos;
       if(!photos.length){ grid.innerHTML='<div class="portfolio-empty">No portfolio images uploaded yet.</div>'; return; }
       if(btn)btn.style.display='inline-flex';
-      grid.innerHTML = photos.map(function(ph,i){ return '<button type="button" class="portfolio-item" onclick="openPortfolioModal('+i+')"><img src="'+ph.image_url+'" alt="Portfolio image '+(i+1)+'" loading="lazy"/></button>'; }).join('');
+      grid.innerHTML = photos.map(function(ph,i){
+        var b=document.createElement('button');
+        b.type='button'; b.className='portfolio-item';
+        b.onclick=function(){ if(window.openPortfolioModal) window.openPortfolioModal(i); };
+        var img=document.createElement('img');
+        img.src=ph.image_url; img.alt='Portfolio image '+(i+1); img.loading='lazy';
+        b.appendChild(img);
+        return b.outerHTML;
+      }).join('');
     }).catch(function(){ grid.innerHTML='<div class="portfolio-empty">No portfolio images uploaded yet.</div>'; });
   }
 
@@ -66,9 +71,6 @@ export function withProviderProfileStaticFix(html: string): string {
     set('sidebar-price-from', money(p.price_from || 0));
     set('info-location', [p.address, p.city].filter(Boolean).join(', ') || 'Accra, Ghana');
     set('info-phone', p.phone || '—');
-
-    var av=q('profile-avatar'); if(av && lightImage(p.avatar_url || p.logo_url)) av.src = p.avatar_url || p.logo_url;
-    var cv=q('profile-cover'); if(cv && lightImage(p.cover_url)) cv.src = p.cover_url;
 
     var status=q('profile-status-badge'); if(status){ status.style.display='inline-flex'; status.textContent = p.is_accepting_bookings ? 'Open' : 'Not Accepting Bookings'; }
     var ver=q('profile-verified-badge'); if(ver){ ver.style.display='inline-flex'; ver.textContent = p.is_verified ? 'Verified' : 'New'; }
@@ -94,9 +96,9 @@ export function withProviderProfileStaticFix(html: string): string {
     getJson('/api/providers/' + encodeURIComponent(id) + '?ts=' + Date.now()).then(renderProvider).catch(function(e){ console.error('Provider rescue load failed:', e); showFallback(); });
   }
 
-  setTimeout(showFallback, 1800);
   setTimeout(load, 50);
   setTimeout(function(){ if((q('profile-name')||{}).textContent === 'Loading...') load(); }, 900);
+  setTimeout(showFallback, 1800);
 })();
 </script>`
 
