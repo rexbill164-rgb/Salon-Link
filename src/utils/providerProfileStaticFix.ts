@@ -2,7 +2,8 @@ export function withProviderProfileStaticFix(html: string): string {
   const script = `
 <script id="provider-profile-static-rescue">
 (function(){
-  if (!/^\/provider\/[^/]+$/.test(location.pathname)) return;
+  var parts = location.pathname.split('/').filter(Boolean);
+  if (!(parts.length === 2 && parts[0] === 'provider')) return;
 
   function q(id){ return document.getElementById(id); }
   function set(id, v){ var e=q(id); if(e)e.textContent = v; }
@@ -42,15 +43,7 @@ export function withProviderProfileStaticFix(html: string): string {
       window.__portfolioPhotos = photos;
       if(!photos.length){ grid.innerHTML='<div class="portfolio-empty">No portfolio images uploaded yet.</div>'; return; }
       if(btn)btn.style.display='inline-flex';
-      grid.innerHTML = photos.map(function(ph,i){
-        var b=document.createElement('button');
-        b.type='button'; b.className='portfolio-item';
-        b.onclick=function(){ if(window.openPortfolioModal) window.openPortfolioModal(i); };
-        var img=document.createElement('img');
-        img.src=ph.image_url; img.alt='Portfolio image '+(i+1); img.loading='lazy';
-        b.appendChild(img);
-        return b.outerHTML;
-      }).join('');
+      grid.innerHTML = photos.map(function(ph,i){ return '<button type="button" class="portfolio-item" onclick="openPortfolioModal('+i+')"><img src="'+ph.image_url+'" alt="Portfolio image '+(i+1)+'" loading="lazy"/></button>'; }).join('');
     }).catch(function(){ grid.innerHTML='<div class="portfolio-empty">No portfolio images uploaded yet.</div>'; });
   }
 
