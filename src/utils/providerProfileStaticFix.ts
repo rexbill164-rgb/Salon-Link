@@ -44,6 +44,44 @@ export function withProviderProfileStaticFix(html: string): string {
     object-fit:cover !important;
     display:block !important;
   }
+  .sl-portfolio-controls {
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:14px !important;
+    margin-top:14px !important;
+    width:100% !important;
+  }
+  .sl-portfolio-arrow {
+    width:38px !important;
+    height:38px !important;
+    border-radius:50% !important;
+    border:1px solid rgba(0,0,0,.12) !important;
+    background:#fff !important;
+    color:#111 !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    cursor:pointer !important;
+    font-size:18px !important;
+    font-weight:800 !important;
+    box-shadow:0 6px 18px rgba(0,0,0,.08) !important;
+  }
+  .sl-portfolio-arrow:disabled { opacity:.35 !important; cursor:not-allowed !important; }
+  .sl-portfolio-count {
+    min-width:58px !important;
+    height:34px !important;
+    padding:0 14px !important;
+    border-radius:999px !important;
+    background:rgba(0,0,0,.05) !important;
+    color:#111 !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    font-size:12px !important;
+    font-weight:800 !important;
+    letter-spacing:.04em !important;
+  }
   @media(max-width:700px){
     #portfolio-grid.portfolio-carousel .portfolio-item { height:230px !important; }
   }
@@ -124,16 +162,6 @@ export function withProviderProfileStaticFix(html: string): string {
     if(modal) modal.classList.remove('open');
   };
 
-  function enableDragScroll(el){
-    if(!el || el.dataset.dragScrollReady === '1') return;
-    el.dataset.dragScrollReady = '1';
-    var down=false, startX=0, startLeft=0;
-    el.addEventListener('mousedown', function(e){ down=true; startX=e.pageX; startLeft=el.scrollLeft; });
-    window.addEventListener('mouseup', function(){ down=false; });
-    el.addEventListener('mouseleave', function(){ down=false; });
-    el.addEventListener('mousemove', function(e){ if(!down) return; e.preventDefault(); el.scrollLeft = startLeft - (e.pageX - startX); });
-  }
-
   function getJson(url){
     if (window.axios) return window.axios.get(url, { timeout: 4500 }).then(function(r){ return r.data; });
     return fetch(url, { cache:'no-store' }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
@@ -166,6 +194,57 @@ export function withProviderProfileStaticFix(html: string): string {
     if(cv && cover) cv.src = cover.image_url;
   }
 
+  function ensurePortfolioControls(grid, total){
+    var old=document.getElementById('sl-portfolio-controls');
+    if(old) old.remove();
+    if(!grid || total <= 1) return;
+    var controls=document.createElement('div');
+    controls.id='sl-portfolio-controls';
+    controls.className='sl-portfolio-controls';
+    controls.innerHTML='<button type="button" class="sl-portfolio-arrow" id="sl-port-prev" aria-label="Previous portfolio image">‹</button><span class="sl-portfolio-count" id="sl-port-count">1 / '+total+'</span><button type="button" class="sl-portfolio-arrow" id="sl-port-next" aria-label="Next portfolio image">›</button>';
+    grid.insertAdjacentElement('afterend', controls);
+    document.getElementById('sl-port-prev').onclick=function(){ slidePortfolio(-1); };
+    document.getElementById('sl-port-next').onclick=function(){ slidePortfolio(1); };
+    updatePortfolioCounter();
+  }
+
+  function updatePortfolioCounter(){
+    var grid=q('portfolio-grid');
+    var photos=window.__portfolioPhotos || [];
+    var count=q('sl-port-count');
+    var prev=q('sl-port-prev');
+    var next=q('sl-port-next');
+    if(!grid || !count || !photos.length) return;
+    var index=Math.round(grid.scrollLeft / Math.max(1, grid.clientWidth));
+    index=Math.max(0, Math.min(index, photos.length - 1));
+    window.__portfolioIndex=index;
+    count.textContent=(index + 1) + ' / ' + photos.length;
+    if(prev) prev.disabled = index === 0;
+    if(next) next.disabled = index === photos.length - 1;
+  }
+
+  function slidePortfolio(direction){
+    var grid=q('portfolio-grid');
+    var photos=window.__portfolioPhotos || [];
+    if(!grid || !photos.length) return;
+    var current=typeof window.__portfolioIndex === 'number' ? window.__portfolioIndex : Math.round(grid.scrollLeft / Math.max(1, grid.clientWidth));
+    var next=Math.max(0, Math.min(current + direction, photos.length - 1));
+    grid.scrollTo({ left: next * grid.clientWidth, behavior: 'smooth' });
+    window.__portfolioIndex=next;
+    setTimeout(updatePortfolioCounter, 250);
+  }
+
+  function enableDragScroll(el){
+    if(!el || el.dataset.dragScrollReady === '1') return;
+    el.dataset.dragScrollReady = '1';
+    var down=false, startX=0, startLeft=0;
+    el.addEventListener('mousedown', function(e){ down=true; startX=e.pageX; startLeft=el.scrollLeft; });
+    window.addEventListener('mouseup', function(){ down=false; });
+    el.addEventListener('mouseleave', function(){ down=false; });
+    el.addEventListener('mousemove', function(e){ if(!down) return; e.preventDefault(); el.scrollLeft = startLeft - (e.pageX - startX); });
+    el.addEventListener('scroll', function(){ window.clearTimeout(window.__portScrollTimer); window.__portScrollTimer=setTimeout(updatePortfolioCounter, 80); });
+  }
+
   function renderPortfolio(providerId){
     var grid=q('portfolio-grid');
     var btn=q('portfolio-view-all-btn');
@@ -176,12 +255,15 @@ export function withProviderProfileStaticFix(html: string): string {
       applyGalleryImages(all);
       var photos=all.filter(function(ph){ return ph && ph.image_url && Number(ph.is_logo||0) === 0; });
       window.__portfolioPhotos = photos;
-      if(!photos.length){ grid.classList.remove('portfolio-carousel'); grid.innerHTML='<div class="portfolio-empty">No portfolio images uploaded yet.</div>'; return; }
-      if(btn)btn.style.display='inline-flex';
+      window.__portfolioIndex = 0;
+      if(!photos.length){ grid.classList.remove('portfolio-carousel'); grid.innerHTML='<div class="portfolio-empty">No portfolio images uploaded yet.</div>'; ensurePortfolioControls(grid, 0); return; }
+      if(btn)btn.style.display='none';
       grid.classList.add('portfolio-carousel');
       grid.innerHTML = photos.map(function(ph,i){ return '<button type="button" class="portfolio-item" onclick="openPortfolioModal('+i+')"><img src="'+ph.image_url+'" alt="Portfolio image '+(i+1)+'" loading="lazy"/></button>'; }).join('');
+      grid.scrollLeft = 0;
       enableDragScroll(grid);
-    }).catch(function(){ grid.classList.remove('portfolio-carousel'); grid.innerHTML='<div class="portfolio-empty">No portfolio images uploaded yet.</div>'; });
+      ensurePortfolioControls(grid, photos.length);
+    }).catch(function(){ grid.classList.remove('portfolio-carousel'); grid.innerHTML='<div class="portfolio-empty">No portfolio images uploaded yet.</div>'; ensurePortfolioControls(grid, 0); });
   }
 
   function renderProvider(data){
