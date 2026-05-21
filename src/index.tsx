@@ -28,6 +28,7 @@ import { paymentPage, paymentSuccessPage } from './pages/paymentPage'
 import { messagesPage } from './pages/messages'
 import { repairInlineScriptText } from './utils/generatedScriptRepairs'
 import { withDiscoveryNearbyUi, withProviderDashboardMessagesButton } from './utils/chatMapServiceEnhancements'
+import { withDiscoveryCardClickFix } from './utils/discoveryCardClickFix'
 import { withProviderGalleryDeleteFix } from './utils/providerGalleryDeleteFix'
 import { withProviderDashboardStaticFix } from './utils/providerDashboardStaticFix'
 import { withProviderProfileStaticFix } from './utils/providerProfileStaticFix'
@@ -149,7 +150,7 @@ app.get('/register', (c) => c.html(page(registerPage())))
 app.get('/dashboard', (c) => c.html(noPay(dashboardPage())))
 app.get('/provider/dashboard', (c) => c.html(providerDash()))
 app.get('/provider/onboarding', (c) => c.html(page(onboardingPage())))
-app.get('/discover', (c) => c.html(page(withDiscoveryNearbyUi(discoveryPage()))))
+app.get('/discover', (c) => c.html(page(withDiscoveryCardClickFix(withDiscoveryNearbyUi(discoveryPage())))))
 app.get('/provider/:id', (c) => c.html(providerProfile(c.req.param('id'))))
 app.get('/book/:id', (c) => c.html(noPay(bookingPage(c.req.param('id')))))
 app.get('/admin', (c) => c.html(adminDash()))
@@ -164,7 +165,7 @@ app.get('/payment/success', (c) => c.html(noPay(paymentSuccessPage())))
 app.get('/api/health', (c) => c.json({
   status: 'ok',
   app: 'SalonLink',
-  version: '2.1.16-provider-icon-actions',
+  version: '2.1.17-discovery-card-click-fix',
   db: 'D1 Connected',
   timestamp: new Date().toISOString()
 }))
