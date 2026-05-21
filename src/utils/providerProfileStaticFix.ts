@@ -4,6 +4,64 @@ export function withProviderProfileStaticFix(html: string): string {
   html = html.replace(/<script>\s*window\.__portfolioVersion[\s\S]*?<\/script>/, '')
 
   const script = `
+<style id="provider-profile-carousel-polish">
+  #portfolio-grid.portfolio-carousel {
+    display:flex !important;
+    grid-template-columns:none !important;
+    gap:18px !important;
+    overflow-x:auto !important;
+    overflow-y:hidden !important;
+    scroll-snap-type:x mandatory !important;
+    -webkit-overflow-scrolling:touch !important;
+    padding:4px 2px 16px !important;
+    scrollbar-width:thin !important;
+  }
+  #portfolio-grid.portfolio-carousel .portfolio-item {
+    flex:0 0 min(78vw, 420px) !important;
+    width:min(78vw, 420px) !important;
+    height:300px !important;
+    aspect-ratio:auto !important;
+    border-radius:22px !important;
+    scroll-snap-align:start !important;
+    box-shadow:0 14px 34px rgba(0,0,0,.10) !important;
+    border:1px solid rgba(0,0,0,.08) !important;
+    background:#fff !important;
+  }
+  #portfolio-grid.portfolio-carousel .portfolio-item img {
+    width:100% !important;
+    height:100% !important;
+    object-fit:cover !important;
+    display:block !important;
+  }
+  @media(max-width:700px){
+    #portfolio-grid.portfolio-carousel .portfolio-item {
+      flex-basis:86vw !important;
+      width:86vw !important;
+      height:260px !important;
+    }
+  }
+  .sl-share-round {
+    position:absolute !important;
+    right:72px !important;
+    top:20px !important;
+    width:42px !important;
+    height:42px !important;
+    min-width:42px !important;
+    padding:0 !important;
+    border-radius:999px !important;
+    border:1px solid rgba(255,255,255,.45) !important;
+    background:rgba(255,255,255,.18) !important;
+    color:#fff !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    backdrop-filter:blur(12px) !important;
+    -webkit-backdrop-filter:blur(12px) !important;
+    box-shadow:0 8px 24px rgba(0,0,0,.18) !important;
+    z-index:5 !important;
+  }
+  .sl-share-round span { display:none !important; }
+</style>
 <script id="provider-profile-static-rescue">
 (function(){
   var parts = location.pathname.split('/').filter(Boolean);
@@ -14,6 +72,15 @@ export function withProviderProfileStaticFix(html: string): string {
   function pid(){ return location.pathname.split('/').filter(Boolean).pop() || ''; }
   function money(v){ return 'GHS ' + Math.round(Number(v||0)/100).toLocaleString(); }
   function cleanText(v){ return String(v||'').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]||c}); }
+
+  function polishShareButton(){
+    var buttons = Array.prototype.slice.call(document.querySelectorAll('button'));
+    var share = buttons.find(function(b){ return /share profile/i.test(b.textContent || ''); });
+    if(!share) return;
+    share.classList.add('sl-share-round');
+    share.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>Share Profile</span>';
+    share.onclick = window.shareProviderProfile;
+  }
 
   window.shareProviderProfile = function(){
     var name = (q('profile-name')||{}).textContent || 'SalonLink Provider';
@@ -70,6 +137,7 @@ export function withProviderProfileStaticFix(html: string): string {
     set('info-phone', '—');
     var svc=q('services-grid'); if(svc)svc.innerHTML='<div style="text-align:center;padding:32px;color:var(--t-muted);">Services are loading slowly. Please refresh if they do not appear.</div>';
     var grid=q('portfolio-grid'); if(grid)grid.innerHTML='<div class="portfolio-empty">Portfolio is loading slowly. Please refresh if it does not appear.</div>';
+    polishShareButton();
   }
 
   function applyGalleryImages(items){
@@ -91,10 +159,11 @@ export function withProviderProfileStaticFix(html: string): string {
       applyGalleryImages(all);
       var photos=all.filter(function(ph){ return ph && ph.image_url && Number(ph.is_logo||0) === 0; });
       window.__portfolioPhotos = photos;
-      if(!photos.length){ grid.innerHTML='<div class="portfolio-empty">No portfolio images uploaded yet.</div>'; return; }
+      if(!photos.length){ grid.classList.remove('portfolio-carousel'); grid.innerHTML='<div class="portfolio-empty">No portfolio images uploaded yet.</div>'; return; }
       if(btn)btn.style.display='inline-flex';
+      grid.classList.add('portfolio-carousel');
       grid.innerHTML = photos.map(function(ph,i){ return '<button type="button" class="portfolio-item" onclick="openPortfolioModal('+i+')"><img src="'+ph.image_url+'" alt="Portfolio image '+(i+1)+'" loading="lazy"/></button>'; }).join('');
-    }).catch(function(){ grid.innerHTML='<div class="portfolio-empty">No portfolio images uploaded yet.</div>'; });
+    }).catch(function(){ grid.classList.remove('portfolio-carousel'); grid.innerHTML='<div class="portfolio-empty">No portfolio images uploaded yet.</div>'; });
   }
 
   function renderProvider(data){
@@ -130,12 +199,14 @@ export function withProviderProfileStaticFix(html: string): string {
     if(rev){ rev.innerHTML = reviews.length ? reviews.map(function(r){ return '<div style="padding:14px 0;border-bottom:1px solid var(--i-faint);"><div style="font-weight:700;font-size:13px;">'+cleanText((r.first_name||'')+' '+(r.last_name||''))+'</div><p style="font-size:13px;color:var(--t-secondary);">'+cleanText(r.comment||'')+'</p></div>'; }).join('') : '<div style="text-align:center;padding:24px;color:var(--t-muted);">No reviews yet — be the first to book!</div>'; }
 
     document.title = (p.business_name || 'Provider') + ' — SalonLink';
+    polishShareButton();
     renderPortfolio(p.id);
   }
 
   function load(){
     var id=pid();
     if(!id)return;
+    polishShareButton();
     getJson('/api/providers/' + encodeURIComponent(id) + '?ts=' + Date.now()).then(renderProvider).catch(function(e){ console.error('Provider rescue load failed:', e); showFallback(); });
   }
 
