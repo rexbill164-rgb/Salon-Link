@@ -85,10 +85,10 @@ bookings.post('/', async (c) => {
     if (customerConflict) return c.json({ success: false, error: 'You already have a booking at this time.' }, 409)
 
     // 3 GHS platform service fee (in pesewas)
-    const SERVICE_FEE = 300
-    const totalWithFee = (service.price || 0) + SERVICE_FEE
+    const SERVICE_FEE = 300 // GHS 3 charged to provider, NOT customer
+    const totalWithFee = (service.price || 0) // Customer pays only service price
 
-    // Create booking (total_amount includes 3 GHS service fee)
+    // Create booking (total_amount = service price only; service_fee is a provider obligation)
     const result = await c.env.DB.prepare(`
       INSERT INTO bookings (customer_id, provider_id, service_id, booking_date, booking_time, total_amount, service_fee, notes)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)

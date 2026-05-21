@@ -729,12 +729,44 @@ function saveNewService() {
     .catch(function(e){ showToast(e.response?e.response.data.error:'Save failed', 'error'); });
 }
 
-function deleteService(id) {
-  if (!confirm('Delete this service?')) return;
+function deleteService(id, name) {
+  if (!confirm('Delete service "' + (name||'this service') + '"?\nThis cannot be undone.')) return;
   var token = localStorage.getItem('sl_token');
   axios.delete('/api/providers/me/services/'+id, { headers: { Authorization: 'Bearer ' + token } })
     .then(function(){ showToast('Service deleted', 'info'); loadMyServices(token); })
-    .catch(function(){ showToast('Delete failed', 'error'); });
+    .catch(function(e){
+      var msg = e.response && e.response.data && e.response.data.error ? e.response.data.error : 'Delete failed';
+      showToast(msg, 'error');
+    });
+}
+
+var _editingSvcId = null;
+function openEditService(svc) {
+  _editingSvcId = svc.id;
+  var modal = document.getElementById('edit-svc-modal');
+  if (!modal) return;
+  document.getElementById('edit-svc-name').value = svc.name || '';
+  document.getElementById('edit-svc-price').value = Math.round((svc.price||0)/100) || '';
+  document.getElementById('edit-svc-duration').value = svc.duration_minutes || svc.duration || 60;
+  document.getElementById('edit-svc-desc').value = svc.description || '';
+  modal.style.display = 'flex';
+}
+function closeEditService() {
+  var modal = document.getElementById('edit-svc-modal');
+  if (modal) modal.style.display = 'none';
+  _editingSvcId = null;
+}
+function saveEditService() {
+  if (!_editingSvcId) return;
+  var token = localStorage.getItem('sl_token');
+  var name = document.getElementById('edit-svc-name').value.trim();
+  var price = parseFloat(document.getElementById('edit-svc-price').value) || 0;
+  var duration = parseInt(document.getElementById('edit-svc-duration').value) || 60;
+  var description = document.getElementById('edit-svc-desc').value.trim();
+  if (!name || !price) { showToast('Name and price are required', 'error'); return; }
+  axios.put('/api/providers/me/services/'+_editingSvcId, { name, price: price*100, duration, description }, { headers: { Authorization: 'Bearer ' + token } })
+    .then(function(){ showToast('Service updated ✓', 'success'); closeEditService(); loadMyServices(token); })
+    .catch(function(e){ showToast(e.response?.data?.error || 'Update failed', 'error'); });
 }
 
 function loadMyServices(token) {
@@ -744,13 +776,17 @@ function loadMyServices(token) {
       var svcs = r.data.services||[];
       if (!svcs.length) { el.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">No services yet. Add your first service above.</div>'; return; }
       el.innerHTML = svcs.map(function(s) {
-        return '<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--i-faint);">' +
-          '<div style="flex:1;">' +
-            '<div style="font-size:13px;font-weight:700;">'+s.name+'</div>' +
-            '<div style="font-size:11px;color:var(--t-muted);">'+(s.duration_minutes||s.duration||60)+' min</div>' +
+        var svcJson = JSON.stringify(s).replace(/"/g, '&quot;');
+        return '<div style="padding:12px 0;border-bottom:1px solid var(--i-faint);">' +
+          '<div style="display:flex;align-items:center;gap:12px;">' +
+            '<div style="flex:1;">' +
+              '<div style="font-size:13px;font-weight:700;">'+s.name+'</div>' +
+              '<div style="font-size:11px;color:var(--t-muted);">'+(s.duration_minutes||s.duration||60)+' min · '+(s.description||'')+'</div>' +
+            '</div>' +
+            '<div style="font-size:15px;font-weight:700;color:var(--g-main);">GHS '+Math.round((s.price||0)/100)+'</div>' +
+            '<button onclick='openEditService('+JSON.stringify(s).replace(/'/g,"\'")+')' style="width:28px;height:28px;border-radius:8px;border:1px solid var(--i-faint);background:transparent;color:var(--t-primary);cursor:pointer;font-size:11px;margin-right:4px;">✎</button>' +
+            '<button onclick="deleteService('+s.id+',''+s.name.replace(/'/g,"\'")+'')" style="width:28px;height:28px;border-radius:8px;border:1px solid rgba(224,112,112,0.3);background:transparent;color:var(--s-red);cursor:pointer;font-size:12px;">✕</button>' +
           '</div>' +
-          '<div style="font-size:15px;font-weight:700;color:var(--g-main);">GHS '+Math.round((s.price||0)/100)+'</div>' +
-          '<button onclick="deleteService('+s.id+')" style="width:28px;height:28px;border-radius:8px;border:1px solid rgba(224,112,112,0.3);background:transparent;color:var(--s-red);cursor:pointer;font-size:12px;">✕</button>' +
         '</div>';
       }).join('');
     }).catch(function(){ document.getElementById('my-services-list').innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">Could not load services.</div>'; });
@@ -846,6 +882,7 @@ function loadGallery(token) {
 }
 
 function deleteGalleryImage(id) {
+  if (!confirm('Delete this photo? This cannot be undone.')) return;
   if (!confirm('Delete this photo?')) return;
   var token = localStorage.getItem('sl_token');
   axios.delete('/api/uploads/provider-gallery/'+id, { headers:{ Authorization:'Bearer '+token } })
@@ -1165,4 +1202,24 @@ function saveProfile() {
     .catch(function(e){ showToast(e.response?e.response.data.error:'Save failed','error'); });
 }
 </script>
+
+<!-- Edit Service Modal -->
+<div id="edit-svc-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9000;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeEditService()">
+  <div style="background:var(--c-deep);border-radius:24px;padding:24px;max-width:420px;width:100%;border:1px solid var(--i-faint);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <h3 style="margin:0;font-size:15px;font-weight:800;">Edit Service</h3>
+      <button onclick="closeEditService()" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--i-faint);background:transparent;color:var(--t-primary);cursor:pointer;">✕</button>
+    </div>
+    <div style="margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:5px;">SERVICE NAME *</label><input id="edit-svc-name" class="input" type="text" placeholder="e.g. Hair Braiding"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:5px;">PRICE (GHS) *</label><input id="edit-svc-price" class="input" type="number" min="1" placeholder="50"/></div>
+      <div><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:5px;">DURATION (min)</label><input id="edit-svc-duration" class="input" type="number" min="15" placeholder="60"/></div>
+    </div>
+    <div style="margin-bottom:18px;"><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:5px;">DESCRIPTION</label><textarea id="edit-svc-desc" class="input" rows="2" placeholder="Brief description..." style="resize:none;"></textarea></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeEditService()" class="btn-ghost" style="flex:1;padding:12px;font-size:13px;">Cancel</button>
+      <button onclick="saveEditService()" class="btn-primary" style="flex:1;padding:12px;font-size:13px;">Save Changes</button>
+    </div>
+  </div>
+</div>
 </body></html>`

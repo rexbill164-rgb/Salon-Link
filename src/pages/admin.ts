@@ -88,6 +88,8 @@ ${baseHead('Admin Panel', `
         {id:'reconcile',   icon:'🔄', label:'Daily Reconcile'},
         {id:'reports',     icon:'📊', label:'Reports'},
         {id:'security',    icon:'🔒', label:'Security'},
+        {id:'rewards',     icon:'🎁', label:'Rewards'},
+        {id:'points',      icon:'⭐', label:'Points'},
       ].map((l,i)=>`
         <button onclick="adminSection('${l.id}',this)" class="sidebar-item ${i===0?'active':''}" id="admin-nav-${l.id}">
           <span class="icon">${l.icon}</span>
@@ -412,6 +414,44 @@ ${baseHead('Admin Panel', `
         </div>
       </div>
 
+
+      <!-- REWARDS SECTION -->
+      <div id="admin-rewards" class="admin-section">
+        <div class="eyebrow" style="margin-bottom:8px;">Reward Items</div>
+        <div style="font-size:12px;color:var(--t-muted);margin-bottom:20px;">Manage gadgets and items that providers can claim with their points.</div>
+        <button onclick="openAddRewardModal()" style="margin-bottom:20px;padding:10px 24px;border-radius:100px;font-size:12px;cursor:pointer;background:linear-gradient(135deg,#C9A84C,#8B6914);color:white;border:none;font-weight:700;">+ Add Reward Item</button>
+        <div id="rewards-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;"></div>
+      </div>
+
+      <!-- POINTS SECTION -->
+      <div id="admin-points" class="admin-section">
+        <div class="eyebrow" style="margin-bottom:8px;">Assign Points to Providers</div>
+        <div style="font-size:12px;color:var(--t-muted);margin-bottom:20px;">Select a provider, enter points and reason to award or deduct.</div>
+        <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:20px;max-width:520px;margin-bottom:24px;">
+          <div style="margin-bottom:14px;"><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:6px;">PROVIDER</label>
+            <select id="pts-provider" class="input" style="font-size:13px;"><option value="">Loading providers...</option></select>
+          </div>
+          <div style="margin-bottom:14px;"><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:6px;">POINTS (use negative to deduct)</label>
+            <input type="number" id="pts-amount" class="input" placeholder="e.g. 10 or -5" style="font-size:13px;"/>
+          </div>
+          <div style="margin-bottom:20px;"><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:6px;">REASON</label>
+            <select id="pts-reason" class="input" style="font-size:13px;">
+              <option value="">Select reason...</option>
+              <option>Booking confirmed</option>
+              <option>Job completed</option>
+              <option>Client pictures uploaded</option>
+              <option>Weekly service charge paid</option>
+              <option>Monthly service charge paid</option>
+              <option>Manual bonus</option>
+              <option>Penalty/reversal</option>
+            </select>
+          </div>
+          <button onclick="assignPoints()" style="width:100%;padding:12px;border-radius:100px;font-size:13px;cursor:pointer;background:linear-gradient(135deg,#C9A84C,#8B6914);color:white;border:none;font-weight:700;">Assign Points</button>
+        </div>
+        <div class="eyebrow" style="margin-bottom:12px;">Provider Points Leaderboard</div>
+        <div id="points-leaderboard"></div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -428,6 +468,8 @@ ${baseHead('Admin Panel', `
       {id:'fees',icon:'🧾',label:'Fees'},
       {id:'registrants',icon:'📋',label:'Registrants'},
       {id:'reports',icon:'📊',label:'Reports'},
+      {id:'rewards',icon:'🎁',label:'Rewards'},
+      {id:'points',icon:'⭐',label:'Points'},
     ].map((l,i)=>`
       <button class="amob-btn ${i===0?'active':''}" id="amob-${l.id}" onclick="adminSection('${l.id}',document.getElementById('admin-nav-${l.id}'))">
         <span class="aico">${l.icon}</span>${l.label}
@@ -466,6 +508,8 @@ function adminSection(id, btn) {
   if (id === 'providers') loadProviders();
   if (id === 'kyc') loadKyc();
   if (id === 'bookings') loadBookings();
+  if (id === 'rewards') loadRewards();
+  if (id === 'points') loadPointsSection();
   if (id === 'reconcile') {
     var dateInput = document.getElementById('reconcile-date');
     if (dateInput && !dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
@@ -1065,5 +1109,156 @@ function exportTransactions() {
   a.click();
   showToast('CSV exported','success');
 }
+// ─── REWARDS ──────────────────────────────────────────────────────────────────
+function loadRewards() {
+  var token = localStorage.getItem('sl_token');
+  axios.get('/api/admin/reward-items', {headers:{Authorization:'Bearer '+token}})
+    .then(function(res){
+      var items = res.data.items || [];
+      var el = document.getElementById('rewards-list');
+      if (!el) return;
+      if (!items.length) { el.innerHTML='<div style="color:var(--t-muted);font-size:13px;">No reward items yet. Add your first item.</div>'; return; }
+      el.innerHTML = items.map(function(it){
+        return '<div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:16px;">' +
+          (it.image_url ? '<img src="'+it.image_url+'" style="width:100%;height:120px;object-fit:cover;border-radius:10px;margin-bottom:10px;"/>' : '') +
+          '<div style="font-size:13px;font-weight:700;margin-bottom:4px;">'+it.name+'</div>' +
+          '<div style="font-size:11px;color:var(--t-muted);margin-bottom:6px;">'+(it.description||'')+'</div>' +
+          '<div style="font-size:12px;font-weight:800;color:#C9A84C;margin-bottom:10px;">⭐ '+it.points_required+' pts</div>' +
+          '<div style="font-size:11px;margin-bottom:12px;padding:4px 10px;border-radius:100px;display:inline-block;background:'+(it.is_active||it.is_available?'rgba(0,200,83,0.1)':'rgba(255,0,0,0.08)')+';">'+((it.is_active||it.is_available)?'✓ Available':'✗ Disabled')+'</div>' +
+          '<div style="display:flex;gap:8px;">' +
+            '<button onclick="editRewardItem('+JSON.stringify(it)+')" style="flex:1;padding:8px;border-radius:10px;border:1px solid var(--i-faint);background:transparent;color:var(--t-primary);cursor:pointer;font-size:11px;font-weight:600;">Edit</button>' +
+            '<button onclick="deleteRewardItem('+it.id+')" style="flex:1;padding:8px;border-radius:10px;border:1px solid rgba(224,112,112,0.3);background:transparent;color:var(--s-red);cursor:pointer;font-size:11px;font-weight:600;">Delete</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }).catch(function(){ showToast('Could not load reward items','error'); });
+}
+
+function openAddRewardModal() {
+  document.getElementById('reward-modal-title').textContent = 'Add Reward Item';
+  document.getElementById('reward-edit-id').value = '';
+  document.getElementById('reward-name').value = '';
+  document.getElementById('reward-desc').value = '';
+  document.getElementById('reward-points').value = '';
+  document.getElementById('reward-image').value = '';
+  document.getElementById('reward-available').checked = true;
+  document.getElementById('reward-modal').style.display = 'flex';
+}
+
+function editRewardItem(it) {
+  document.getElementById('reward-modal-title').textContent = 'Edit Reward Item';
+  document.getElementById('reward-edit-id').value = it.id;
+  document.getElementById('reward-name').value = it.name || '';
+  document.getElementById('reward-desc').value = it.description || '';
+  document.getElementById('reward-points').value = it.points_required || '';
+  document.getElementById('reward-image').value = it.image_url || '';
+  document.getElementById('reward-available').checked = !!(it.is_active || it.is_available);
+  document.getElementById('reward-modal').style.display = 'flex';
+}
+
+function closeRewardModal() {
+  document.getElementById('reward-modal').style.display = 'none';
+}
+
+function saveRewardItem() {
+  var token = localStorage.getItem('sl_token');
+  var id = document.getElementById('reward-edit-id').value;
+  var payload = {
+    name: document.getElementById('reward-name').value.trim(),
+    description: document.getElementById('reward-desc').value.trim(),
+    points_required: parseInt(document.getElementById('reward-points').value) || 0,
+    image_url: document.getElementById('reward-image').value.trim() || null,
+    is_available: document.getElementById('reward-available').checked
+  };
+  if (!payload.name || !payload.points_required) { showToast('Name and points are required','error'); return; }
+  var req = id
+    ? axios.put('/api/admin/reward-items/'+id, payload, {headers:{Authorization:'Bearer '+token}})
+    : axios.post('/api/admin/reward-items', payload, {headers:{Authorization:'Bearer '+token}});
+  req.then(function(){ showToast(id?'Item updated':'Item created','success'); closeRewardModal(); loadRewards(); })
+     .catch(function(){ showToast('Could not save item','error'); });
+}
+
+function deleteRewardItem(id) {
+  if (!confirm('Delete this reward item?')) return;
+  var token = localStorage.getItem('sl_token');
+  axios.delete('/api/admin/reward-items/'+id, {headers:{Authorization:'Bearer '+token}})
+    .then(function(){ showToast('Item deleted','info'); loadRewards(); })
+    .catch(function(){ showToast('Could not delete item','error'); });
+}
+
+// ─── POINTS LEADERBOARD ───────────────────────────────────────────────────────
+function loadPointsSection() {
+  var token = localStorage.getItem('sl_token');
+  // Load provider list into select
+  axios.get('/api/admin/providers', {headers:{Authorization:'Bearer '+token}})
+    .then(function(res){
+      var providers = res.data.providers || [];
+      var sel = document.getElementById('pts-provider');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">Select provider...</option>' +
+        providers.map(function(p){ return '<option value="'+p.id+'">'+p.business_name+' ('+p.email+')</option>'; }).join('');
+    }).catch(function(){});
+  // Load leaderboard
+  axios.get('/api/admin/providers/points', {headers:{Authorization:'Bearer '+token}})
+    .then(function(res){
+      var providers = res.data.providers || [];
+      var el = document.getElementById('points-leaderboard');
+      if (!el) return;
+      if (!providers.length) { el.innerHTML='<div style="color:var(--t-muted);font-size:13px);">No point data yet.</div>'; return; }
+      el.innerHTML = '<div class="table-scroll"><table class="admin-table"><thead><tr><th>#</th><th>Provider</th><th>Email</th><th>Total Points</th><th>Action</th></tr></thead><tbody>' +
+        providers.map(function(p, i){
+          return '<tr>' +
+            '<td style="font-weight:700;">'+(i+1)+'</td>' +
+            '<td>'+p.business_name+'</td>' +
+            '<td style="color:var(--t-muted);font-size:11px;">'+p.email+'</td>' +
+            '<td><span style="font-weight:800;color:#C9A84C;">⭐ '+p.loyalty_points+'</span></td>' +
+            '<td><button onclick="viewProviderPoints('+p.id+',''+p.business_name+'')" style="padding:6px 12px;border-radius:8px;border:1px solid var(--i-faint);background:transparent;color:var(--t-primary);cursor:pointer;font-size:11px;">History</button></td>' +
+          '</tr>';
+        }).join('') +
+        '</tbody></table></div>';
+    }).catch(function(){});
+}
+
+function assignPoints() {
+  var token = localStorage.getItem('sl_token');
+  var providerId = document.getElementById('pts-provider').value;
+  var points = parseInt(document.getElementById('pts-amount').value);
+  var reason = document.getElementById('pts-reason').value;
+  if (!providerId) { showToast('Select a provider','error'); return; }
+  if (!points || isNaN(points)) { showToast('Enter a valid points amount','error'); return; }
+  if (!reason) { showToast('Select a reason','error'); return; }
+  axios.post('/api/admin/providers/'+providerId+'/points', {points:points, reason:reason}, {headers:{Authorization:'Bearer '+token}})
+    .then(function(res){ showToast(res.data.message || 'Points assigned!','success'); loadPointsSection(); })
+    .catch(function(e){ showToast(e.response?.data?.error || 'Could not assign points','error'); });
+}
+
+function viewProviderPoints(id, name) {
+  var token = localStorage.getItem('sl_token');
+  axios.get('/api/admin/providers/'+id+'/points', {headers:{Authorization:'Bearer '+token}})
+    .then(function(res){
+      var hist = res.data.history || [];
+      var msg = name+' — Total: '+res.data.total_points+' pts\n\n';
+      msg += hist.slice(0,10).map(function(h){ return (h.points>0?'+':'')+h.points+' — '+(h.description||h.reason||h.type)+' ('+new Date(h.created_at).toLocaleDateString()+')'; }).join('\n');
+      alert(msg);
+    }).catch(function(){ showToast('Could not load points history','error'); });
+}
+
 </script>
+
+<!-- Add Reward Modal -->
+<div id="reward-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--c-deep);border-radius:24px;padding:28px;max-width:440px;width:100%;border:1px solid var(--i-faint);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="margin:0;font-size:16px;font-weight:800;" id="reward-modal-title">Add Reward Item</h3>
+      <button onclick="closeRewardModal()" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--i-faint);background:transparent;color:var(--t-primary);cursor:pointer;">✕</button>
+    </div>
+    <input type="hidden" id="reward-edit-id"/>
+    <div style="margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:6px;">ITEM NAME *</label><input id="reward-name" class="input" type="text" placeholder="e.g. Hair Dryer Pro"/></div>
+    <div style="margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:6px;">DESCRIPTION</label><textarea id="reward-desc" class="input" rows="2" placeholder="Brief description..." style="resize:none;"></textarea></div>
+    <div style="margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:6px;">POINTS REQUIRED *</label><input id="reward-points" class="input" type="number" placeholder="e.g. 100"/></div>
+    <div style="margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:6px;">IMAGE URL</label><input id="reward-image" class="input" type="url" placeholder="https://..."/></div>
+    <div style="margin-bottom:20px;display:flex;align-items:center;gap:8px;"><input type="checkbox" id="reward-available" checked/><label style="font-size:13px;font-weight:600;">Available for claiming</label></div>
+    <button onclick="saveRewardItem()" style="width:100%;padding:13px;border-radius:100px;font-size:13px;cursor:pointer;background:linear-gradient(135deg,#C9A84C,#8B6914);color:white;border:none;font-weight:700;">Save Item</button>
+  </div>
+</div>
 </body></html>`

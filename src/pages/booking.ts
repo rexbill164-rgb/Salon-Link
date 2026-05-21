@@ -221,7 +221,7 @@ ${navbar('')}
             <div style="font-size:13px;font-weight:700;color:var(--g-main);margin-bottom:6px;">💵 Pay On-Site Details</div>
             <div style="font-size:12px;color:var(--t-secondary);line-height:1.6;">
               Your booking will be confirmed immediately. Pay the full amount directly to the provider when you arrive.<br/>
-              <strong style="color:var(--t-primary);">Note:</strong> Your provider will send a GHS 3 platform fee to SalonLink after your appointment.
+              
             </div>
           </div>
 
@@ -310,10 +310,7 @@ ${navbar('')}
               <span style="font-size:12px;color:var(--t-muted);">Service Price</span>
               <span style="font-size:13px;font-weight:600;" id="sum-service-price">—</span>
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-              <span style="font-size:12px;color:var(--t-muted);">Platform Fee</span>
-              <span style="font-size:13px;color:var(--t-muted);">GHS 3</span>
-            </div>
+
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
               <span style="font-size:14px;font-weight:600;">Total</span>
               <span class="font-display gold-gradient" style="font-size:28px;" id="sum-price">—</span>
@@ -399,13 +396,7 @@ ${navbar('')}
         <span style="font-size:11px;color:#aaa;" id="rc-issued"></span>
         <span style="font-size:12px;font-weight:700;" id="rc-status"></span>
       </div>
-      <!-- Cash fee notice (shown only for cash payment) -->
-      <div id="rc-cash-notice" style="display:none;background:#FFF8E6;border:1.5px solid #FFD89B;border-radius:14px;padding:14px;margin-bottom:16px;">
-        <div style="font-size:11px;font-weight:700;color:#C9A84C;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.07em;">💳 Platform Fee</div>
-        <div style="font-size:12px;color:#555;margin-bottom:8px;">After your appointment, your provider will send the <strong>GHS 3.00</strong> platform fee to:</div>
-        <div style="font-size:14px;font-weight:800;color:#E1306C;letter-spacing:0.05em;">0533 675 960</div>
-        <div style="font-size:12px;color:#777;">Nadia Yartey · MTN MoMo</div>
-      </div>
+
       <button onclick="window.location.href='/dashboard'" style="width:100%;background:linear-gradient(135deg,#833AB4,#E1306C);color:#fff;border:none;border-radius:14px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;">View My Bookings</button>
     </div>
   </div>
@@ -543,7 +534,7 @@ function selectSvc(el) {
   selectedService = { id: svcId, name: name, pricePs: pricePs, priceGhs: priceGhs, dur: durStr };
   document.getElementById('sum-service').textContent = name;
   document.getElementById('sum-service-price').textContent = 'GHS ' + priceGhs;
-  document.getElementById('sum-price').textContent = 'GHS ' + (priceGhs + 3);
+  document.getElementById('sum-price').textContent = 'GHS ' + priceGhs;
   document.getElementById('sum-dur').textContent = durStr;
 }
 
@@ -591,7 +582,7 @@ function proceedToStep4() {
     document.getElementById('recap-service').textContent = selectedService.name;
     document.getElementById('recap-date').textContent = selectedDateDisplay || selectedDate || '—';
     document.getElementById('recap-time').textContent = selectedTime || '—';
-    document.getElementById('recap-total').textContent = 'GHS ' + (selectedService.priceGhs + 3);
+    document.getElementById('recap-total').textContent = 'GHS ' + selectedService.priceGhs;
   }
   goStep(4);
 }
@@ -682,7 +673,7 @@ function confirmBooking() {
 function showPaymentModal() {
   var modal = document.getElementById('payment-modal');
   document.getElementById('pm-service').textContent = selectedService ? selectedService.name : '';
-  document.getElementById('pm-total').textContent = selectedService ? 'GHS ' + (selectedService.priceGhs + 3) : '';
+  document.getElementById('pm-total').textContent = selectedService ? 'GHS ' + selectedService.priceGhs : '';
   document.getElementById('pm-provider').textContent = _providerName;
   document.getElementById('pm-ref').textContent = _bookingRef;
   modal.style.display = 'flex';
@@ -721,7 +712,7 @@ function showReceipt(method, momoNum) {
     axios.post('/api/payments/mock-success', { booking_id: _bookingId }, { headers: { Authorization: 'Bearer ' + token } }).catch(function(){});
   }
   var svcName = selectedService ? selectedService.name : 'Service';
-  var totalGhs = selectedService ? selectedService.priceGhs + 3 : 3;
+  var totalGhs = selectedService ? selectedService.priceGhs : 0;
   var now = new Date();
   var dateStr = now.toLocaleDateString('en-GH', { day:'numeric', month:'long', year:'numeric' });
   var timeStr = now.toLocaleTimeString('en-GH', { hour:'2-digit', minute:'2-digit' });
@@ -733,8 +724,6 @@ function showReceipt(method, momoNum) {
   document.getElementById('rc-issued').textContent = dateStr + ' at ' + timeStr;
   document.getElementById('rc-status').textContent = method === 'momo' ? '✓ PAID' : '⏳ Pay on arrival';
   document.getElementById('rc-status').style.color = method === 'momo' ? '#00C853' : '#C9A84C';
-  var cashNotice = document.getElementById('rc-cash-notice');
-  if (cashNotice) cashNotice.style.display = method === 'cash' ? 'block' : 'none';
   document.getElementById('receipt-modal').style.display = 'flex';
 }
 
