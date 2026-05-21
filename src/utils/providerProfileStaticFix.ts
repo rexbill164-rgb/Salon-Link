@@ -1,4 +1,8 @@
 export function withProviderProfileStaticFix(html: string): string {
+  // Remove the old inline provider-profile script before injecting the fixed loader.
+  // The old script contains broken inline quote handling that causes console syntax errors.
+  html = html.replace(/<script>\s*window\.__portfolioVersion[\s\S]*?<\/script>/, '')
+
   const script = `
 <script id="provider-profile-static-rescue">
 (function(){
@@ -21,6 +25,29 @@ export function withProviderProfileStaticFix(html: string): string {
     } else {
       if(window.showToast) showToast('Copy this link: ' + url, 'info');
     }
+  };
+
+  window.bookService = window.bookService || function(el){
+    var svcId = el && el.getAttribute ? el.getAttribute('data-svc-id') : '';
+    var providerId = pid();
+    location.href = '/book/' + providerId + (svcId ? '?service=' + svcId : '');
+  };
+
+  window.openPortfolioModal = window.openPortfolioModal || function(index){
+    var photos = window.__portfolioPhotos || [];
+    var item = photos[index];
+    if(!item) return;
+    var modal=q('portfolio-modal'), img=q('portfolio-modal-image'), caption=q('portfolio-modal-caption');
+    if(!modal || !img || !caption) return;
+    img.src = item.image_url;
+    caption.textContent = item.caption || 'Portfolio image';
+    modal.classList.add('open');
+  };
+
+  window.closePortfolioModal = window.closePortfolioModal || function(ev){
+    if (ev && ev.target && ev.target.closest && ev.target.closest('.portfolio-modal-card')) return;
+    var modal=q('portfolio-modal');
+    if(modal) modal.classList.remove('open');
   };
 
   function getJson(url){
