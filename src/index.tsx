@@ -30,6 +30,7 @@ import { repairInlineScriptText } from './utils/generatedScriptRepairs'
 import { withDiscoveryNearbyUi, withProviderDashboardMessagesButton } from './utils/chatMapServiceEnhancements'
 import { withProviderGalleryDeleteFix } from './utils/providerGalleryDeleteFix'
 import { withProviderDashboardStaticFix } from './utils/providerDashboardStaticFix'
+import { withProviderProfileStaticFix } from './utils/providerProfileStaticFix'
 import { withAdminDashboardStaticFix } from './utils/adminDashboardStaticFix'
 import { withPaymentDisabledUi } from './utils/paymentDisabledUi'
 import { withProviderKycLogoutFix } from './utils/providerKycLogoutFix'
@@ -116,7 +117,8 @@ const adminDash = () =>
     )
   )
 
-const providerProfile = (id: string) => page(providerProfilePage(id))
+const providerProfile = (id: string) =>
+  page(withProviderProfileStaticFix(providerProfilePage(id)))
 
 app.get('/manifest.json', (c) => c.json(salonLinkManifest()))
 app.get('/splash.svg', (c) => c.body(splashSvg(), 200, {
@@ -161,7 +163,7 @@ app.get('/payment/success', (c) => c.html(noPay(paymentSuccessPage())))
 app.get('/api/health', (c) => c.json({
   status: 'ok',
   app: 'SalonLink',
-  version: '2.1.14-admin-dashboard-static-fix',
+  version: '2.1.15-provider-profile-static-fix',
   db: 'D1 Connected',
   timestamp: new Date().toISOString()
 }))
