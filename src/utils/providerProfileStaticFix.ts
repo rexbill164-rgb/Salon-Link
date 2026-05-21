@@ -11,6 +11,18 @@ export function withProviderProfileStaticFix(html: string): string {
   function money(v){ return 'GHS ' + Math.round(Number(v||0)/100).toLocaleString(); }
   function cleanText(v){ return String(v||'').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]||c}); }
 
+  window.shareProviderProfile = function(){
+    var name = (q('profile-name')||{}).textContent || 'SalonLink Provider';
+    var url = location.origin + location.pathname;
+    if (navigator.share) {
+      navigator.share({ title: name + ' — SalonLink', text: 'Book ' + name + ' on SalonLink', url: url }).catch(function(){});
+    } else if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function(){ if(window.showToast) showToast('Profile link copied','success'); });
+    } else {
+      if(window.showToast) showToast('Copy this link: ' + url, 'info');
+    }
+  };
+
   function getJson(url){
     if (window.axios) return window.axios.get(url, { timeout: 4500 }).then(function(r){ return r.data; });
     return fetch(url, { cache:'no-store' }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
@@ -33,13 +45,24 @@ export function withProviderProfileStaticFix(html: string): string {
     var grid=q('portfolio-grid'); if(grid)grid.innerHTML='<div class="portfolio-empty">Portfolio is loading slowly. Please refresh if it does not appear.</div>';
   }
 
+  function applyGalleryImages(items){
+    var logo = (items || []).find(function(ph){ return ph && ph.image_url && Number(ph.is_logo||0) === 1; });
+    var cover = (items || []).find(function(ph){ return ph && ph.image_url && Number(ph.is_logo||0) === 2; });
+    var av=q('profile-avatar');
+    var cv=q('profile-cover');
+    if(av && logo) av.src = logo.image_url;
+    if(cv && cover) cv.src = cover.image_url;
+  }
+
   function renderPortfolio(providerId){
     var grid=q('portfolio-grid');
     var btn=q('portfolio-view-all-btn');
     if(btn)btn.style.display='none';
     if(!grid)return;
     getJson('/api/uploads/provider-gallery/' + encodeURIComponent(providerId) + '?ts=' + Date.now()).then(function(data){
-      var photos=(data.photos||data.gallery||[]).filter(function(ph){ return ph && ph.image_url && Number(ph.is_logo||0) === 0; });
+      var all = data.photos || data.gallery || [];
+      applyGalleryImages(all);
+      var photos=all.filter(function(ph){ return ph && ph.image_url && Number(ph.is_logo||0) === 0; });
       window.__portfolioPhotos = photos;
       if(!photos.length){ grid.innerHTML='<div class="portfolio-empty">No portfolio images uploaded yet.</div>'; return; }
       if(btn)btn.style.display='inline-flex';
