@@ -46,22 +46,9 @@ providers.get('/', async (c) => {
     let query = `
       SELECT p.id, p.user_id, p.business_name, p.service_category, p.bio, p.address, p.city,
         p.location_lat, p.location_lng, p.price_from, p.price_to, p.rating, p.total_reviews,
-        p.total_bookings, p.is_verified, p.is_accepting_bookings, p.kyc_status,
-
-        CASE
-          WHEN p.logo_url LIKE 'data:%' THEN NULL
-          ELSE p.logo_url
-        END as logo_url,
-
+        p.total_bookings, p.is_verified, p.is_accepting_bookings, p.kyc_status, p.logo_url,
         p.has_pro_gallery, p.created_at,
-
-        CASE
-          WHEN cov.image_url LIKE 'data:%' THEN NULL
-          WHEN p.cover_url LIKE 'data:%' THEN NULL
-          WHEN p.cover_url NOT IN ('gallery','') THEN p.cover_url
-          ELSE NULL
-        END as cover_url,
-
+        COALESCE(cov.image_url, CASE WHEN p.cover_url NOT IN ('gallery','') THEN p.cover_url ELSE NULL END, p.logo_url) as cover_url,
         u.first_name, u.last_name, u.avatar_url as user_avatar,
         (SELECT COUNT(*) FROM services s WHERE s.provider_id = p.id AND s.is_active = 1) as service_count
       FROM providers p
@@ -401,20 +388,8 @@ providers.get('/nearby', async (c) => {
     const result = await c.env.DB.prepare(`
       SELECT p.id, p.user_id, p.business_name, p.service_category, p.bio, p.city,
         p.location_lat, p.location_lng, p.price_from, p.price_to, p.rating, p.total_reviews,
-        p.is_verified, p.is_accepting_bookings,
-
-        CASE
-          WHEN p.logo_url LIKE 'data:%' THEN NULL
-          ELSE p.logo_url
-        END as logo_url,
-
-        CASE
-          WHEN cov.image_url LIKE 'data:%' THEN NULL
-          WHEN p.cover_url LIKE 'data:%' THEN NULL
-          WHEN p.cover_url NOT IN ('gallery','') THEN p.cover_url
-          ELSE NULL
-        END as cover_url,
-
+        p.is_verified, p.is_accepting_bookings, p.logo_url,
+        COALESCE(cov.image_url, CASE WHEN p.cover_url NOT IN ('gallery','') THEN p.cover_url ELSE NULL END, p.logo_url) as cover_url,
         u.first_name, u.last_name,
         (SELECT COUNT(*) FROM services s WHERE s.provider_id = p.id AND s.is_active = 1) as service_count
       FROM providers p
