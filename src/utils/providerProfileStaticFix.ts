@@ -8,22 +8,24 @@ export function withProviderProfileStaticFix(html: string): string {
   #portfolio-grid.portfolio-carousel {
     display:flex !important;
     grid-template-columns:none !important;
-    gap:18px !important;
+    gap:12px !important;
     overflow-x:auto !important;
     overflow-y:hidden !important;
-    scroll-snap-type:x mandatory !important;
+    scroll-snap-type:x proximity !important;
     -webkit-overflow-scrolling:touch !important;
-    padding:4px 2px 16px !important;
+    padding:4px 2px 14px !important;
     scrollbar-width:thin !important;
+    cursor:grab !important;
   }
+  #portfolio-grid.portfolio-carousel:active { cursor:grabbing !important; }
   #portfolio-grid.portfolio-carousel .portfolio-item {
-    flex:0 0 min(78vw, 420px) !important;
-    width:min(78vw, 420px) !important;
-    height:300px !important;
-    aspect-ratio:auto !important;
-    border-radius:22px !important;
+    flex:0 0 210px !important;
+    width:210px !important;
+    height:210px !important;
+    aspect-ratio:1 / 1 !important;
+    border-radius:18px !important;
     scroll-snap-align:start !important;
-    box-shadow:0 14px 34px rgba(0,0,0,.10) !important;
+    box-shadow:0 8px 22px rgba(0,0,0,.10) !important;
     border:1px solid rgba(0,0,0,.08) !important;
     background:#fff !important;
   }
@@ -35,9 +37,9 @@ export function withProviderProfileStaticFix(html: string): string {
   }
   @media(max-width:700px){
     #portfolio-grid.portfolio-carousel .portfolio-item {
-      flex-basis:86vw !important;
-      width:86vw !important;
-      height:260px !important;
+      flex-basis:68vw !important;
+      width:68vw !important;
+      height:220px !important;
     }
   }
   .sl-share-round {
@@ -117,6 +119,16 @@ export function withProviderProfileStaticFix(html: string): string {
     if(modal) modal.classList.remove('open');
   };
 
+  function enableDragScroll(el){
+    if(!el || el.dataset.dragScrollReady === '1') return;
+    el.dataset.dragScrollReady = '1';
+    var down=false, startX=0, startLeft=0;
+    el.addEventListener('mousedown', function(e){ down=true; startX=e.pageX; startLeft=el.scrollLeft; });
+    window.addEventListener('mouseup', function(){ down=false; });
+    el.addEventListener('mouseleave', function(){ down=false; });
+    el.addEventListener('mousemove', function(e){ if(!down) return; e.preventDefault(); el.scrollLeft = startLeft - (e.pageX - startX); });
+  }
+
   function getJson(url){
     if (window.axios) return window.axios.get(url, { timeout: 4500 }).then(function(r){ return r.data; });
     return fetch(url, { cache:'no-store' }).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
@@ -163,6 +175,7 @@ export function withProviderProfileStaticFix(html: string): string {
       if(btn)btn.style.display='inline-flex';
       grid.classList.add('portfolio-carousel');
       grid.innerHTML = photos.map(function(ph,i){ return '<button type="button" class="portfolio-item" onclick="openPortfolioModal('+i+')"><img src="'+ph.image_url+'" alt="Portfolio image '+(i+1)+'" loading="lazy"/></button>'; }).join('');
+      enableDragScroll(grid);
     }).catch(function(){ grid.classList.remove('portfolio-carousel'); grid.innerHTML='<div class="portfolio-empty">No portfolio images uploaded yet.</div>'; });
   }
 
