@@ -9,7 +9,54 @@ export function withProviderProfileStaticFix(html: string): string {
     display:none !important;
   }
   .hero-cover > div[style*="bottom:0"] {
-    padding-bottom:34px !important;
+    padding-bottom:30px !important;
+  }
+  .sl-hero-actions-row {
+    display:flex !important;
+    align-items:center !important;
+    gap:10px !important;
+    margin-top:10px !important;
+    flex-wrap:wrap !important;
+  }
+  .sl-hero-pill {
+    height:34px !important;
+    padding:0 14px !important;
+    border-radius:999px !important;
+    border:1px solid rgba(255,255,255,.42) !important;
+    background:rgba(255,255,255,.16) !important;
+    color:#fff !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    gap:7px !important;
+    font-size:12px !important;
+    font-weight:800 !important;
+    cursor:pointer !important;
+    backdrop-filter:blur(12px) !important;
+    -webkit-backdrop-filter:blur(12px) !important;
+    box-shadow:0 8px 24px rgba(0,0,0,.14) !important;
+  }
+  .sl-logo-open-badge {
+    position:absolute !important;
+    left:50% !important;
+    bottom:-25px !important;
+    transform:translateX(-50%) !important;
+    height:23px !important;
+    padding:0 10px !important;
+    border-radius:999px !important;
+    background:rgba(255,255,255,.95) !important;
+    color:#0f7a3d !important;
+    display:inline-flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    font-size:10px !important;
+    font-weight:900 !important;
+    white-space:nowrap !important;
+    box-shadow:0 6px 16px rgba(0,0,0,.16) !important;
+    z-index:10 !important;
+  }
+  #profile-status-badge {
+    display:none !important;
   }
   #portfolio-grid.portfolio-carousel {
     display:flex !important;
@@ -90,29 +137,8 @@ export function withProviderProfileStaticFix(html: string): string {
   }
   @media(max-width:700px){
     #portfolio-grid.portfolio-carousel .portfolio-item { height:230px !important; }
+    .sl-hero-pill { height:32px !important; padding:0 12px !important; font-size:11px !important; }
   }
-  .sl-share-round {
-    position:absolute !important;
-    right:20px !important;
-    top:auto !important;
-    bottom:34px !important;
-    width:42px !important;
-    height:42px !important;
-    min-width:42px !important;
-    padding:0 !important;
-    border-radius:999px !important;
-    border:1px solid rgba(255,255,255,.45) !important;
-    background:rgba(255,255,255,.18) !important;
-    color:#fff !important;
-    display:inline-flex !important;
-    align-items:center !important;
-    justify-content:center !important;
-    backdrop-filter:blur(12px) !important;
-    -webkit-backdrop-filter:blur(12px) !important;
-    box-shadow:0 8px 24px rgba(0,0,0,.18) !important;
-    z-index:5 !important;
-  }
-  .sl-share-round span { display:none !important; }
 </style>
 <script id="provider-profile-static-rescue">
 (function(){
@@ -125,13 +151,39 @@ export function withProviderProfileStaticFix(html: string): string {
   function money(v){ return 'GHS ' + Math.round(Number(v||0)/100).toLocaleString(); }
   function cleanText(v){ return String(v||'').replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]||c}); }
 
-  function polishShareButton(){
-    var buttons = Array.prototype.slice.call(document.querySelectorAll('button'));
-    var share = buttons.find(function(b){ return /share profile/i.test(b.textContent || ''); });
-    if(!share) return;
-    share.classList.add('sl-share-round');
-    share.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span>Share Profile</span>';
-    share.onclick = window.shareProviderProfile;
+  function setupHeroActions(){
+    var cat=q('profile-category-loc');
+    if(!cat) return;
+    var old=document.getElementById('sl-hero-actions-row');
+    if(old) old.remove();
+    var row=document.createElement('div');
+    row.id='sl-hero-actions-row';
+    row.className='sl-hero-actions-row';
+    row.innerHTML='<button type="button" class="sl-hero-pill" id="sl-fav-btn">♡ Fav</button><button type="button" class="sl-hero-pill" id="sl-share-btn">↗ Share</button>';
+    cat.insertAdjacentElement('afterend', row);
+    var fav=q('sl-fav-btn');
+    var share=q('sl-share-btn');
+    if(fav) fav.onclick=function(){ if(window.showToast) showToast('Saved to favourites ✦','success'); };
+    if(share) share.onclick=window.shareProviderProfile;
+
+    var buttons=Array.prototype.slice.call(document.querySelectorAll('button'));
+    buttons.forEach(function(b){
+      var text=(b.textContent||'').toLowerCase();
+      if(text.indexOf('share profile') >= 0) b.style.display='none';
+    });
+  }
+
+  function placeOpenUnderLogo(isOpen){
+    var ring=document.querySelector('.avatar-ring');
+    if(!ring) return;
+    var old=document.getElementById('sl-logo-open-badge');
+    if(old) old.remove();
+    var badge=document.createElement('span');
+    badge.id='sl-logo-open-badge';
+    badge.className='sl-logo-open-badge';
+    badge.textContent=isOpen ? 'Open' : 'Closed';
+    badge.style.color=isOpen ? '#0f7a3d' : '#b42318';
+    ring.appendChild(badge);
   }
 
   window.shareProviderProfile = function(){
@@ -189,7 +241,8 @@ export function withProviderProfileStaticFix(html: string): string {
     set('info-phone', '—');
     var svc=q('services-grid'); if(svc)svc.innerHTML='<div style="text-align:center;padding:32px;color:var(--t-muted);">Services are loading slowly. Please refresh if they do not appear.</div>';
     var grid=q('portfolio-grid'); if(grid)grid.innerHTML='<div class="portfolio-empty">Portfolio is loading slowly. Please refresh if it does not appear.</div>';
-    polishShareButton();
+    setupHeroActions();
+    placeOpenUnderLogo(true);
   }
 
   function applyGalleryImages(items){
@@ -291,8 +344,11 @@ export function withProviderProfileStaticFix(html: string): string {
     set('info-location', [p.address, p.city].filter(Boolean).join(', ') || 'Accra, Ghana');
     set('info-phone', p.phone || '—');
 
-    var status=q('profile-status-badge'); if(status){ status.style.display='inline-flex'; status.textContent = p.is_accepting_bookings ? 'Open' : 'Not Accepting Bookings'; }
+    var status=q('profile-status-badge'); if(status){ status.style.display='none'; }
+    placeOpenUnderLogo(!!p.is_accepting_bookings);
     var ver=q('profile-verified-badge'); if(ver){ ver.style.display='inline-flex'; ver.textContent = p.is_verified ? 'Verified' : 'New'; }
+
+    setupHeroActions();
 
     var svc=q('services-grid');
     if(svc){
@@ -306,14 +362,12 @@ export function withProviderProfileStaticFix(html: string): string {
     if(rev){ rev.innerHTML = reviews.length ? reviews.map(function(r){ return '<div style="padding:14px 0;border-bottom:1px solid var(--i-faint);"><div style="font-weight:700;font-size:13px;">'+cleanText((r.first_name||'')+' '+(r.last_name||''))+'</div><p style="font-size:13px;color:var(--t-secondary);">'+cleanText(r.comment||'')+'</p></div>'; }).join('') : '<div style="text-align:center;padding:24px;color:var(--t-muted);">No reviews yet — be the first to book!</div>'; }
 
     document.title = (p.business_name || 'Provider') + ' — SalonLink';
-    polishShareButton();
     renderPortfolio(p.id);
   }
 
   function load(){
     var id=pid();
     if(!id)return;
-    polishShareButton();
     getJson('/api/providers/' + encodeURIComponent(id) + '?ts=' + Date.now()).then(renderProvider).catch(function(e){ console.error('Provider rescue load failed:', e); showFallback(); });
   }
 
