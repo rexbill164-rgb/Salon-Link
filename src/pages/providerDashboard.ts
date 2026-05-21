@@ -459,6 +459,13 @@ function closeSidebar() {
   document.getElementById('sb-overlay').classList.remove('open');
 }
 
+/* ── Logout ── */
+function logout() {
+  localStorage.removeItem('sl_token');
+  localStorage.removeItem('sl_user');
+  window.location.href = '/login';
+}
+
 /* ── Section navigation ── */
 function showSection(id, btn) {
   document.querySelectorAll('.section').forEach(function(s){ s.classList.remove('active'); });
@@ -485,7 +492,9 @@ function showSection(id, btn) {
 
 /* ── View public profile ── */
 function viewPublicProfile() {
-  if (providerIdGlobal) window.open('/provider/' + providerIdGlobal, '_blank');
+  var pid = providerIdGlobal || localStorage.getItem('sl_provider_id');
+  if (pid) window.open('/provider/' + pid, '_blank');
+  else showToast('Profile loading, please try again in a moment', 'info');
 }
 
 /* ── Load main dashboard ── */
@@ -498,7 +507,9 @@ function viewPublicProfile() {
     .then(function(res) {
       var d = res.data, p = d.provider, stats = d.stats;
       providerIdGlobal = p.id;
-      pickedLat = p.location_lat; pickedLng = p.location_lng;
+      localStorage.setItem('sl_provider_id', p.id);
+      pickedLat = p.location_lat ? parseFloat(p.location_lat) : null;
+      pickedLng = p.location_lng ? parseFloat(p.location_lng) : null;
 
       // Sidebar name + badge
       var nameEl = document.getElementById('sb-name');
@@ -582,10 +593,18 @@ function viewPublicProfile() {
 
       // Load services too
       loadMyServices(token);
+      // Pre-load gallery count
+      loadGallery(token);
     })
     .catch(function(e) {
-      if (e.response && e.response.status===401) window.location.href='/login';
-      else showToast('Could not load dashboard data', 'error');
+      if (e.response && (e.response.status===401 || e.response.status===403)) {
+        localStorage.removeItem('sl_token');
+        localStorage.removeItem('sl_user');
+        window.location.href='/login';
+      } else {
+        showToast('Could not load dashboard — refresh to retry', 'error');
+        console.error('Dashboard load error:', e);
+      }
     });
 })();
 
@@ -874,25 +893,46 @@ function upgradeGallery() {
 /* ── Location ── */
 function initLocationMap(lat, lng) {
   if (!document.getElementById('location-picker-map')) return;
-  if (locationMap) { locationMap.remove(); locationMap=null; locationMarker=null; }
-  var defaultLat = lat||5.6037, defaultLng = lng||-0.1870;
-  locationMap = L.map('location-picker-map').setView([defaultLat, defaultLng], lat?15:13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OSM', maxZoom:19 }).addTo(locationMap);
-  var icon = L.divIcon({ html:'<div style="background:linear-gradient(135deg,#833ab4,#E1306C);width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>', iconSize:[28,28], iconAnchor:[14,28], className:'' });
-  if (lat && lng) {
-    pickedLat=lat; pickedLng=lng;
-    locationMarker = L.marker([lat,lng],{icon:icon,draggable:true}).addTo(locationMap);
-    updateCoordDisplay(lat,lng);
-    document.getElementById('save-location-btn').disabled=false;
+  // Guard: Leaflet must be loaded
+  if (!window.L) {
+    document.getElementById('location-picker-map').innerHTML = '<div style="padding:20px;text-align:center;color:var(--t-muted);font-size:13px;">Map loading... please wait.</div>';
+    setTimeout(function(){ initLocationMap(lat, lng); }, 500);
+    return;
   }
-  locationMap.on('click', function(e) {
-    pickedLat=e.latlng.lat; pickedLng=e.latlng.lng;
-    if (locationMarker) locationMarker.setLatLng(e.latlng);
-    else { locationMarker=L.marker(e.latlng,{icon:icon,draggable:true}).addTo(locationMap); locationMarker.on('dragend',function(ev){ pickedLat=ev.target.getLatLng().lat; pickedLng=ev.target.getLatLng().lng; updateCoordDisplay(pickedLat,pickedLng); }); }
-    updateCoordDisplay(pickedLat,pickedLng);
-    document.getElementById('save-location-btn').disabled=false;
-  });
-  if (locationMarker) locationMarker.on('dragend', function(ev){ pickedLat=ev.target.getLatLng().lat; pickedLng=ev.target.getLatLng().lng; updateCoordDisplay(pickedLat,pickedLng); });
+  // Destroy old map instance to prevent duplicate map errors
+  if (locationMap) {
+    try { locationMap.remove(); } catch(e){}
+    locationMap = null;
+    locationMarker = null;
+  }
+  var mapEl = document.getElementById('location-picker-map');
+  // Wipe innerHTML to allow Leaflet to reinitialize cleanly
+  mapEl.innerHTML = '';
+  var defaultLat = lat || 5.6037, defaultLng = lng || -0.1870;
+  try {
+    locationMap = L.map('location-picker-map').setView([defaultLat, defaultLng], lat ? 15 : 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OSM', maxZoom:19 }).addTo(locationMap);
+    var icon = L.divIcon({ html:'<div style="background:linear-gradient(135deg,#833ab4,#E1306C);width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>', iconSize:[28,28], iconAnchor:[14,28], className:'' });
+    if (lat && lng) {
+      pickedLat=lat; pickedLng=lng;
+      locationMarker = L.marker([lat,lng],{icon:icon,draggable:true}).addTo(locationMap);
+      updateCoordDisplay(lat,lng);
+      var saveBtn = document.getElementById('save-location-btn');
+      if (saveBtn) saveBtn.disabled=false;
+    }
+    locationMap.on('click', function(e) {
+      pickedLat=e.latlng.lat; pickedLng=e.latlng.lng;
+      if (locationMarker) locationMarker.setLatLng(e.latlng);
+      else { locationMarker=L.marker(e.latlng,{icon:icon,draggable:true}).addTo(locationMap); locationMarker.on('dragend',function(ev){ pickedLat=ev.target.getLatLng().lat; pickedLng=ev.target.getLatLng().lng; updateCoordDisplay(pickedLat,pickedLng); }); }
+      updateCoordDisplay(pickedLat,pickedLng);
+      var saveBtn = document.getElementById('save-location-btn');
+      if (saveBtn) saveBtn.disabled=false;
+    });
+    if (locationMarker) locationMarker.on('dragend', function(ev){ pickedLat=ev.target.getLatLng().lat; pickedLng=ev.target.getLatLng().lng; updateCoordDisplay(pickedLat,pickedLng); });
+  } catch(err) {
+    console.error('Map init failed:', err);
+    if (mapEl) mapEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--t-muted);font-size:13px;">Map unavailable. Please try again.</div>';
+  }
 }
 
 function updateCoordDisplay(lat,lng) {
@@ -900,7 +940,7 @@ function updateCoordDisplay(lat,lng) {
 }
 
 function useMyLocation() {
-  if (!navigator.geolocation) { showToast('Geolocation not supported', 'error'); return; }
+  if (!navigator.geolocation) { showToast('Geolocation not supported on this device', 'info'); return; }
   showToast('Getting your location...', 'info');
   navigator.geolocation.getCurrentPosition(function(pos) {
     pickedLat=pos.coords.latitude; pickedLng=pos.coords.longitude;

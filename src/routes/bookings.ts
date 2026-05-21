@@ -291,6 +291,26 @@ bookings.patch('/:id/status', async (c) => {
       VALUES (?, ?, ?, 'booking', '/dashboard')
     `).bind(booking.customer_id, `Booking ${status.charAt(0).toUpperCase() + status.slice(1)}`, messages[status]).run()
 
+    // ── Auto-award loyalty points on booking completed ──
+    if (status === 'completed') {
+      try {
+        const provider = await c.env.DB.prepare('SELECT id, user_id, loyalty_points FROM providers WHERE id = ?').bind(booking.provider_id).first() as any
+        if (provider) {
+          // Check not already awarded for this booking to prevent duplicates
+          const existing = await c.env.DB.prepare(
+            "SELECT id FROM point_transactions WHERE provider_id = ? AND description LIKE ? LIMIT 1"
+          ).bind(provider.id, `%booking #${booking.id}%`).first()
+          if (!existing) {
+            const pts = 5 // 5 points per completed booking
+            await c.env.DB.prepare('UPDATE providers SET loyalty_points = COALESCE(loyalty_points,0) + ? WHERE id = ?').bind(pts, provider.id).run()
+            await c.env.DB.prepare(
+              'INSERT INTO point_transactions (user_id, provider_id, points, type, description) VALUES (?, ?, ?, ?, ?)'
+            ).bind(provider.user_id, provider.id, pts, 'booking', `Completed booking #${booking.id}`).run()
+          }
+        }
+      } catch (pointErr) { /* never block booking update for point errors */ }
+    }
+
     return c.json({ success: true, message: `Booking ${status}` })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)

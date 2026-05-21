@@ -151,6 +151,25 @@ admin.patch('/providers/:id/kyc', async (c) => {
         INSERT INTO notifications (user_id, title, message, type, action_url)
         VALUES (?, ?, ?, 'system', '/provider/dashboard')
       `).bind(provUser.id, `KYC ${kyc_status.charAt(0).toUpperCase() + kyc_status.slice(1)}`, msg).run()
+
+      // Auto-award points for KYC approval (one-time, idempotent)
+      if (kyc_status === 'approved') {
+        try {
+          const provRecord = await c.env.DB.prepare('SELECT id FROM providers WHERE user_id = ?').bind(provUser.id).first() as any
+          if (provRecord) {
+            const alreadyAwarded = await c.env.DB.prepare(
+              "SELECT id FROM point_transactions WHERE provider_id = ? AND type = 'kyc_approved' LIMIT 1"
+            ).bind(provRecord.id).first()
+            if (!alreadyAwarded) {
+              const pts = 20 // 20 points for KYC approval
+              await c.env.DB.prepare('UPDATE providers SET loyalty_points = COALESCE(loyalty_points,0) + ? WHERE id = ?').bind(pts, provRecord.id).run()
+              await c.env.DB.prepare(
+                'INSERT INTO point_transactions (user_id, provider_id, points, type, description) VALUES (?, ?, ?, ?, ?)'
+              ).bind(provUser.id, provRecord.id, pts, 'kyc_approved', 'KYC approved — identity verified bonus').run()
+            }
+          }
+        } catch (pointErr) { /* non-blocking */ }
+      }
     }
 
     return c.json({ success: true, message: `Provider KYC ${kyc_status}` })

@@ -108,6 +108,11 @@ ${navbar('')}
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       Book Appointment
     </a>
+    <!-- Share Profile button -->
+    <button onclick="shareProviderProfile()" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;width:100%;padding:12px 16px;border-radius:100px;border:1.5px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.15);backdrop-filter:blur(12px);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
+      <i class="fas fa-share-nodes" style="font-size:13px;"></i>
+      Share Profile
+    </button>
   </div>
 </div>
 
@@ -441,42 +446,32 @@ window.__portfolioVersion = 'provider-gallery-real-images-v2';
     var viewAllBtn = document.getElementById('portfolio-view-all-btn');
     if (viewAllBtn) viewAllBtn.style.display = 'none';
     if (portfolioGrid) {
+      portfolioGrid.innerHTML = '<div class="portfolio-empty">Loading portfolio...</div>';
       var providerIdForGallery = (p && p.id) ? p.id : id;
       axios.get('/api/uploads/provider-gallery/' + providerIdForGallery + '?ts=' + Date.now()).then(function(gr) {
-        var photos = (gr.data.photos || []).filter(function(ph) { return ph && ph.is_logo === 0 && ph.image_url; });
+        // Filter: is_logo===0 means work photo, exclude logo (1) and cover (2)
+        // Also accept is_logo===false (boolean) for compatibility
+        var photos = (gr.data.photos || []).filter(function(ph) {
+          if (!ph || !ph.image_url) return false;
+          var val = ph.is_logo;
+          return val === 0 || val === '0' || val === false;
+        });
         if (!photos.length) {
           window.__portfolioPhotos = [];
           portfolioGrid.innerHTML = '<div class="portfolio-empty">No portfolio images uploaded yet.</div>';
           return;
         }
-        var checks = photos.map(function(ph) {
-          return new Promise(function(resolve) {
-            var probe = new Image();
-            probe.onload = function(){ resolve(ph); };
-            probe.onerror = function(){ resolve(null); };
-            probe.src = ph.image_url;
-          });
-        });
-        Promise.all(checks).then(function(validPhotos) {
-          var cleanPhotos = validPhotos.filter(function(ph){ return !!ph; });
-          window.__portfolioPhotos = cleanPhotos;
-          if (!cleanPhotos.length) {
-            portfolioGrid.innerHTML = '<div class="portfolio-empty">No portfolio images uploaded yet.</div>';
-            return;
-          }
-          if (viewAllBtn) viewAllBtn.style.display = 'inline-flex';
-          portfolioGrid.innerHTML = cleanPhotos.map(function(ph, i) {
+        // Render immediately — no Image() probe (causes false negatives with base64/CORS)
+        window.__portfolioPhotos = photos;
+        if (viewAllBtn) viewAllBtn.style.display = 'inline-flex';
+        portfolioGrid.innerHTML = photos.map(function(ph, i) {
           return '<button type="button" class="portfolio-item" onclick="openPortfolioModal(' + i + ')">' +
-            '<img src="' + ph.image_url + '" alt="Portfolio image ' + (i + 1) + '" loading="lazy"/>' +
+            '<img src="' + ph.image_url + '" alt="Portfolio image ' + (i + 1) + '" loading="lazy" ' +
+            'onerror="this.parentElement.style.display=\'none\'" />' +
           '</button>';
-          }).join('');
-        }).catch(function(err){
-          console.error('Portfolio render failed:', err);
-          window.__portfolioPhotos = [];
-          portfolioGrid.innerHTML = '<div class="portfolio-empty">No portfolio images uploaded yet.</div>';
-        });
-      }).catch(function() {
-        console.error('Portfolio fetch failed for provider:', providerIdForGallery);
+        }).join('');
+      }).catch(function(err) {
+        console.error('Portfolio fetch failed for provider:', providerIdForGallery, err);
         window.__portfolioPhotos = [];
         portfolioGrid.innerHTML = '<div class="portfolio-empty">No portfolio images uploaded yet.</div>';
       });
@@ -488,47 +483,54 @@ window.__portfolioVersion = 'provider-gallery-real-images-v2';
     var phoneEl = document.getElementById('info-phone');
     if (phoneEl) phoneEl.textContent = p.phone || '—';
 
-    // Show map if provider has coordinates
-    if (p.location_lat && p.location_lng) {
-      window.__providerLocation = {
-        lat: p.location_lat,
-        lng: p.location_lng
-      };
+    // Show map if provider has valid coordinates
+    var pLat = p.location_lat ? parseFloat(p.location_lat) : null;
+    var pLng = p.location_lng ? parseFloat(p.location_lng) : null;
+    if (pLat && pLng && !isNaN(pLat) && !isNaN(pLng)) {
+      window.__providerLocation = { lat: pLat, lng: pLng };
       var mapWrap = document.getElementById('provider-map-wrap');
       if (mapWrap) mapWrap.style.display = 'block';
-      // Initialize Leaflet map after DOM is ready
+      var _profileMapInited = false;
       function initProfileMap() {
-        if (!window.L) { setTimeout(initProfileMap, 300); return; }
-        var map = L.map('provider-map', { zoomControl: true, scrollWheelZoom: false })
-          .setView([parseFloat(p.location_lat), parseFloat(p.location_lng)], 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-          maxZoom: 19,
-          crossOrigin: 'anonymous',
-          referrerPolicy: 'no-referrer'
-        }).addTo(map);
-        var icon = L.divIcon({
-          html: '<div style="background:linear-gradient(135deg,#C9A84C,#8B6914);width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;"></div>',
-          iconSize: [32,32], iconAnchor: [16,32], className: ''
-        });
-        L.marker([parseFloat(p.location_lat), parseFloat(p.location_lng)], { icon: icon })
-          .addTo(map)
-          .bindPopup('<strong>' + p.business_name + '</strong><br>' + (p.address || p.city || 'Accra'))
-          .openPopup();
-        // Show distance if customer location known
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(function(pos) {
-            var R = 6371;
-            var pLat = parseFloat(p.location_lat), pLng = parseFloat(p.location_lng);
-            var dLat = (pLat - pos.coords.latitude) * Math.PI / 180;
-            var dLng = (pLng - pos.coords.longitude) * Math.PI / 180;
-            var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
-                    Math.cos(pos.coords.latitude*Math.PI/180)*Math.cos(pLat*Math.PI/180)*
-                    Math.sin(dLng/2)*Math.sin(dLng/2);
-            var km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            var distEl = document.getElementById('map-distance');
-            if (distEl) distEl.textContent = (km < 1 ? Math.round(km*1000) + 'm from your location' : km.toFixed(1) + 'km from your location');
-          }, function(){});
+        if (_profileMapInited) return;
+        if (!window.L) { setTimeout(initProfileMap, 400); return; }
+        var mapEl = document.getElementById('provider-map');
+        if (!mapEl) return;
+        // Guard against double init (Leaflet throws if container already used)
+        if (mapEl._leaflet_id) return;
+        _profileMapInited = true;
+        try {
+          var map = L.map('provider-map', { zoomControl: true, scrollWheelZoom: false })
+            .setView([pLat, pLng], 15);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            maxZoom: 19
+          }).addTo(map);
+          var icon = L.divIcon({
+            html: '<div style="background:linear-gradient(135deg,#C9A84C,#8B6914);width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>',
+            iconSize: [32,32], iconAnchor: [16,32], className: ''
+          });
+          L.marker([pLat, pLng], { icon: icon })
+            .addTo(map)
+            .bindPopup('<strong>' + (p.business_name || 'Provider') + '</strong><br>' + (p.address || p.city || 'Accra'))
+            .openPopup();
+          // Distance calculation (non-blocking, graceful fail)
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+              var R = 6371;
+              var dLat = (pLat - pos.coords.latitude) * Math.PI / 180;
+              var dLng = (pLng - pos.coords.longitude) * Math.PI / 180;
+              var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+                      Math.cos(pos.coords.latitude*Math.PI/180)*Math.cos(pLat*Math.PI/180)*
+                      Math.sin(dLng/2)*Math.sin(dLng/2);
+              var km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+              var distEl = document.getElementById('map-distance');
+              if (distEl) distEl.textContent = km < 1 ? Math.round(km*1000) + 'm from your location' : km.toFixed(1) + 'km from your location';
+            }, function(){}); // silently ignore geolocation denial
+          }
+        } catch(mapErr) {
+          console.error('Profile map init failed:', mapErr);
+          if (mapWrap) mapWrap.style.display = 'none';
         }
       }
       initProfileMap();
@@ -565,34 +567,57 @@ function openPortfolioModal(index) {
   modal.classList.add('open');
 }
 
-function shareProviderLocation() {
-  var providerName = document.getElementById('profile-name') ? document.getElementById('profile-name').textContent : 'SalonLink Provider';
-  var address = document.getElementById('info-location') ? document.getElementById('info-location').textContent : 'Accra, Ghana';
+function shareProviderProfile() {
+  var providerName = (document.getElementById('profile-name') || {}).textContent || 'SalonLink Provider';
   var profileLink = window.location.origin + window.location.pathname;
+  var text = 'Book an appointment with ' + providerName + ' on SalonLink: ' + profileLink;
+  if (navigator.share) {
+    navigator.share({ title: providerName + ' — SalonLink', text: text, url: profileLink }).catch(function(){});
+  } else if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(profileLink).then(function() {
+      showToast('Profile link copied to clipboard \u2726', 'success');
+    }).catch(function() {
+      _fallbackCopyToClipboard(profileLink);
+    });
+  } else {
+    _fallbackCopyToClipboard(profileLink);
+  }
+}
 
+function _fallbackCopyToClipboard(text) {
+  try {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Profile link copied \u2726', 'success');
+  } catch(e) {
+    showToast('Copy failed \u2014 share URL: ' + text, 'info');
+  }
+}
+
+function shareProviderLocation() {
+  var providerName = (document.getElementById('profile-name') || {}).textContent || 'SalonLink Provider';
+  var address = (document.getElementById('info-location') || {}).textContent || 'Accra, Ghana';
+  var profileLink = window.location.origin + window.location.pathname;
   var mapLink = '';
   if (window.__providerLocation && window.__providerLocation.lat && window.__providerLocation.lng) {
     mapLink = 'https://www.google.com/maps?q=' + encodeURIComponent(window.__providerLocation.lat + ',' + window.__providerLocation.lng);
   } else {
     mapLink = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(address);
   }
-
-  var text = 'Check out ' + providerName + ' on SalonLink.\nLocation: ' + address + '\nMap: ' + mapLink + '\nProfile: ' + profileLink;
-
+  var text = 'Find ' + providerName + ' on SalonLink.\nLocation: ' + address + '\nMap: ' + mapLink + '\nProfile: ' + profileLink;
   if (navigator.share) {
-    navigator.share({
-      title: providerName,
-      text: text,
-      url: mapLink
-    }).catch(function(){});
-  } else if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(function() {
-      showToast('Location link copied', 'success');
-    }).catch(function() {
-      showToast('Could not copy link', 'error');
-    });
+    navigator.share({ title: providerName, text: text, url: mapLink }).catch(function(){});
+  } else if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(mapLink).then(function() {
+      showToast('Location link copied \u2726', 'success');
+    }).catch(function() { _fallbackCopyToClipboard(mapLink); });
   } else {
-    showToast('Sharing is not supported on this device', 'info');
+    _fallbackCopyToClipboard(mapLink);
   }
 }
 
