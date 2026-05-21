@@ -5,6 +5,12 @@ export function withProviderProfileStaticFix(html: string): string {
 
   const script = `
 <style id="provider-profile-carousel-polish">
+  .hero-cover > div[style*="bottom:0"] > a.btn-primary {
+    display:none !important;
+  }
+  .hero-cover > div[style*="bottom:0"] {
+    padding-bottom:34px !important;
+  }
   #portfolio-grid.portfolio-carousel {
     display:flex !important;
     grid-template-columns:none !important;
@@ -87,8 +93,9 @@ export function withProviderProfileStaticFix(html: string): string {
   }
   .sl-share-round {
     position:absolute !important;
-    right:72px !important;
-    top:20px !important;
+    right:20px !important;
+    top:auto !important;
+    bottom:34px !important;
     width:42px !important;
     height:42px !important;
     min-width:42px !important;
