@@ -85,10 +85,10 @@ bookings.post('/', async (c) => {
     if (customerConflict) return c.json({ success: false, error: 'You already have a booking at this time.' }, 409)
 
     // 3 GHS platform service fee (in pesewas)
-    const SERVICE_FEE = 300
-    const totalWithFee = (service.price || 0) + SERVICE_FEE
+    const SERVICE_FEE = 300 // GHS 3 charged to provider, NOT customer
+    const totalWithFee = (service.price || 0) // Customer pays only service price
 
-    // Create booking (total_amount includes 3 GHS service fee)
+    // Create booking (total_amount = service price only; service_fee is a provider obligation)
     const result = await c.env.DB.prepare(`
       INSERT INTO bookings (customer_id, provider_id, service_id, booking_date, booking_time, total_amount, service_fee, notes)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -278,6 +278,28 @@ bookings.patch('/:id/status', async (c) => {
       UPDATE bookings SET status = ?, cancellation_reason = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
     `).bind(status, cancellation_reason || null, c.req.param('id')).run()
 
+    // Auto-award +5 loyalty points to provider on completed booking (idempotent)
+    if (status === 'completed') {
+      try {
+        const prov = await c.env.DB.prepare(
+          'SELECT id, user_id FROM providers WHERE id = ?'
+        ).bind(booking.provider_id).first() as any
+        if (prov) {
+          const existing = await c.env.DB.prepare(
+            "SELECT id FROM point_transactions WHERE provider_id = ? AND description LIKE ? LIMIT 1"
+          ).bind(prov.id, `%booking #${c.req.param('id')}%`).first()
+          if (!existing) {
+            await c.env.DB.prepare(
+              'UPDATE providers SET loyalty_points = COALESCE(loyalty_points,0) + 5 WHERE id = ?'
+            ).bind(prov.id).run()
+            await c.env.DB.prepare(
+              'INSERT INTO point_transactions (provider_id, user_id, points, type, description) VALUES (?,?,?,?,?)'
+            ).bind(prov.id, prov.user_id, 5, 'booking', `Completed booking #${c.req.param('id')}`).run()
+          }
+        }
+      } catch(ptErr) { /* non-blocking — never fail booking update */ }
+    }
+
     // Notify customer of status change
     const messages: Record<string, string> = {
       confirmed: `Your booking on ${booking.booking_date} at ${booking.booking_time} has been confirmed!`,
@@ -290,26 +312,6 @@ bookings.patch('/:id/status', async (c) => {
       INSERT INTO notifications (user_id, title, message, type, action_url)
       VALUES (?, ?, ?, 'booking', '/dashboard')
     `).bind(booking.customer_id, `Booking ${status.charAt(0).toUpperCase() + status.slice(1)}`, messages[status]).run()
-
-    // ── Auto-award loyalty points on booking completed ──
-    if (status === 'completed') {
-      try {
-        const provider = await c.env.DB.prepare('SELECT id, user_id, loyalty_points FROM providers WHERE id = ?').bind(booking.provider_id).first() as any
-        if (provider) {
-          // Check not already awarded for this booking to prevent duplicates
-          const existing = await c.env.DB.prepare(
-            "SELECT id FROM point_transactions WHERE provider_id = ? AND description LIKE ? LIMIT 1"
-          ).bind(provider.id, `%booking #${booking.id}%`).first()
-          if (!existing) {
-            const pts = 5 // 5 points per completed booking
-            await c.env.DB.prepare('UPDATE providers SET loyalty_points = COALESCE(loyalty_points,0) + ? WHERE id = ?').bind(pts, provider.id).run()
-            await c.env.DB.prepare(
-              'INSERT INTO point_transactions (user_id, provider_id, points, type, description) VALUES (?, ?, ?, ?, ?)'
-            ).bind(provider.user_id, provider.id, pts, 'booking', `Completed booking #${booking.id}`).run()
-          }
-        }
-      } catch (pointErr) { /* never block booking update for point errors */ }
-    }
 
     return c.json({ success: true, message: `Booking ${status}` })
   } catch (e: any) {

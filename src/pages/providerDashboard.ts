@@ -459,13 +459,6 @@ function closeSidebar() {
   document.getElementById('sb-overlay').classList.remove('open');
 }
 
-/* ── Logout ── */
-function logout() {
-  localStorage.removeItem('sl_token');
-  localStorage.removeItem('sl_user');
-  window.location.href = '/login';
-}
-
 /* ── Section navigation ── */
 function showSection(id, btn) {
   document.querySelectorAll('.section').forEach(function(s){ s.classList.remove('active'); });
@@ -497,114 +490,135 @@ function viewPublicProfile() {
   else showToast('Profile loading, please try again in a moment', 'info');
 }
 
+/* ── Logout ── */
+function logout() {
+  localStorage.removeItem('sl_token');
+  localStorage.removeItem('sl_user');
+  localStorage.removeItem('sl_provider_id');
+  window.location.href = '/login';
+}
+
 /* ── Load main dashboard ── */
 (function init() {
   var token = localStorage.getItem('sl_token');
-  var user = JSON.parse(localStorage.getItem('sl_user') || '{}');
+  var user = (function(){ try{ return JSON.parse(localStorage.getItem('sl_user')||'{}'); }catch(e){ return {}; } })();
   if (!token || user.role !== 'provider') { window.location.href = '/login'; return; }
+
+  // Show loading state immediately
+  var todayEl = document.getElementById('today-appts');
+  if (todayEl) todayEl.innerHTML = '<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">Loading your dashboard...</div>';
+
+  function safeSet(id, v) { try { var e = document.getElementById(id); if(e) e.textContent = v; } catch(err){} }
 
   axios.get('/api/providers/me/dashboard', { headers: { Authorization: 'Bearer ' + token } })
     .then(function(res) {
-      var d = res.data, p = d.provider, stats = d.stats;
-      providerIdGlobal = p.id;
-      localStorage.setItem('sl_provider_id', p.id);
-      pickedLat = p.location_lat ? parseFloat(p.location_lat) : null;
-      pickedLng = p.location_lng ? parseFloat(p.location_lng) : null;
+      try {
+        var d = res.data || {};
+        var p = d.provider || {};
+        var stats = d.stats || {};
 
-      // Sidebar name + badge
-      var nameEl = document.getElementById('sb-name');
-      if (nameEl) nameEl.textContent = p.business_name || 'My Salon';
-      var badge = document.getElementById('sb-badge');
-      if (badge) {
-        if (p.is_verified) { badge.className='badge badge-verified'; badge.textContent='✓ Verified'; }
-        else { badge.className='badge badge-pending'; badge.textContent='⏳ Pending Approval'; }
-      }
+        providerIdGlobal = p.id || null;
+        if (providerIdGlobal) localStorage.setItem('sl_provider_id', String(providerIdGlobal));
+        pickedLat = p.location_lat ? parseFloat(p.location_lat) : null;
+        pickedLng = p.location_lng ? parseFloat(p.location_lng) : null;
 
-      // Pending banner
-      if (!p.is_verified) {
-        var banner = document.getElementById('pending-banner');
-        if (banner) banner.style.display='block';
-      }
+        // Sidebar name + badge
+        var nameEl = document.getElementById('sb-name');
+        if (nameEl) nameEl.textContent = p.business_name || 'My Salon';
+        var badge = document.getElementById('sb-badge');
+        if (badge) {
+          if (p.is_verified) { badge.className='badge badge-verified'; badge.textContent='✓ Verified'; }
+          else { badge.className='badge badge-pending'; badge.textContent='⏳ Pending Approval'; }
+        }
 
-      // Gallery pro banner
-      if (p.has_pro_gallery) {
-        var pb = document.getElementById('pro-banner'); if(pb) pb.style.display='none';
+        // Pending banner
+        if (!p.is_verified) {
+          var banner = document.getElementById('pending-banner');
+          if (banner) banner.style.display='block';
+        }
+
+        // Gallery label
         var gcl = document.getElementById('gallery-count-label');
-        if(gcl) gcl.textContent = 'Pro plan: '+(p.gallery_count||0)+'/10 images';
-      } else {
-        var gcl = document.getElementById('gallery-count-label');
-        if(gcl) gcl.textContent = 'Free plan: '+(p.gallery_count||0)+'/5 images';
-      }
+        if (gcl) gcl.textContent = (p.has_pro_gallery ? 'Pro' : 'Free') + ' plan: '+(p.gallery_count||0)+'/'+(p.has_pro_gallery?10:5)+' images';
+        var pb = document.getElementById('pro-banner');
+        if (pb) pb.style.display = p.has_pro_gallery ? 'none' : '';
 
-      // Load existing logo
-      if (p.logo_url) {
-        var lp = document.getElementById('logo-preview');
-        if (lp) lp.innerHTML = '<img src="'+p.logo_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>';
-      }
-      // Load existing cover from gallery (cover stored in provider_gallery with is_logo=2)
-      if (providerIdGlobal) {
-        axios.get('/api/uploads/provider-gallery/'+providerIdGlobal)
-          .then(function(gr) {
-            var photos = gr.data.photos || gr.data.gallery || [];
-            var coverPhoto = photos.find(function(ph) { return ph.is_logo === 2; });
-            if (coverPhoto) {
-              var cp = document.getElementById('cover-preview');
-              if (cp) {
-                cp.style.backgroundImage = 'url('+coverPhoto.image_url+')';
-                cp.style.backgroundSize = 'cover';
-                cp.style.backgroundPosition = 'center';
-                cp.innerHTML = '<div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.5);color:white;font-size:9px;padding:4px 8px;border-radius:100px;font-weight:600;">Change Cover</div>';
+        // Load existing logo
+        if (p.logo_url) {
+          var lp = document.getElementById('logo-preview');
+          if (lp) lp.innerHTML = '<img src="'+p.logo_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>';
+        }
+
+        // Load cover photo
+        if (providerIdGlobal) {
+          axios.get('/api/uploads/provider-gallery/'+providerIdGlobal)
+            .then(function(gr) {
+              var photos = (gr.data && (gr.data.photos || gr.data.gallery)) || [];
+              var coverPhoto = null;
+              for (var i=0; i<photos.length; i++) { if (photos[i].is_logo === 2) { coverPhoto = photos[i]; break; } }
+              if (coverPhoto) {
+                var cp = document.getElementById('cover-preview');
+                if (cp) {
+                  cp.style.backgroundImage = 'url('+coverPhoto.image_url+')';
+                  cp.style.backgroundSize = 'cover';
+                  cp.style.backgroundPosition = 'center';
+                  cp.innerHTML = '<div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.5);color:white;font-size:9px;padding:4px 8px;border-radius:100px;font-weight:600;">Change Cover</div>';
+                }
               }
-            }
-          }).catch(function() {});
+            }).catch(function() {});
+        }
+
+        // KPIs
+        safeSet('kpi-today', stats.today_bookings||0);
+        safeSet('kpi-revenue', 'GHS '+ Math.round((stats.week_revenue||0)/100));
+        safeSet('kpi-clients', stats.total_clients||0);
+        safeSet('kpi-rating', stats.rating ? parseFloat(stats.rating).toFixed(1) : '—');
+
+        // Accepting toggle
+        var tog = document.getElementById('accepting-toggle');
+        if (tog) {
+          tog.checked = p.is_accepting_bookings===1 || p.is_accepting_bookings===true;
+          var ts = document.getElementById('topbar-status');
+          if(ts) ts.innerHTML = tog.checked
+            ? '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#5DC98A;margin-right:4px;"></span>Open'
+            : '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#E07070;margin-right:4px;"></span>Closed';
+          tog.onchange = function() {
+            axios.put('/api/providers/me', { is_accepting_bookings: this.checked }, { headers: { Authorization: 'Bearer ' + token } })
+              .then(function() {
+                showToast('Status updated ✦', 'success');
+                var ts2 = document.getElementById('topbar-status');
+                if(ts2) ts2.innerHTML = tog.checked
+                  ? '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#5DC98A;margin-right:4px;"></span>Open'
+                  : '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#E07070;margin-right:4px;"></span>Closed';
+              })
+              .catch(function(){ showToast('Update failed', 'error'); });
+          };
+        }
+
+        // Today appts + pending
+        renderTodayAppts(d.today_appointments||[]);
+        allAppts = (d.today_appointments||[]).concat(d.pending_bookings||[]);
+
+        // Load services
+        loadMyServices(token);
+
+        // Pre-load gallery count so section is ready immediately
+        if (providerIdGlobal) { try { loadGallery(token); } catch(e){} }
+
+      } catch(innerErr) {
+        console.error('Dashboard render error:', innerErr);
+        var tEl = document.getElementById('today-appts');
+        if (tEl) tEl.innerHTML = '<div style="text-align:center;color:var(--s-red);padding:20px;font-size:12px;">Dashboard loaded but could not render. Please refresh.</div>';
+        loadMyServices(token);
       }
-
-      // KPIs
-      var setEl = function(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; };
-      setEl('kpi-today', stats.today_bookings||0);
-      setEl('kpi-revenue', 'GHS '+ Math.round((stats.week_revenue||0)/100));
-      setEl('kpi-clients', stats.total_clients||0);
-      setEl('kpi-rating', stats.rating ? parseFloat(stats.rating).toFixed(1) : '—');
-
-      // Accepting toggle
-      var tog = document.getElementById('accepting-toggle');
-      if (tog) {
-        tog.checked = p.is_accepting_bookings===1 || p.is_accepting_bookings===true;
-        var ts = document.getElementById('topbar-status');
-        if(ts) ts.innerHTML = tog.checked
-          ? '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#5DC98A;margin-right:4px;"></span>Open'
-          : '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#E07070;margin-right:4px;"></span>Closed';
-        tog.onchange = function() {
-          axios.put('/api/providers/me', { is_accepting_bookings: this.checked }, { headers: { Authorization: 'Bearer ' + token } })
-            .then(function() {
-              showToast('Status updated ✦', 'success');
-              var ts = document.getElementById('topbar-status');
-              if(ts) ts.innerHTML = tog.checked
-                ? '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#5DC98A;margin-right:4px;"></span>Open'
-                : '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#E07070;margin-right:4px;"></span>Closed';
-            })
-            .catch(function(){ showToast('Update failed', 'error'); });
-        };
-      }
-
-      // Today appts
-      renderTodayAppts(d.today_appointments||[]);
-      allAppts = (d.today_appointments||[]).concat(d.pending_bookings||[]);
-
-      // Load services too
-      loadMyServices(token);
-      // Pre-load gallery count
-      loadGallery(token);
     })
     .catch(function(e) {
-      if (e.response && (e.response.status===401 || e.response.status===403)) {
-        localStorage.removeItem('sl_token');
-        localStorage.removeItem('sl_user');
-        window.location.href='/login';
-      } else {
-        showToast('Could not load dashboard — refresh to retry', 'error');
-        console.error('Dashboard load error:', e);
-      }
+      if (e.response && e.response.status===401) { window.location.href='/login'; return; }
+      var tEl = document.getElementById('today-appts');
+      if (tEl) tEl.innerHTML = '<div style="text-align:center;padding:20px;"><div style="font-size:13px;color:var(--s-red);margin-bottom:8px;">Could not load dashboard</div><button onclick="window.location.reload()" class="btn-ghost" style="font-size:12px;padding:8px 16px;">Retry</button></div>';
+      showToast('Could not load dashboard — tap Retry', 'error');
+      // Still load services so the page is usable
+      loadMyServices(token);
     });
 })();
 
@@ -684,12 +698,40 @@ function updateAppt(id, status) {
   axios.patch('/api/bookings/'+id+'/status', { status: status }, { headers: { Authorization: 'Bearer ' + token } })
     .then(function() {
       showToast('Booking '+status+' ✦', 'success');
-      setTimeout(function(){ location.reload(); }, 1500);
+      if (status === 'completed') {
+        // Show platform fee reminder for cash bookings
+        setTimeout(function() {
+          showFeeReminder();
+        }, 600);
+      }
+      setTimeout(function(){ location.reload(); }, 2000);
     })
     .catch(function() { showToast('Update failed', 'error'); });
 }
 
+function showFeeReminder() {
+  var existing = document.getElementById('fee-reminder-modal');
+  if (existing) existing.remove();
+  var modal = document.createElement('div');
+  modal.id = 'fee-reminder-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  modal.innerHTML = '<div style="background:#fff;border-radius:20px;padding:28px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
+    '<div style="text-align:center;margin-bottom:16px;font-size:36px;">📋</div>' +
+    '<div style="font-size:16px;font-weight:700;text-align:center;margin-bottom:8px;">Service Charge Due</div>' +
+    '<div style="font-size:13px;color:#666;text-align:center;margin-bottom:20px;">Your GHS 3.00 service charge for this booking has been recorded. SalonLink admin will follow up with payment details.</div>' +
+    '<div style="background:#F0FFF4;border:1.5px solid #B2DFDB;border-radius:14px;padding:16px;margin-bottom:20px;text-align:center;">' +
+      '<div style="font-size:12px;color:#388E3C;font-weight:700;">✓ Charge recorded in your account</div>' +
+      '<div style="font-size:11px;color:#888;margin-top:4px;">Admin will contact you for settlement</div>' +
+    '</div>' +
+    '<button onclick="closeFeeReminder()" style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;border:none;font-size:14px;font-weight:700;cursor:pointer;">Got it ✓</button>' +
+  '</div>';
+  document.body.appendChild(modal);
+}
 
+function closeFeeReminder() {
+  var m = document.getElementById('fee-reminder-modal');
+  if (m) m.remove();
+}
 
 /* ── Services ── */
 function showAddSvcForm() {
@@ -717,12 +759,44 @@ function saveNewService() {
     .catch(function(e){ showToast(e.response?e.response.data.error:'Save failed', 'error'); });
 }
 
-function deleteService(id) {
-  if (!confirm('Delete this service?')) return;
+function deleteService(id, name) {
+  if (!confirm('Delete service "' + (name||'this service') + '"?\nThis cannot be undone.')) return;
   var token = localStorage.getItem('sl_token');
   axios.delete('/api/providers/me/services/'+id, { headers: { Authorization: 'Bearer ' + token } })
     .then(function(){ showToast('Service deleted', 'info'); loadMyServices(token); })
-    .catch(function(){ showToast('Delete failed', 'error'); });
+    .catch(function(e){
+      var msg = e.response && e.response.data && e.response.data.error ? e.response.data.error : 'Delete failed';
+      showToast(msg, 'error');
+    });
+}
+
+var _editingSvcId = null;
+function openEditService(svc) {
+  _editingSvcId = svc.id;
+  var modal = document.getElementById('edit-svc-modal');
+  if (!modal) return;
+  document.getElementById('edit-svc-name').value = svc.name || '';
+  document.getElementById('edit-svc-price').value = Math.round((svc.price||0)/100) || '';
+  document.getElementById('edit-svc-duration').value = svc.duration_minutes || svc.duration || 60;
+  document.getElementById('edit-svc-desc').value = svc.description || '';
+  modal.style.display = 'flex';
+}
+function closeEditService() {
+  var modal = document.getElementById('edit-svc-modal');
+  if (modal) modal.style.display = 'none';
+  _editingSvcId = null;
+}
+function saveEditService() {
+  if (!_editingSvcId) return;
+  var token = localStorage.getItem('sl_token');
+  var name = document.getElementById('edit-svc-name').value.trim();
+  var price = parseFloat(document.getElementById('edit-svc-price').value) || 0;
+  var duration = parseInt(document.getElementById('edit-svc-duration').value) || 60;
+  var description = document.getElementById('edit-svc-desc').value.trim();
+  if (!name || !price) { showToast('Name and price are required', 'error'); return; }
+  axios.put('/api/providers/me/services/'+_editingSvcId, { name, price: price*100, duration, description }, { headers: { Authorization: 'Bearer ' + token } })
+    .then(function(){ showToast('Service updated ✓', 'success'); closeEditService(); loadMyServices(token); })
+    .catch(function(e){ showToast(e.response?.data?.error || 'Update failed', 'error'); });
 }
 
 function loadMyServices(token) {
@@ -732,56 +806,20 @@ function loadMyServices(token) {
       var svcs = r.data.services||[];
       if (!svcs.length) { el.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">No services yet. Add your first service above.</div>'; return; }
       el.innerHTML = svcs.map(function(s) {
-        return '<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--i-faint);">' +
-          '<div style="flex:1;">' +
-            '<div style="font-size:13px;font-weight:700;">'+s.name+'</div>' +
-            '<div style="font-size:11px;color:var(--t-muted);">'+(s.duration_minutes||s.duration||60)+' min</div>' +
+        var svcJson = JSON.stringify(s).replace(/"/g, '&quot;');
+        return '<div style="padding:12px 0;border-bottom:1px solid var(--i-faint);">' +
+          '<div style="display:flex;align-items:center;gap:12px;">' +
+            '<div style="flex:1;">' +
+              '<div style="font-size:13px;font-weight:700;">'+s.name+'</div>' +
+              '<div style="font-size:11px;color:var(--t-muted);">'+(s.duration_minutes||s.duration||60)+' min · '+(s.description||'')+'</div>' +
+            '</div>' +
+            '<div style="font-size:15px;font-weight:700;color:var(--g-main);">GHS '+Math.round((s.price||0)/100)+'</div>' +
+            '<button onclick='openEditService('+JSON.stringify(s).replace(/'/g,"\'")+')' style="width:28px;height:28px;border-radius:8px;border:1px solid var(--i-faint);background:transparent;color:var(--t-primary);cursor:pointer;font-size:11px;margin-right:4px;">✎</button>' +
+            '<button onclick="deleteService('+s.id+',''+s.name.replace(/'/g,"\'")+'')" style="width:28px;height:28px;border-radius:8px;border:1px solid rgba(224,112,112,0.3);background:transparent;color:var(--s-red);cursor:pointer;font-size:12px;">✕</button>' +
           '</div>' +
-          '<div style="font-size:15px;font-weight:700;color:var(--g-main);">GHS '+Math.round((s.price||0)/100)+'</div>' +
-          '<button onclick="openEditService('+s.id+',\''+s.name.replace(/\'/g,"\\\'")+'\',' + Math.round((s.price||0)/100) + ',' + (s.duration_minutes||s.duration||60) + ')" style="width:30px;height:30px;border-radius:8px;border:1px solid var(--i-faint);background:transparent;color:var(--g-main);cursor:pointer;font-size:11px;" title="Edit"><i class="fas fa-pencil-alt"></i></button>' +
-          '<button onclick="deleteService('+s.id+')" style="width:30px;height:30px;border-radius:8px;border:1px solid rgba(224,112,112,0.3);background:transparent;color:var(--s-red);cursor:pointer;font-size:12px;" title="Delete"><i class="fas fa-trash"></i></button>' +
         '</div>';
       }).join('');
     }).catch(function(){ document.getElementById('my-services-list').innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">Could not load services.</div>'; });
-}
-
-function openEditService(id, name, priceGhs, duration) {
-  var existing = document.getElementById('edit-svc-modal');
-  if (existing) existing.remove();
-  var modal = document.createElement('div');
-  modal.id = 'edit-svc-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
-  modal.innerHTML = '<div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:20px;padding:28px;max-width:380px;width:100%;position:relative;">' +
-    '<button onclick="document.getElementById(\'edit-svc-modal\').remove()" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:18px;cursor:pointer;color:var(--t-muted);">✕</button>' +
-    '<div style="font-size:15px;font-weight:700;margin-bottom:18px;">Edit Service</div>' +
-    '<div style="display:flex;flex-direction:column;gap:12px;">' +
-      '<div><div style="font-size:10px;color:var(--t-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px;">Service Name</div>' +
-      '<input id="edit-svc-name" value="'+name.replace(/"/g,'&quot;')+'" style="width:100%;padding:10px 14px;border-radius:10px;background:var(--c-raise);border:1px solid var(--i-faint);color:var(--t-primary);font-size:13px;box-sizing:border-box;"/></div>' +
-      '<div><div style="font-size:10px;color:var(--t-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px;">Price (GHS)</div>' +
-      '<input id="edit-svc-price" type="number" min="1" value="'+priceGhs+'" style="width:100%;padding:10px 14px;border-radius:10px;background:var(--c-raise);border:1px solid var(--i-faint);color:var(--t-primary);font-size:13px;box-sizing:border-box;"/></div>' +
-      '<div><div style="font-size:10px;color:var(--t-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:5px;">Duration (minutes)</div>' +
-      '<select id="edit-svc-duration" style="width:100%;padding:10px 14px;border-radius:10px;background:var(--c-raise);border:1px solid var(--i-faint);color:var(--t-primary);font-size:13px;">' +
-        [30,45,60,75,90,120].map(function(m){ return '<option value="'+m+'"'+(m===duration?' selected':'')+'>'+m+' min</option>'; }).join('') +
-      '</select></div>' +
-      '<button onclick="saveEditService('+id+')" class="btn-primary" style="padding:12px;font-size:13px;margin-top:4px;">Save Changes</button>' +
-    '</div></div>';
-  document.body.appendChild(modal);
-}
-
-function saveEditService(id) {
-  var token = localStorage.getItem('sl_token');
-  var name = document.getElementById('edit-svc-name').value.trim();
-  var price = parseInt(document.getElementById('edit-svc-price').value || '0');
-  var duration = parseInt(document.getElementById('edit-svc-duration').value || '60');
-  if (!name) { showToast('Service name is required', 'error'); return; }
-  if (!price || price < 1) { showToast('Please enter a valid price', 'error'); return; }
-  axios.put('/api/providers/me/services/'+id, { name: name, price: price*100, duration_minutes: duration }, { headers: { Authorization: 'Bearer '+token } })
-    .then(function() {
-      showToast('Service updated \u2726', 'success');
-      document.getElementById('edit-svc-modal').remove();
-      loadMyServices(token);
-    })
-    .catch(function(e) { showToast((e.response&&e.response.data&&e.response.data.error)||'Update failed', 'error'); });
 }
 
 /* ── Gallery ── */
@@ -874,6 +912,7 @@ function loadGallery(token) {
 }
 
 function deleteGalleryImage(id) {
+  if (!confirm('Delete this photo? This cannot be undone.')) return;
   if (!confirm('Delete this photo?')) return;
   var token = localStorage.getItem('sl_token');
   axios.delete('/api/uploads/provider-gallery/'+id, { headers:{ Authorization:'Bearer '+token } })
@@ -892,46 +931,42 @@ function upgradeGallery() {
 
 /* ── Location ── */
 function initLocationMap(lat, lng) {
-  if (!document.getElementById('location-picker-map')) return;
-  // Guard: Leaflet must be loaded
+  var mapEl = document.getElementById('location-picker-map');
+  if (!mapEl) return;
+  // Guard: wait for Leaflet to load
   if (!window.L) {
-    document.getElementById('location-picker-map').innerHTML = '<div style="padding:20px;text-align:center;color:var(--t-muted);font-size:13px;">Map loading... please wait.</div>';
+    mapEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t-muted);font-size:12px;">Map loading...</div>';
     setTimeout(function(){ initLocationMap(lat, lng); }, 500);
     return;
   }
-  // Destroy old map instance to prevent duplicate map errors
+  // Destroy existing map instance to prevent duplicate-map errors
   if (locationMap) {
     try { locationMap.remove(); } catch(e){}
-    locationMap = null;
-    locationMarker = null;
+    locationMap = null; locationMarker = null;
   }
-  var mapEl = document.getElementById('location-picker-map');
-  // Wipe innerHTML to allow Leaflet to reinitialize cleanly
-  mapEl.innerHTML = '';
-  var defaultLat = lat || 5.6037, defaultLng = lng || -0.1870;
+  mapEl.innerHTML = ''; // clear so Leaflet can re-init
+  var defaultLat = lat||5.6037, defaultLng = lng||-0.1870;
   try {
-    locationMap = L.map('location-picker-map').setView([defaultLat, defaultLng], lat ? 15 : 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OSM', maxZoom:19 }).addTo(locationMap);
-    var icon = L.divIcon({ html:'<div style="background:linear-gradient(135deg,#833ab4,#E1306C);width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>', iconSize:[28,28], iconAnchor:[14,28], className:'' });
-    if (lat && lng) {
-      pickedLat=lat; pickedLng=lng;
-      locationMarker = L.marker([lat,lng],{icon:icon,draggable:true}).addTo(locationMap);
-      updateCoordDisplay(lat,lng);
-      var saveBtn = document.getElementById('save-location-btn');
-      if (saveBtn) saveBtn.disabled=false;
-    }
-    locationMap.on('click', function(e) {
-      pickedLat=e.latlng.lat; pickedLng=e.latlng.lng;
-      if (locationMarker) locationMarker.setLatLng(e.latlng);
-      else { locationMarker=L.marker(e.latlng,{icon:icon,draggable:true}).addTo(locationMap); locationMarker.on('dragend',function(ev){ pickedLat=ev.target.getLatLng().lat; pickedLng=ev.target.getLatLng().lng; updateCoordDisplay(pickedLat,pickedLng); }); }
-      updateCoordDisplay(pickedLat,pickedLng);
-      var saveBtn = document.getElementById('save-location-btn');
-      if (saveBtn) saveBtn.disabled=false;
-    });
-    if (locationMarker) locationMarker.on('dragend', function(ev){ pickedLat=ev.target.getLatLng().lat; pickedLng=ev.target.getLatLng().lng; updateCoordDisplay(pickedLat,pickedLng); });
-  } catch(err) {
-    console.error('Map init failed:', err);
-    if (mapEl) mapEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--t-muted);font-size:13px;">Map unavailable. Please try again.</div>';
+  locationMap = L.map('location-picker-map').setView([defaultLat, defaultLng], lat?15:13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OSM', maxZoom:19 }).addTo(locationMap);
+  var icon = L.divIcon({ html:'<div style="background:linear-gradient(135deg,#833ab4,#E1306C);width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>', iconSize:[28,28], iconAnchor:[14,28], className:'' });
+  if (lat && lng) {
+    pickedLat=lat; pickedLng=lng;
+    locationMarker = L.marker([lat,lng],{icon:icon,draggable:true}).addTo(locationMap);
+    updateCoordDisplay(lat,lng);
+    document.getElementById('save-location-btn').disabled=false;
+  }
+  locationMap.on('click', function(e) {
+    pickedLat=e.latlng.lat; pickedLng=e.latlng.lng;
+    if (locationMarker) locationMarker.setLatLng(e.latlng);
+    else { locationMarker=L.marker(e.latlng,{icon:icon,draggable:true}).addTo(locationMap); locationMarker.on('dragend',function(ev){ pickedLat=ev.target.getLatLng().lat; pickedLng=ev.target.getLatLng().lng; updateCoordDisplay(pickedLat,pickedLng); }); }
+    updateCoordDisplay(pickedLat,pickedLng);
+    document.getElementById('save-location-btn').disabled=false;
+  });
+  if (locationMarker) locationMarker.on('dragend', function(ev){ pickedLat=ev.target.getLatLng().lat; pickedLng=ev.target.getLatLng().lng; updateCoordDisplay(pickedLat,pickedLng); });
+  } catch(mapErr) {
+    console.warn('Location map init failed:', mapErr);
+    mapEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--t-muted);font-size:12px;">Map unavailable. Use GPS button to set location.</div>';
   }
 }
 
@@ -940,7 +975,7 @@ function updateCoordDisplay(lat,lng) {
 }
 
 function useMyLocation() {
-  if (!navigator.geolocation) { showToast('Geolocation not supported on this device', 'info'); return; }
+  if (!navigator.geolocation) { showToast('Geolocation not supported', 'error'); return; }
   showToast('Getting your location...', 'info');
   navigator.geolocation.getCurrentPosition(function(pos) {
     pickedLat=pos.coords.latitude; pickedLng=pos.coords.longitude;
@@ -1061,7 +1096,7 @@ function loadProviderEarnings() {
           '</div>' +
           '<div style="text-align:right;">' +
             '<div style="font-size:14px;font-weight:700;color:#5DC98A;">GHS '+((t.provider_earning||0)/100).toFixed(2)+'</div>' +
-
+            '<div style="font-size:9px;color:var(--t-muted);">after GHS 3.00 fee</div>' +
             '<span style="padding:2px 8px;border-radius:100px;font-size:9px;font-weight:700;background:'+(isPaid?'rgba(93,201,138,0.12)':'rgba(224,112,112,0.1)')+';color:'+(isPaid?'#5DC98A':'#E07070')+';">'+(isPaid?'Paid':'Pending')+'</span>' +
           '</div>' +
         '</div>';
@@ -1214,4 +1249,24 @@ function saveProfile() {
     .catch(function(e){ showToast(e.response?e.response.data.error:'Save failed','error'); });
 }
 </script>
+
+<!-- Edit Service Modal -->
+<div id="edit-svc-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(8px);z-index:9000;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeEditService()">
+  <div style="background:var(--c-deep);border-radius:24px;padding:24px;max-width:420px;width:100%;border:1px solid var(--i-faint);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <h3 style="margin:0;font-size:15px;font-weight:800;">Edit Service</h3>
+      <button onclick="closeEditService()" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--i-faint);background:transparent;color:var(--t-primary);cursor:pointer;">✕</button>
+    </div>
+    <div style="margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:5px;">SERVICE NAME *</label><input id="edit-svc-name" class="input" type="text" placeholder="e.g. Hair Braiding"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+      <div><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:5px;">PRICE (GHS) *</label><input id="edit-svc-price" class="input" type="number" min="1" placeholder="50"/></div>
+      <div><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:5px;">DURATION (min)</label><input id="edit-svc-duration" class="input" type="number" min="15" placeholder="60"/></div>
+    </div>
+    <div style="margin-bottom:18px;"><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:5px;">DESCRIPTION</label><textarea id="edit-svc-desc" class="input" rows="2" placeholder="Brief description..." style="resize:none;"></textarea></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeEditService()" class="btn-ghost" style="flex:1;padding:12px;font-size:13px;">Cancel</button>
+      <button onclick="saveEditService()" class="btn-primary" style="flex:1;padding:12px;font-size:13px;">Save Changes</button>
+    </div>
+  </div>
+</div>
 </body></html>`

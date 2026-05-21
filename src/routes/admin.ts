@@ -151,25 +151,28 @@ admin.patch('/providers/:id/kyc', async (c) => {
         INSERT INTO notifications (user_id, title, message, type, action_url)
         VALUES (?, ?, ?, 'system', '/provider/dashboard')
       `).bind(provUser.id, `KYC ${kyc_status.charAt(0).toUpperCase() + kyc_status.slice(1)}`, msg).run()
+    }
 
-      // Auto-award points for KYC approval (one-time, idempotent)
-      if (kyc_status === 'approved') {
-        try {
-          const provRecord = await c.env.DB.prepare('SELECT id FROM providers WHERE user_id = ?').bind(provUser.id).first() as any
-          if (provRecord) {
-            const alreadyAwarded = await c.env.DB.prepare(
-              "SELECT id FROM point_transactions WHERE provider_id = ? AND type = 'kyc_approved' LIMIT 1"
-            ).bind(provRecord.id).first()
-            if (!alreadyAwarded) {
-              const pts = 20 // 20 points for KYC approval
-              await c.env.DB.prepare('UPDATE providers SET loyalty_points = COALESCE(loyalty_points,0) + ? WHERE id = ?').bind(pts, provRecord.id).run()
-              await c.env.DB.prepare(
-                'INSERT INTO point_transactions (user_id, provider_id, points, type, description) VALUES (?, ?, ?, ?, ?)'
-              ).bind(provUser.id, provRecord.id, pts, 'kyc_approved', 'KYC approved — identity verified bonus').run()
-            }
+    // Auto-award +20 pts on KYC approval (idempotent)
+    if (kyc_status === 'approved') {
+      try {
+        const provRecord = await c.env.DB.prepare(
+          'SELECT id, user_id FROM providers WHERE id = ?'
+        ).bind(c.req.param('id')).first() as any
+        if (provRecord) {
+          const alreadyAwarded = await c.env.DB.prepare(
+            "SELECT id FROM point_transactions WHERE provider_id = ? AND type = 'kyc_approved' LIMIT 1"
+          ).bind(provRecord.id).first()
+          if (!alreadyAwarded) {
+            await c.env.DB.prepare(
+              'UPDATE providers SET loyalty_points = COALESCE(loyalty_points,0) + 20 WHERE id = ?'
+            ).bind(provRecord.id).run()
+            await c.env.DB.prepare(
+              'INSERT INTO point_transactions (provider_id, user_id, points, type, description) VALUES (?,?,?,?,?)'
+            ).bind(provRecord.id, provRecord.user_id, 20, 'kyc_approved', 'KYC approved — identity verified bonus').run()
           }
-        } catch (pointErr) { /* non-blocking */ }
-      }
+        }
+      } catch(ptErr) { /* non-blocking */ }
     }
 
     return c.json({ success: true, message: `Provider KYC ${kyc_status}` })
@@ -490,153 +493,122 @@ admin.get('/users', async (c) => {
   }
 })
 
-// ─── POINTS & REWARDS ENDPOINTS ─────────────────────────────────────────────
+export default admin
 
-// POST /api/admin/points/award — assign points to a provider
-admin.post('/points/award', async (c) => {
+// ─── REWARD ITEMS ─────────────────────────────────────────────────────────────
+
+// GET /api/admin/reward-items
+admin.get('/reward-items', async (c) => {
   try {
-    const adminUser = await getAdmin(c)
-    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
-    const { provider_id, points, description } = await c.req.json()
-    if (!provider_id || !points) return c.json({ error: 'provider_id and points are required' }, 400)
-    const provider = await c.env.DB.prepare('SELECT id, user_id, loyalty_points FROM providers WHERE id = ?').bind(provider_id).first() as any
-    if (!provider) return c.json({ error: 'Provider not found' }, 404)
-    await c.env.DB.prepare('UPDATE providers SET loyalty_points = COALESCE(loyalty_points, 0) + ? WHERE id = ?').bind(points, provider_id).run()
-    await c.env.DB.prepare(
-      'INSERT INTO point_transactions (user_id, provider_id, points, type, description, admin_id) VALUES (?, ?, ?, ?, ?, ?)'
-    ).bind(provider.user_id, provider_id, points, 'award', description || 'Admin award', adminUser.id || adminUser.sub).run()
-    return c.json({ success: true, message: `Awarded ${points} points to provider #${provider_id}` })
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+    const items = await c.env.DB.prepare('SELECT * FROM reward_items ORDER BY created_at DESC').all()
+    return c.json({ success: true, items: items.results || [] })
   } catch (e: any) {
-    return c.json({ error: e.message }, 500)
+    return c.json({ success: false, error: e.message }, 500)
   }
 })
 
-// GET /api/admin/points/history — full transaction log
-admin.get('/points/history', async (c) => {
+// POST /api/admin/reward-items — create reward item
+admin.post('/reward-items', async (c) => {
   try {
-    const adminUser = await getAdmin(c)
-    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
-    const result = await c.env.DB.prepare(`
-      SELECT pt.id, pt.points, pt.type, pt.description, pt.created_at,
-        p.business_name, u.first_name, u.last_name, u.email
-      FROM point_transactions pt
-      JOIN providers p ON pt.provider_id = p.id
-      JOIN users u ON pt.user_id = u.id
-      ORDER BY pt.created_at DESC LIMIT 100
-    `).all()
-    return c.json({ success: true, transactions: result.results || [] })
-  } catch (e: any) {
-    return c.json({ success: true, transactions: [], error: e.message })
-  }
-})
-
-// GET /api/admin/points/providers — all providers with balances
-admin.get('/points/providers', async (c) => {
-  try {
-    const adminUser = await getAdmin(c)
-    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
-    const result = await c.env.DB.prepare(`
-      SELECT p.id, p.business_name, COALESCE(p.loyalty_points, 0) as loyalty_points,
-        u.first_name, u.last_name, u.email
-      FROM providers p JOIN users u ON p.user_id = u.id
-      ORDER BY p.loyalty_points DESC
-    `).all()
-    return c.json({ success: true, providers: result.results || [] })
-  } catch (e: any) {
-    return c.json({ success: true, providers: [], error: e.message })
-  }
-})
-
-// GET /api/admin/rewards — list reward items
-admin.get('/rewards', async (c) => {
-  try {
-    const adminUser = await getAdmin(c)
-    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
-    const result = await c.env.DB.prepare('SELECT * FROM reward_items ORDER BY points_required ASC').all()
-    return c.json({ success: true, rewards: result.results || [] })
-  } catch (e: any) {
-    return c.json({ success: true, rewards: [], error: e.message })
-  }
-})
-
-// POST /api/admin/rewards — create reward item
-admin.post('/rewards', async (c) => {
-  try {
-    const adminUser = await getAdmin(c)
-    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
-    const { name, description, image_url, points_required, quantity_available, category } = await c.req.json()
-    if (!name || !points_required) return c.json({ error: 'name and points_required are required' }, 400)
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+    const { name, description, points_required, image_url, is_available } = await c.req.json()
+    if (!name || !points_required) return c.json({ success: false, error: 'name and points_required are required' }, 400)
     const result = await c.env.DB.prepare(
-      'INSERT INTO reward_items (name, description, image_url, points_required, quantity_available, category) VALUES (?, ?, ?, ?, ?, ?)'
-    ).bind(name, description || null, image_url || null, points_required, quantity_available || null, category || 'general').run()
+      'INSERT INTO reward_items (name, description, points_required, image_url, is_active) VALUES (?, ?, ?, ?, ?)'
+    ).bind(name, description || null, points_required, image_url || null, is_available !== false ? 1 : 0).run()
     return c.json({ success: true, id: result.meta.last_row_id })
   } catch (e: any) {
-    return c.json({ error: e.message }, 500)
+    return c.json({ success: false, error: e.message }, 500)
   }
 })
 
-// PUT /api/admin/rewards/:id — update reward item
-admin.put('/rewards/:id', async (c) => {
+// PUT /api/admin/reward-items/:id — update reward item
+admin.put('/reward-items/:id', async (c) => {
   try {
-    const adminUser = await getAdmin(c)
-    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
-    const { name, description, image_url, points_required, quantity_available, is_active, category } = await c.req.json()
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+    const id = c.req.param('id')
+    const { name, description, points_required, image_url, is_available } = await c.req.json()
     await c.env.DB.prepare(
-      'UPDATE reward_items SET name=?, description=?, image_url=?, points_required=?, quantity_available=?, is_active=?, category=?, updated_at=CURRENT_TIMESTAMP WHERE id=?'
-    ).bind(name, description || null, image_url || null, points_required, quantity_available || null, is_active !== undefined ? is_active : 1, category || 'general', c.req.param('id')).run()
+      'UPDATE reward_items SET name=?, description=?, points_required=?, image_url=?, is_active=? WHERE id=?'
+    ).bind(name, description || null, points_required, image_url || null, is_available ? 1 : 0, id).run()
     return c.json({ success: true })
   } catch (e: any) {
-    return c.json({ error: e.message }, 500)
+    return c.json({ success: false, error: e.message }, 500)
   }
 })
 
-// DELETE /api/admin/rewards/:id — delete reward item
-admin.delete('/rewards/:id', async (c) => {
+// DELETE /api/admin/reward-items/:id
+admin.delete('/reward-items/:id', async (c) => {
   try {
-    const adminUser = await getAdmin(c)
-    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
-    await c.env.DB.prepare('DELETE FROM reward_items WHERE id = ?').bind(c.req.param('id')).run()
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+    await c.env.DB.prepare('DELETE FROM reward_items WHERE id=?').bind(c.req.param('id')).run()
     return c.json({ success: true })
   } catch (e: any) {
-    return c.json({ error: e.message }, 500)
+    return c.json({ success: false, error: e.message }, 500)
   }
 })
 
-// GET /api/admin/rewards/claims — list all reward claims
-admin.get('/rewards/claims', async (c) => {
+// ─── POINTS MANAGEMENT ────────────────────────────────────────────────────────
+
+// GET /api/admin/providers/points — list all providers with points
+admin.get('/providers/points', async (c) => {
   try {
-    const adminUser = await getAdmin(c)
-    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
-    const result = await c.env.DB.prepare(`
-      SELECT rc.id, rc.points_spent, rc.status, rc.notes, rc.created_at,
-        p.business_name, ri.name as reward_name, ri.category,
-        u.first_name, u.last_name, u.email
-      FROM reward_claims rc
-      JOIN providers p ON rc.provider_id = p.id
-      JOIN reward_items ri ON rc.reward_item_id = ri.id
-      JOIN users u ON p.user_id = u.id
-      ORDER BY rc.created_at DESC
-    `).all()
-    return c.json({ success: true, claims: result.results || [] })
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+    const providers = await c.env.DB.prepare(
+      'SELECT p.id, p.business_name, p.loyalty_points, u.email FROM providers p JOIN users u ON u.id = p.user_id ORDER BY p.loyalty_points DESC'
+    ).all()
+    return c.json({ success: true, providers: providers.results || [] })
   } catch (e: any) {
-    return c.json({ success: true, claims: [], error: e.message })
+    return c.json({ success: false, error: e.message }, 500)
   }
 })
 
-// PATCH /api/admin/rewards/claims/:id — approve or reject a claim
-admin.patch('/rewards/claims/:id', async (c) => {
+// POST /api/admin/providers/:id/points — assign points to provider
+admin.post('/providers/:id/points', async (c) => {
   try {
-    const adminUser = await getAdmin(c)
-    if (!adminUser) return c.json({ error: 'Admin access required' }, 403)
-    const { status, notes } = await c.req.json()
-    if (!['approved', 'rejected'].includes(status)) return c.json({ error: 'status must be approved or rejected' }, 400)
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+    const providerId = c.req.param('id')
+    const { points, reason } = await c.req.json()
+    if (!points || !reason) return c.json({ success: false, error: 'points and reason are required' }, 400)
+
+    const validReasons = ['Booking confirmed','Job completed','Client pictures uploaded','Weekly service charge paid','Monthly service charge paid','Manual bonus','Penalty/reversal']
+    if (!validReasons.includes(reason)) return c.json({ success: false, error: 'Invalid reason' }, 400)
+
+    // Record transaction
     await c.env.DB.prepare(
-      'UPDATE reward_claims SET status=?, notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=?'
-    ).bind(status, notes || null, c.req.param('id')).run()
-    return c.json({ success: true })
+      "INSERT INTO point_transactions (provider_id, points, type, description, admin_id) VALUES (?, ?, 'admin_award', ?, ?)"
+    ).bind(providerId, points, reason, user.sub || user.email || 'admin').run()
+
+    // Update provider total
+    await c.env.DB.prepare(
+      'UPDATE providers SET loyalty_points = COALESCE(loyalty_points, 0) + ? WHERE id = ?'
+    ).bind(points, providerId).run()
+
+    return c.json({ success: true, message: `${points > 0 ? '+' : ''}${points} points assigned` })
   } catch (e: any) {
-    return c.json({ error: e.message }, 500)
+    return c.json({ success: false, error: e.message }, 500)
   }
 })
 
-export default admin
+// GET /api/admin/providers/:id/points — point history for a provider
+admin.get('/providers/:id/points', async (c) => {
+  try {
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+    const providerId = c.req.param('id')
+    const history = await c.env.DB.prepare(
+      'SELECT * FROM point_transactions WHERE provider_id = ? ORDER BY created_at DESC LIMIT 50'
+    ).bind(providerId).all()
+    const provider = await c.env.DB.prepare('SELECT loyalty_points, business_name FROM providers WHERE id = ?').bind(providerId).first() as any
+    return c.json({ success: true, total_points: provider?.loyalty_points || 0, business_name: provider?.business_name, history: history.results || [] })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})

@@ -342,92 +342,44 @@ providers.post('/me/services', async (c) => {
   }
 })
 
-// DELETE /api/providers/me/services/:id — delete a service
+// PUT /api/providers/me/services/:id — edit a service
+providers.put('/me/services/:id', async (c) => {
+  try {
+    const user = await getUser(c)
+    if (!user || user.role !== 'provider') return c.json({ success: false, error: 'Unauthorized' }, 401)
+    const provider = await c.env.DB.prepare('SELECT id FROM providers WHERE user_id = ?').bind(user.sub).first() as any
+    if (!provider) return c.json({ success: false, error: 'Provider not found' }, 404)
+    const { name, price, duration, description } = await c.req.json()
+    if (!name || !price) return c.json({ success: false, error: 'Name and price are required' }, 400)
+    await c.env.DB.prepare(
+      'UPDATE services SET name=?, price=?, duration_minutes=?, description=? WHERE id=? AND provider_id=?'
+    ).bind(name, price, duration || 60, description || null, c.req.param('id'), provider.id).run()
+    return c.json({ success: true })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// DELETE /api/providers/me/services/:id — delete a service (blocked if active bookings)
 providers.delete('/me/services/:id', async (c) => {
   try {
     const user = await getUser(c)
     if (!user || user.role !== 'provider') return c.json({ success: false, error: 'Unauthorized' }, 401)
     const provider = await c.env.DB.prepare('SELECT id FROM providers WHERE user_id = ?').bind(user.sub).first() as any
     if (!provider) return c.json({ success: false, error: 'Provider not found' }, 404)
+
+    // Block delete if active pending/confirmed bookings exist for this service
+    const activeBooking = await c.env.DB.prepare(
+      "SELECT id FROM bookings WHERE service_id = ? AND status IN ('pending','confirmed') LIMIT 1"
+    ).bind(c.req.param('id')).first() as any
+    if (activeBooking) return c.json({ success: false, error: 'This service has active bookings and cannot be deleted now.' }, 409)
+
     await c.env.DB.prepare(
       'DELETE FROM services WHERE id = ? AND provider_id = ?'
     ).bind(c.req.param('id'), provider.id).run()
     return c.json({ success: true })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
-  }
-})
-
-// PUT /api/providers/me/services/:id — edit a service
-providers.put('/me/services/:id', async (c) => {
-  try {
-    const user = await getUser(c)
-    if (!user || user.role !== 'provider') return c.json({ error: 'Unauthorized' }, 401)
-    const provider = await c.env.DB.prepare('SELECT id FROM providers WHERE user_id = ?').bind(user.sub).first() as any
-    if (!provider) return c.json({ error: 'Provider not found' }, 404)
-    const { name, price, duration_minutes, description } = await c.req.json()
-    await c.env.DB.prepare(
-      'UPDATE services SET name=?, price=?, duration_minutes=?, description=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND provider_id=?'
-    ).bind(name, price, duration_minutes || 60, description || null, c.req.param('id'), provider.id).run()
-    return c.json({ success: true })
-  } catch (e: any) {
-    return c.json({ success: false, error: e.message }, 500)
-  }
-})
-
-// GET /api/providers/me/points — provider's own points balance, history, available rewards
-providers.get('/me/points', async (c) => {
-  try {
-    const user = await getUser(c)
-    if (!user || user.role !== 'provider') return c.json({ error: 'Unauthorized' }, 401)
-    const provider = await c.env.DB.prepare('SELECT id, loyalty_points FROM providers WHERE user_id = ?').bind(user.sub).first() as any
-    if (!provider) return c.json({ error: 'Provider not found' }, 404)
-    let history: any[] = []
-    let rewards: any[] = []
-    try {
-      const histResult = await c.env.DB.prepare(
-        'SELECT id, points, type, description, created_at FROM point_transactions WHERE provider_id = ? ORDER BY created_at DESC LIMIT 20'
-      ).bind(provider.id).all()
-      history = histResult.results || []
-    } catch (e) { /* table may not exist yet */ }
-    try {
-      const rewResult = await c.env.DB.prepare(
-        'SELECT id, name, description, image_url, points_required, category FROM reward_items WHERE is_active = 1 ORDER BY points_required ASC'
-      ).all()
-      rewards = rewResult.results || []
-    } catch (e) { /* table may not exist yet */ }
-    return c.json({
-      points: provider.loyalty_points || 0,
-      history,
-      available_rewards: rewards
-    })
-  } catch (e: any) {
-    return c.json({ points: 0, history: [], available_rewards: [] })
-  }
-})
-
-// POST /api/providers/me/claim-reward
-providers.post('/me/claim-reward', async (c) => {
-  try {
-    const user = await getUser(c)
-    if (!user || user.role !== 'provider') return c.json({ error: 'Unauthorized' }, 401)
-    const { reward_item_id } = await c.req.json()
-    const provider = await c.env.DB.prepare('SELECT id, user_id, loyalty_points FROM providers WHERE user_id = ?').bind(user.sub).first() as any
-    if (!provider) return c.json({ error: 'Provider not found' }, 404)
-    const reward = await c.env.DB.prepare('SELECT * FROM reward_items WHERE id = ? AND is_active = 1').bind(reward_item_id).first() as any
-    if (!reward) return c.json({ error: 'Reward not found or inactive' }, 404)
-    const balance = provider.loyalty_points || 0
-    if (balance < reward.points_required) return c.json({ error: 'Insufficient points' }, 400)
-    await c.env.DB.prepare('UPDATE providers SET loyalty_points = loyalty_points - ? WHERE id = ?').bind(reward.points_required, provider.id).run()
-    await c.env.DB.prepare(
-      'INSERT INTO point_transactions (user_id, provider_id, points, type, description) VALUES (?, ?, ?, ?, ?)'
-    ).bind(provider.user_id, provider.id, -reward.points_required, 'claim', 'Claimed: ' + reward.name).run()
-    await c.env.DB.prepare(
-      'INSERT INTO reward_claims (provider_id, reward_item_id, points_spent) VALUES (?, ?, ?)'
-    ).bind(provider.id, reward_item_id, reward.points_required).run()
-    return c.json({ success: true, message: 'Reward claimed successfully' })
-  } catch (e: any) {
-    return c.json({ error: e.message }, 500)
   }
 })
 
@@ -581,3 +533,28 @@ providers.get('/:id/availability', async (c) => {
 })
 
 export default providers
+
+// GET /api/providers/me/points — provider's points and history
+providers.get('/me/points', async (c) => {
+  try {
+    const auth = c.req.header('Authorization')
+    if (!auth?.startsWith('Bearer ')) return c.json({ success: false, error: 'Auth required' }, 401)
+    const payload = await import('hono/jwt').then(m => m.verify(auth.split(' ')[1], c.env.JWT_SECRET || 'salonlink_jwt_secret_2026', 'HS256')) as any
+    if (payload.role !== 'provider') return c.json({ success: false, error: 'Provider access required' }, 403)
+
+    const provider = await c.env.DB.prepare('SELECT id, loyalty_points FROM providers WHERE user_id = ?').bind(payload.sub).first() as any
+    if (!provider) return c.json({ success: false, error: 'Provider not found' }, 404)
+
+    const history = await c.env.DB.prepare(
+      'SELECT points, type, description as reason, created_at FROM point_transactions WHERE provider_id = ? ORDER BY created_at DESC LIMIT 20'
+    ).bind(provider.id).all()
+
+    return c.json({
+      success: true,
+      total_points: provider.loyalty_points || 0,
+      history: history.results || []
+    })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})

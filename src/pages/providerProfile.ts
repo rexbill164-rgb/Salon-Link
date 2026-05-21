@@ -23,13 +23,6 @@ ${baseHead('Provider Profile', `
   .time-slot:hover, .time-slot.selected { background:var(--g-main); border-color:var(--g-main); color:#FFFFFF; box-shadow:0 4px 14px rgba(0,0,0,0.18); }
   .time-slot.disabled { opacity:0.3; cursor:not-allowed; background:var(--c-dark); }
 
-  /* Clean blue detail icons */
-  .detail-row-clean { display:flex; gap:14px; margin-bottom:18px; align-items:flex-start; }
-  .detail-icon-blue { width:40px; height:40px; border-radius:12px; background:#eef4ff; color:#2563eb; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .detail-icon-blue i { font-size:16px; }
-  .trust-row-clean { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
-  .trust-row-clean:last-child { margin-bottom:0; }
-
   /* Portfolio */
   .portfolio-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
   .portfolio-item { aspect-ratio:1; border-radius:14px; overflow:hidden; background:var(--c-raise); cursor:pointer; transition:transform 0.2s; border:1px solid var(--i-faint); }
@@ -108,9 +101,9 @@ ${navbar('')}
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       Book Appointment
     </a>
-    <!-- Share Profile button -->
-    <button onclick="shareProviderProfile()" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;width:100%;padding:12px 16px;border-radius:100px;border:1.5px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.15);backdrop-filter:blur(12px);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">
-      <i class="fas fa-share-nodes" style="font-size:13px;"></i>
+    <!-- Share button -->
+    <button onclick="shareProviderProfile()" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px;width:100%;padding:11px 16px;border-radius:100px;border:1.5px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.15);backdrop-filter:blur(12px);color:#fff;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:0.02em;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
       Share Profile
     </button>
   </div>
@@ -216,71 +209,41 @@ ${navbar('')}
         <!-- Info card -->
         <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-xl);padding:28px;" class="reveal">
           <div class="eyebrow" style="margin-bottom:20px;">Details</div>
-
-          <div class="detail-row-clean">
-            <div class="detail-icon-blue">
-              <i class="fas fa-map-marker-alt"></i>
-            </div>
-            <div>
-              <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--t-muted);margin-bottom:3px;">Location</div>
-              <div style="font-size:13px;color:var(--t-primary);" id="info-location">Accra, Ghana</div>
-            </div>
+          <div style="display:flex;gap:14px;margin-bottom:18px;align-items:flex-start;">
+            <span style="font-size:18px;flex-shrink:0;">📍</span>
+            <div><div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--t-muted);margin-bottom:3px;">Location</div>
+            <div style="font-size:13px;color:var(--t-primary);" id="info-location">Accra, Ghana</div></div>
           </div>
-
-          <div class="detail-row-clean">
-            <div class="detail-icon-blue">
-              <i class="fas fa-phone"></i>
-            </div>
-            <div>
-              <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--t-muted);margin-bottom:3px;">Contact</div>
-              <div style="font-size:13px;color:var(--t-primary);" id="info-phone">—</div>
-            </div>
+          <div style="display:flex;gap:14px;margin-bottom:18px;align-items:flex-start;">
+            <span style="font-size:18px;flex-shrink:0;">📞</span>
+            <div><div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--t-muted);margin-bottom:3px;">Contact</div>
+            <div style="font-size:13px;color:var(--t-primary);" id="info-phone">—</div></div>
           </div>
-
-          <div class="detail-row-clean">
-            <div class="detail-icon-blue">
-              <i class="fas fa-wallet"></i>
-            </div>
-            <div>
-              <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--t-muted);margin-bottom:3px;">Payment</div>
-              <div style="font-size:13px;color:var(--t-primary);">Pay at salon</div>
-            </div>
+          <div style="display:flex;gap:14px;margin-bottom:18px;align-items:flex-start;">
+            <span style="font-size:18px;flex-shrink:0;">💳</span>
+            <div><div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--t-muted);margin-bottom:3px;">Payment</div>
+            <div style="font-size:13px;color:var(--t-primary);">MoMo · Card · Cash</div></div>
           </div>
-
           <!-- Map showing provider location -->
           <div id="provider-map-wrap" style="display:none;margin-top:8px;margin-bottom:4px;">
-            <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--t-muted);margin-bottom:8px;">Location on Map</div>
+            <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--t-muted);margin-bottom:8px;">📍 Location on Map</div>
             <div id="provider-map" style="width:100%;height:180px;border-radius:12px;border:1px solid var(--i-faint);overflow:hidden;"></div>
             <div id="map-distance" style="font-size:11px;color:var(--t-muted);margin-top:6px;"></div>
-            <button id="share-location-btn" onclick="shareProviderLocation()" style="width:100%;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px;border-radius:14px;border:1px solid var(--i-faint);background:#fff;color:#111827;padding:12px 14px;font-size:13px;font-weight:800;cursor:pointer;">
-              <i class="fas fa-share-nodes"></i>
-              Share Location
-            </button>
           </div>
         </div>
 
         <!-- Trust signals -->
         <div style="background:var(--g-dim);border:1px solid var(--g-border);border-radius:var(--r-lg);padding:22px;" class="reveal">
-          <div class="trust-row-clean">
-            <div class="detail-icon-blue">
-              <i class="fas fa-id-card"></i>
+          ${[
+            {icon:'🪪',text:'Identity verified via Ghana Card'},
+            {icon:'🔒',text:'Secure payments via Paystack'},
+            {icon:'📸',text:'Style history stored per client'},
+          ].map(t=>`
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;last-child:margin-bottom:0;">
+              <span style="font-size:16px;">${t.icon}</span>
+              <span style="font-size:12px;color:var(--t-secondary);">${t.text}</span>
             </div>
-            <span style="font-size:12px;color:var(--t-secondary);">Identity verified via Ghana Card</span>
-          </div>
-
-          <div class="trust-row-clean">
-            <div class="detail-icon-blue">
-              <i class="fas fa-lock"></i>
-            </div>
-            <span style="font-size:12px;color:var(--t-secondary);">Secure booking process</span>
-          </div>
-
-          <div class="trust-row-clean">
-            <div class="detail-icon-blue">
-              <i class="fas fa-images"></i>
-            </div>
-            <span style="font-size:12px;color:var(--t-secondary);">Style history stored per client</span>
-          </div>
+          `).join('')}
         </div>
 
       </div>
@@ -313,7 +276,9 @@ window.__portfolioVersion = 'provider-gallery-real-images-v2';
   }
 
   function renderProvider(res) {
-    var p = res.data.provider;
+    if (!res || !res.data) { showProviderLoadError('No data returned. Please refresh.'); return; }
+    var p = res.data.provider || res.data;
+    if (!p || !p.id) { showProviderLoadError('Provider not found.'); return; }
     var services = res.data.services || [];
     var reviews = res.data.reviews || [];
     if (!p) return;
@@ -446,32 +411,30 @@ window.__portfolioVersion = 'provider-gallery-real-images-v2';
     var viewAllBtn = document.getElementById('portfolio-view-all-btn');
     if (viewAllBtn) viewAllBtn.style.display = 'none';
     if (portfolioGrid) {
-      portfolioGrid.innerHTML = '<div class="portfolio-empty">Loading portfolio...</div>';
       var providerIdForGallery = (p && p.id) ? p.id : id;
       axios.get('/api/uploads/provider-gallery/' + providerIdForGallery + '?ts=' + Date.now()).then(function(gr) {
-        // Filter: is_logo===0 means work photo, exclude logo (1) and cover (2)
-        // Also accept is_logo===false (boolean) for compatibility
+        // FIX: is_logo may be integer 0, string '0', or boolean false — check all
         var photos = (gr.data.photos || []).filter(function(ph) {
           if (!ph || !ph.image_url) return false;
-          var val = ph.is_logo;
-          return val === 0 || val === '0' || val === false;
+          var v = ph.is_logo;
+          return v === 0 || v === '0' || v === false;
         });
         if (!photos.length) {
           window.__portfolioPhotos = [];
           portfolioGrid.innerHTML = '<div class="portfolio-empty">No portfolio images uploaded yet.</div>';
           return;
         }
-        // Render immediately — no Image() probe (causes false negatives with base64/CORS)
+        // FIX: removed new Image() probe — base64 data-URIs fail onerror in some browsers.
+        // Render directly; individual <img> onerror hides broken items.
         window.__portfolioPhotos = photos;
         if (viewAllBtn) viewAllBtn.style.display = 'inline-flex';
         portfolioGrid.innerHTML = photos.map(function(ph, i) {
           return '<button type="button" class="portfolio-item" onclick="openPortfolioModal(' + i + ')">' +
-            '<img src="' + ph.image_url + '" alt="Portfolio image ' + (i + 1) + '" loading="lazy" ' +
-            'onerror="this.parentElement.style.display=\'none\'" />' +
+            '<img src="' + ph.image_url + '" alt="Portfolio image ' + (i + 1) + '" loading="lazy"' +
+            ' onerror="this.parentElement.style.display=\'none\'"/>' +
           '</button>';
         }).join('');
-      }).catch(function(err) {
-        console.error('Portfolio fetch failed for provider:', providerIdForGallery, err);
+      }).catch(function() {
         window.__portfolioPhotos = [];
         portfolioGrid.innerHTML = '<div class="portfolio-empty">No portfolio images uploaded yet.</div>';
       });
@@ -483,41 +446,39 @@ window.__portfolioVersion = 'provider-gallery-real-images-v2';
     var phoneEl = document.getElementById('info-phone');
     if (phoneEl) phoneEl.textContent = p.phone || '—';
 
-    // Show map if provider has valid coordinates
-    var pLat = p.location_lat ? parseFloat(p.location_lat) : null;
-    var pLng = p.location_lng ? parseFloat(p.location_lng) : null;
-    if (pLat && pLng && !isNaN(pLat) && !isNaN(pLng)) {
-      window.__providerLocation = { lat: pLat, lng: pLng };
+    // Show map if provider has coordinates
+    if (p.location_lat && p.location_lng) {
       var mapWrap = document.getElementById('provider-map-wrap');
       if (mapWrap) mapWrap.style.display = 'block';
+      // FIX: guard against double-init with _leaflet_id check and _profileMapInited flag
       var _profileMapInited = false;
       function initProfileMap() {
         if (_profileMapInited) return;
         if (!window.L) { setTimeout(initProfileMap, 400); return; }
         var mapEl = document.getElementById('provider-map');
         if (!mapEl) return;
-        // Guard against double init (Leaflet throws if container already used)
-        if (mapEl._leaflet_id) return;
+        if (mapEl._leaflet_id) return; // already initialized
         _profileMapInited = true;
         try {
           var map = L.map('provider-map', { zoomControl: true, scrollWheelZoom: false })
-            .setView([pLat, pLng], 15);
+            .setView([parseFloat(p.location_lat), parseFloat(p.location_lng)], 15);
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 19
           }).addTo(map);
           var icon = L.divIcon({
             html: '<div style="background:linear-gradient(135deg,#C9A84C,#8B6914);width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>',
             iconSize: [32,32], iconAnchor: [16,32], className: ''
           });
-          L.marker([pLat, pLng], { icon: icon })
+          L.marker([parseFloat(p.location_lat), parseFloat(p.location_lng)], { icon: icon })
             .addTo(map)
-            .bindPopup('<strong>' + (p.business_name || 'Provider') + '</strong><br>' + (p.address || p.city || 'Accra'))
+            .bindPopup('<strong>' + p.business_name + '</strong><br>' + (p.address || p.city || 'Accra'))
             .openPopup();
-          // Distance calculation (non-blocking, graceful fail)
+          // Show distance if customer allows geolocation — silent deny
           if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(pos) {
               var R = 6371;
+              var pLat = parseFloat(p.location_lat), pLng = parseFloat(p.location_lng);
               var dLat = (pLat - pos.coords.latitude) * Math.PI / 180;
               var dLng = (pLng - pos.coords.longitude) * Math.PI / 180;
               var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
@@ -525,11 +486,11 @@ window.__portfolioVersion = 'provider-gallery-real-images-v2';
                       Math.sin(dLng/2)*Math.sin(dLng/2);
               var km = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
               var distEl = document.getElementById('map-distance');
-              if (distEl) distEl.textContent = km < 1 ? Math.round(km*1000) + 'm from your location' : km.toFixed(1) + 'km from your location';
-            }, function(){}); // silently ignore geolocation denial
+              if (distEl) distEl.textContent = '📍 ' + (km < 1 ? Math.round(km*1000) + 'm from your location' : km.toFixed(1) + 'km from your location');
+            }, function(){}); // silent geolocation deny
           }
         } catch(mapErr) {
-          console.error('Profile map init failed:', mapErr);
+          console.warn('Profile map init failed:', mapErr);
           if (mapWrap) mapWrap.style.display = 'none';
         }
       }
@@ -566,65 +527,41 @@ function openPortfolioModal(index) {
   caption.textContent = item.caption || 'Portfolio image';
   modal.classList.add('open');
 }
-
-function shareProviderProfile() {
-  var providerName = (document.getElementById('profile-name') || {}).textContent || 'SalonLink Provider';
-  var profileLink = window.location.origin + window.location.pathname;
-  var text = 'Book an appointment with ' + providerName + ' on SalonLink: ' + profileLink;
-  if (navigator.share) {
-    navigator.share({ title: providerName + ' — SalonLink', text: text, url: profileLink }).catch(function(){});
-  } else if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(profileLink).then(function() {
-      showToast('Profile link copied to clipboard \u2726', 'success');
-    }).catch(function() {
-      _fallbackCopyToClipboard(profileLink);
-    });
-  } else {
-    _fallbackCopyToClipboard(profileLink);
-  }
-}
-
-function _fallbackCopyToClipboard(text) {
-  try {
-    var ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
-    document.body.appendChild(ta);
-    ta.focus(); ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    showToast('Profile link copied \u2726', 'success');
-  } catch(e) {
-    showToast('Copy failed \u2014 share URL: ' + text, 'info');
-  }
-}
-
-function shareProviderLocation() {
-  var providerName = (document.getElementById('profile-name') || {}).textContent || 'SalonLink Provider';
-  var address = (document.getElementById('info-location') || {}).textContent || 'Accra, Ghana';
-  var profileLink = window.location.origin + window.location.pathname;
-  var mapLink = '';
-  if (window.__providerLocation && window.__providerLocation.lat && window.__providerLocation.lng) {
-    mapLink = 'https://www.google.com/maps?q=' + encodeURIComponent(window.__providerLocation.lat + ',' + window.__providerLocation.lng);
-  } else {
-    mapLink = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(address);
-  }
-  var text = 'Find ' + providerName + ' on SalonLink.\nLocation: ' + address + '\nMap: ' + mapLink + '\nProfile: ' + profileLink;
-  if (navigator.share) {
-    navigator.share({ title: providerName, text: text, url: mapLink }).catch(function(){});
-  } else if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(mapLink).then(function() {
-      showToast('Location link copied \u2726', 'success');
-    }).catch(function() { _fallbackCopyToClipboard(mapLink); });
-  } else {
-    _fallbackCopyToClipboard(mapLink);
-  }
-}
-
 function closePortfolioModal(ev) {
   if (ev && ev.target && ev.target.closest && ev.target.closest('.portfolio-modal-card')) return;
   var modal = document.getElementById('portfolio-modal');
   if (modal) modal.classList.remove('open');
+}
+
+/* ── Share Profile ── */
+function shareProviderProfile() {
+  var providerName = (document.getElementById('profile-name') || {}).textContent || 'SalonLink Provider';
+  var profileLink = window.location.origin + window.location.pathname;
+  var shareText = 'Book an appointment with ' + providerName + ' on SalonLink: ' + profileLink;
+  if (navigator.share) {
+    navigator.share({ title: providerName + ' — SalonLink', text: shareText, url: profileLink })
+      .catch(function(){});
+  } else if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(profileLink)
+      .then(function(){ showToast('Profile link copied to clipboard ✦', 'success'); })
+      .catch(function(){ _fallbackCopyToClipboard(profileLink); });
+  } else {
+    _fallbackCopyToClipboard(profileLink);
+  }
+}
+function _fallbackCopyToClipboard(text) {
+  try {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('Profile link copied ✦', 'success');
+  } catch(e) {
+    showToast('Copy failed — share the URL manually', 'info');
+  }
 }
 </script>
 </body></html>`

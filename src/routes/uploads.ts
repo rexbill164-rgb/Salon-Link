@@ -111,23 +111,22 @@ uploads.post('/provider-gallery', async (c) => {
       'UPDATE providers SET gallery_count = gallery_count + 1 WHERE id = ?'
     ).bind(provider.id).run()
 
-    // Auto-award points for first gallery upload (one-time bonus)
+    // Auto-award +10 pts on first gallery upload (idempotent)
     if (galleryCount === 0) {
       try {
         const alreadyAwarded = await c.env.DB.prepare(
           "SELECT id FROM point_transactions WHERE provider_id = ? AND type = 'first_gallery' LIMIT 1"
         ).bind(provider.id).first()
         if (!alreadyAwarded) {
-          const pts = 10 // 10 points for first photo upload
-          await c.env.DB.prepare('UPDATE providers SET loyalty_points = COALESCE(loyalty_points,0) + ? WHERE id = ?').bind(pts, provider.id).run()
-          const prov = await c.env.DB.prepare('SELECT user_id FROM providers WHERE id = ?').bind(provider.id).first() as any
-          if (prov) {
-            await c.env.DB.prepare(
-              'INSERT INTO point_transactions (user_id, provider_id, points, type, description) VALUES (?, ?, ?, ?, ?)'
-            ).bind(prov.user_id, provider.id, pts, 'first_gallery', 'First portfolio photo uploaded').run()
-          }
+          const provFull = await c.env.DB.prepare('SELECT user_id FROM providers WHERE id = ?').bind(provider.id).first() as any
+          await c.env.DB.prepare(
+            'UPDATE providers SET loyalty_points = COALESCE(loyalty_points,0) + 10 WHERE id = ?'
+          ).bind(provider.id).run()
+          await c.env.DB.prepare(
+            'INSERT INTO point_transactions (provider_id, user_id, points, type, description) VALUES (?,?,?,?,?)'
+          ).bind(provider.id, provFull?.user_id || null, 10, 'first_gallery', 'First gallery photo uploaded').run()
         }
-      } catch (pointErr) { /* non-blocking */ }
+      } catch(ptErr) { /* non-blocking */ }
     }
 
     return c.json({
