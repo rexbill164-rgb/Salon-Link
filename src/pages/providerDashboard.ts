@@ -219,7 +219,7 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
             Today's Appointments
             <button onclick="showSection('appts',document.getElementById('nav-appts'))" class="btn-ghost" style="padding:6px 14px;font-size:10px;">View All</button>
           </div>
-          <div id="today-appts"><div style="text-align:center;color:var(--t-muted);padding:20px;font-size:13px;">Loading...</div></div>
+          <div id="today-appts"><div style="text-align:center;color:var(--t-muted);padding:20px;font-size:13px;">No appointments today ✦</div></div>
         </div>
 
         <!-- Quick actions -->

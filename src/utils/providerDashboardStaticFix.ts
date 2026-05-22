@@ -44,19 +44,12 @@ export function withProviderDashboardStaticFix(html: string): string {
     renderToday(d.today_appointments||[]); loadServices();
   }).catch(function(e){
     var todayEl = q('today-appts');
-    if (todayEl) todayEl.innerHTML = '<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">Could not load appointments.<br><button onclick="location.reload()" style="margin-top:8px;padding:6px 16px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-size:11px;">Retry</button></div>';
+    if (todayEl) todayEl.innerHTML = '<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:13px;">No appointments today</div>';
     if(e&&e.response&&e.response.status===401) location.href='/login';
   }); }
 
-  // Safety fallback: if today-appts still shows "Loading..." after 4s, clear it
-  setTimeout(function(){
-    var el = q('today-appts');
-    if (el && el.textContent && el.textContent.trim().indexOf('Loading') === 0) {
-      el.innerHTML = '<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">No appointments today ✦</div>';
-    }
-  }, 4000);
   function set(id,v){ var e=q(id); if(e)e.textContent=v; }
-  function renderToday(rows){ var e=q('today-appts'); if(!e)return; if(!rows.length){e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">No appointments today ✦</div>';return;} e.innerHTML=rows.map(function(r){return '<div class="appt-row"><div class="mini-avatar">'+String(r.first_name||'?').charAt(0)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:700;">'+(r.first_name||'')+' '+(r.last_name||'')+'</div><div style="font-size:11px;color:var(--t-muted);">'+(r.service_name||'')+'</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:700;color:var(--g-main);">'+(r.booking_time||'')+'</div><span class="badge badge-pending" style="font-size:9px;">'+(r.status||'pending')+'</span></div></div>';}).join(''); }
+  function renderToday(rows){ var e=q('today-appts'); if(!e)return; if(!rows.length){ e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:13px;">No appointments today</div>'; return; } e.innerHTML=rows.map(function(r){return '<div class="appt-row"><div class="mini-avatar">'+String(r.first_name||'?').charAt(0)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:700;">'+(r.first_name||'')+' '+(r.last_name||'')+'</div><div style="font-size:11px;color:var(--t-muted);">'+(r.service_name||'')+'</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:700;color:var(--g-main);">'+(r.booking_time||'')+'</div><span class="badge badge-pending" style="font-size:9px;">'+(r.status||'pending')+'</span></div></div>';}).join(''); }
   function loadAppts(){ var x=a(), e=q('appts-list'); if(e)e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:32px;font-size:13px;">Loading appointments...</div>'; if(!x)return; x.get('/api/bookings/provider',{headers:h()}).then(function(r){ var rows=(r.data||{}).bookings||[]; if(!rows.length){e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:32px;font-size:13px;">No appointments found.</div>';return;} e.innerHTML=rows.map(function(b){return '<div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--i-faint);flex-wrap:wrap;"><div class="mini-avatar">'+String(b.first_name||'?').charAt(0)+'</div><div style="flex:1;min-width:120px;"><div style="font-size:13px;font-weight:700;">'+(b.first_name||'')+' '+(b.last_name||'')+'</div><div style="font-size:11px;color:var(--t-muted);">'+(b.service_name||'')+' · '+(b.booking_date||'')+' '+(b.booking_time||'')+'</div></div><div style="font-weight:700;color:var(--g-main);">'+money(b.total_amount)+'</div><span class="badge badge-pending" style="font-size:9px;">'+(b.status||'pending')+'</span></div>';}).join('');}).catch(function(){ if(e)e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:32px;font-size:13px;">No appointments found.</div>'; }); }
   function loadServices(){ var x=a(), e=q('my-services-list'); if(!x||!e)return; x.get('/api/providers/me/services',{headers:h()}).then(function(r){ var rows=(r.data||{}).services||[]; window._sl_services=rows; if(!rows.length){e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">No services yet. Add your first service above.</div>';return;} e.innerHTML=rows.map(function(s,i){return '<div style="border:1px solid #e5e7eb;border-radius:14px;margin-bottom:10px;overflow:hidden;background:#fff;"><div style="display:flex;align-items:center;gap:12px;padding:14px;"><div style="flex:1"><div style="font-size:14px;font-weight:700;color:#111;">'+(s.name||'Service')+'</div><div style="font-size:11px;color:#6b7280;margin-top:2px;">'+(s.duration_minutes||60)+' min'+(s.description?' · '+s.description:'')+'</div></div><div style="font-size:16px;font-weight:800;color:#1d4ed8;">'+money(s.price)+'</div></div><div style="display:flex;border-top:1px solid #e5e7eb;"><button onclick="window.openEditService&&window.openEditService(window._sl_services['+i+'])" style="flex:1;padding:10px;background:#2563eb;border:none;border-right:1px solid #1d4ed8;color:#000;font-size:11px;font-weight:600;cursor:pointer;font-size:11px;">Edit</button><button onclick="window.deleteSvcByIndex&&window.deleteSvcByIndex('+i+')" style="flex:1;padding:10px;background:#dc2626;border:none;color:#000;font-size:11px;font-weight:600;cursor:pointer;font-size:11px;">Delete</button></div></div>';}).join(''); }).catch(function(){e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">Could not load services.</div>';}); }
   window.showAddSvcForm=function(){ var f=q('add-svc-form'); if(f)f.style.display=f.style.display==='block'?'none':'block'; };
@@ -137,7 +130,22 @@ export function withProviderDashboardStaticFix(html: string): string {
   function loadSettings(){ var x=a(); if(!x)return; x.get('/api/providers/me/dashboard',{headers:h()}).then(function(r){var p=(r.data||{}).provider||{}; function v(id,val){var e=q(id); if(e)e.value=val||'';} v('set-business-name',p.business_name);v('set-phone',p.phone);v('set-city',p.city);v('set-address',p.address);v('set-bio',p.bio);v('set-price-min',p.price_from?Math.round(p.price_from/100):'');v('set-price-max',p.price_to?Math.round(p.price_to/100):'');}); }
   window.saveProfile=function(){ var x=a(); if(!x)return; function val(id){var e=q(id);return e?e.value.trim():'';} var body={business_name:val('set-business-name')||undefined,phone:val('set-phone')||undefined,city:val('set-city')||undefined,address:val('set-address')||undefined,bio:val('set-bio')||undefined,price_from:val('set-price-min')?Number(val('set-price-min'))*100:undefined,price_to:val('set-price-max')?Number(val('set-price-max'))*100:undefined}; x.put('/api/providers/me',body,{headers:h()}).then(function(){toast('Profile saved','success');}).catch(function(){toast('Could not save profile','error');}); };
 
-  document.addEventListener('DOMContentLoaded',function(){ if(!t()){location.href='/login';return;} setTimeout(function(){ var g=q('gallery-file-input'); if(g)g.onchange=function(){window.uploadGalleryImage(g);}; var l=q('logo-file-input'); if(l)l.onchange=function(){window.uploadLogoImage(l);}; var c=q('cover-file-input'); if(c)c.onchange=function(){window.uploadCoverImage(c);}; loadDash(); },300); });
+  // Wire inputs and load dash - retry until axios CDN is ready
+  function wireInputs(){
+    var g=q('gallery-file-input'); if(g)g.onchange=function(){window.uploadGalleryImage(g);};
+    var l=q('logo-file-input'); if(l)l.onchange=function(){window.uploadLogoImage(l);};
+    var c=q('cover-file-input'); if(c)c.onchange=function(){window.uploadCoverImage(c);};
+  }
+  function tryLoadDash(n){
+    if(!t()){location.href='/login';return;}
+    if(window.axios){wireInputs();loadDash();return;}
+    if((n||0)<25){setTimeout(function(){tryLoadDash((n||0)+1);},200);}
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',function(){tryLoadDash(0);});
+  } else {
+    tryLoadDash(0);
+  }
 })();
 </script>`
   if (html.includes('provider-dashboard-static-rescue')) return html
