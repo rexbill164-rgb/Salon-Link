@@ -50,7 +50,7 @@ admin.get('/stats', async (c) => {
       safeFirst(c, 'STATS USERS', "SELECT COUNT(*) as count FROM users"),
       safeFirst(c, 'STATS PROVIDERS', 'SELECT COUNT(*) as count FROM providers'),
       safeFirst(c, 'STATS BOOKINGS', 'SELECT COUNT(*) as count FROM bookings'),
-      safeFirst(c, 'STATS REVENUE', "SELECT COALESCE(SUM(total_amount), 0) as total FROM bookings WHERE status IN ('confirmed','completed')"),
+      safeFirst(c, 'STATS REVENUE', "SELECT COALESCE(SUM(fee_amount), 0) as total FROM service_fees"),
       safeFirst(c, 'STATS KYC', "SELECT COUNT(*) as count FROM providers WHERE kyc_status = 'pending'"),
       safeFirst(c, 'STATS TODAY', "SELECT COUNT(*) as count FROM bookings WHERE booking_date = date('now')")
     ]) as any[]
@@ -608,6 +608,77 @@ admin.get('/providers/:id/points', async (c) => {
     ).bind(providerId).all()
     const provider = await c.env.DB.prepare('SELECT loyalty_points, business_name FROM providers WHERE id = ?').bind(providerId).first() as any
     return c.json({ success: true, total_points: provider?.loyalty_points || 0, business_name: provider?.business_name, history: history.results || [] })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// ─── PROVIDER FEE ENFORCEMENT ────────────────────────────────────────────────
+
+// GET /api/admin/providers/fees-outstanding — providers with unpaid GHS 2 fees
+admin.get('/providers/fees-outstanding', async (c) => {
+  try {
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+
+    const rows = await c.env.DB.prepare(`
+      SELECT
+        p.id, p.business_name, p.is_accepting_bookings,
+        u.email, u.phone,
+        COUNT(sf.id) as pending_count,
+        COALESCE(SUM(sf.fee_amount), 0) as pending_pesewas,
+        MIN(sf.due_date) as oldest_due
+      FROM providers p
+      JOIN users u ON u.id = p.user_id
+      LEFT JOIN service_fees sf ON sf.provider_id = p.id AND sf.status = 'pending'
+      GROUP BY p.id
+      ORDER BY pending_pesewas DESC
+    `).all()
+
+    return c.json({ success: true, providers: rows.results || [] })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// POST /api/admin/providers/:id/block — block provider from receiving bookings
+admin.post('/providers/:id/block', async (c) => {
+  try {
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+    await c.env.DB.prepare(
+      'UPDATE providers SET is_accepting_bookings = 0 WHERE id = ?'
+    ).bind(c.req.param('id')).run()
+    return c.json({ success: true, message: 'Provider blocked from new bookings' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// POST /api/admin/providers/:id/unblock — unblock provider after fee payment
+admin.post('/providers/:id/unblock', async (c) => {
+  try {
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+    await c.env.DB.prepare(
+      'UPDATE providers SET is_accepting_bookings = 1 WHERE id = ?'
+    ).bind(c.req.param('id')).run()
+    return c.json({ success: true, message: 'Provider unblocked' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// POST /api/admin/providers/:id/mark-fees-paid — mark all pending fees as paid
+admin.post('/providers/:id/mark-fees-paid', async (c) => {
+  try {
+    const user = await getAdmin(c)
+    if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
+    await c.env.DB.prepare(`
+      UPDATE service_fees SET status = 'paid', paid_at = CURRENT_TIMESTAMP
+      WHERE provider_id = ? AND status = 'pending'
+    `).bind(c.req.param('id')).run()
+    return c.json({ success: true, message: 'All pending fees marked as paid' })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }

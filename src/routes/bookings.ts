@@ -85,7 +85,7 @@ bookings.post('/', async (c) => {
     if (customerConflict) return c.json({ success: false, error: 'You already have a booking at this time.' }, 409)
 
     // 3 GHS platform service fee (in pesewas)
-    const SERVICE_FEE = 300 // GHS 3 charged to provider, NOT customer
+    const SERVICE_FEE = 200 // GHS 2 platform charge - recorded on completion only
     const totalWithFee = (service.price || 0) // Customer pays only service price
 
     // Create booking (total_amount = service price only; service_fee is a provider obligation)
@@ -95,12 +95,7 @@ bookings.post('/', async (c) => {
     `).bind(user.sub, provider_id, service_id, booking_date, booking_time, totalWithFee, SERVICE_FEE, notes || null).run()
 
     const bookingId = result.meta.last_row_id
-
-    // Record the service fee owed by provider (due by midnight of booking date)
-    await c.env.DB.prepare(`
-      INSERT OR IGNORE INTO service_fees (booking_id, provider_id, fee_amount, status, due_date)
-      VALUES (?, ?, ?, 'pending', ?)
-    `).bind(bookingId, provider_id, SERVICE_FEE, booking_date).run()
+    // Service fee (GHS 2) is recorded only when booking is COMPLETED - not at creation
 
     // Get customer and provider info for notifications
     const customer = await c.env.DB.prepare(
@@ -277,6 +272,29 @@ bookings.patch('/:id/status', async (c) => {
     await c.env.DB.prepare(`
       UPDATE bookings SET status = ?, cancellation_reason = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
     `).bind(status, cancellation_reason || null, c.req.param('id')).run()
+
+    // On completion: record GHS 2 service fee owed by provider to admin
+    if (status === 'completed') {
+      try {
+        const nextFriday = (() => {
+          const d = new Date(); d.setUTCHours(23,59,59,0);
+          const day = d.getUTCDay(); // 0=Sun,5=Fri
+          const daysUntilFriday = (5 - day + 7) % 7 || 7;
+          d.setUTCDate(d.getUTCDate() + daysUntilFriday);
+          return d.toISOString().split('T')[0];
+        })();
+        // Idempotent - only insert if not already recorded
+        const existingFee = await c.env.DB.prepare(
+          'SELECT id FROM service_fees WHERE booking_id = ? LIMIT 1'
+        ).bind(c.req.param('id')).first()
+        if (!existingFee) {
+          await c.env.DB.prepare(`
+            INSERT INTO service_fees (booking_id, provider_id, fee_amount, status, due_date)
+            VALUES (?, ?, 200, 'pending', ?)
+          `).bind(c.req.param('id'), booking.provider_id, nextFriday).run()
+        }
+      } catch(feeErr) { /* non-blocking */ }
+    }
 
     // Auto-award +5 loyalty points to provider on completed booking (idempotent)
     if (status === 'completed') {

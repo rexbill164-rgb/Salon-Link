@@ -99,10 +99,10 @@ providers.get('/me/dashboard', async (c) => {
       `, [provider.id, today]),
       safeFirst(c, 'WEEK REVENUE', `
         SELECT COALESCE(SUM(total_amount), 0) as total FROM bookings
-        WHERE provider_id = ? AND status IN ('confirmed','completed')
+        WHERE provider_id = ? AND status = 'completed'
         AND booking_date >= date('now', '-7 days')
       `, [provider.id]),
-      safeFirst(c, 'TOTAL CLIENTS', "SELECT COUNT(DISTINCT customer_id) as count FROM bookings WHERE provider_id = ? AND status IN ('confirmed','completed')", [provider.id]),
+      safeFirst(c, 'TOTAL CLIENTS', "SELECT COUNT(DISTINCT customer_id) as count FROM bookings WHERE provider_id = ? AND status = 'completed'", [provider.id]),
       safeAll(c, 'PENDING BOOKINGS', `
         SELECT b.*, u.first_name, u.last_name, u.avatar_url, s.name as service_name
         FROM bookings b JOIN users u ON b.customer_id = u.id JOIN services s ON b.service_id = s.id
@@ -115,6 +115,12 @@ providers.get('/me/dashboard', async (c) => {
       `, [provider.id])
     ]) as any[]
 
+    // Outstanding platform fees (GHS 2 per completed booking, unpaid)
+    const outstandingFees = await c.env.DB.prepare(`
+      SELECT COALESCE(SUM(fee_amount),0) as total, COUNT(*) as count
+      FROM service_fees WHERE provider_id = ? AND status = 'pending'
+    `).bind(provider.id).first() as any
+
     return c.json({
       success: true,
       provider,
@@ -123,7 +129,9 @@ providers.get('/me/dashboard', async (c) => {
         week_revenue: weekRevenue?.total || 0,
         total_clients: totalClients?.count || 0,
         rating: provider.rating,
-        total_reviews: provider.total_reviews
+        total_reviews: provider.total_reviews,
+        outstanding_fees_pesewas: outstandingFees?.total || 0,
+        outstanding_fees_count: outstandingFees?.count || 0
       },
       today_appointments: todayBookings.results,
       pending_bookings: pendingBookings.results,

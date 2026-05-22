@@ -344,8 +344,18 @@ ${baseHead('Admin Panel', `
 
       <!-- ── PLATFORM FEES SECTION ── -->
       <div id="admin-fees" class="admin-section">
-        <div class="eyebrow" style="margin-bottom:8px;">Platform Service Fees (GHS 3/booking)</div>
-        <div style="font-size:12px;color:var(--t-muted);margin-bottom:20px;">Track fees owed by providers. Due by midnight of each booking day.</div>
+        <div class="eyebrow" style="margin-bottom:8px;">Platform Service Fees (GHS 2 per completed booking)</div>
+        <div style="font-size:12px;color:var(--t-muted);margin-bottom:16px;">GHS 2 is charged per completed booking. Providers must pay by end of each week or get blocked.</div>
+        <!-- Provider enforcement table -->
+        <div style="margin-bottom:24px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:12px;">Provider Fee Status & Enforcement</div>
+          <div class="table-scroll">
+            <table class="admin-table">
+              <thead><tr><th>Provider</th><th>Email</th><th>Pending Fees</th><th>Amount Owed</th><th>Oldest Due</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="enforcement-tbody"><tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t-muted);">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
         <div class="admin-fees-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
           <div style="background:var(--c-surface);border:1px solid var(--i-faint);border-radius:var(--r-lg);padding:20px;text-align:center;">
             <div style="font-size:22px;font-weight:800;color:var(--g-main);" id="admin-fees-pending-amt">GHS 0</div>
@@ -508,6 +518,7 @@ function adminSection(id, btn) {
   if (id === 'providers') loadProviders();
   if (id === 'kyc') loadKyc();
   if (id === 'bookings') loadBookings();
+  if (id === 'fees') loadEnforcement();
   if (id === 'rewards') loadRewards();
   if (id === 'points') loadPointsSection();
   if (id === 'reconcile') {
@@ -869,6 +880,59 @@ function loadFeeSummary() {
     var pa = document.getElementById('admin-fees-paid-amt');
     if (pa) pa.textContent = 'GHS ' + ((s.total_pending_amount || 0) / 100).toFixed(2);
   }).catch(function(){});
+}
+
+function loadEnforcement() {
+  var token = window._adminToken;
+  axios.get('/api/admin/providers/fees-outstanding', {headers:{Authorization:'Bearer '+token}})
+    .then(function(res){
+      var providers = res.data.providers || [];
+      var tbody = document.getElementById('enforcement-tbody');
+      if (!tbody) return;
+      if (!providers.length) { tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--t-muted);">No providers yet</td></tr>'; return; }
+      tbody.innerHTML = providers.map(function(p){
+        var owed = Math.round((p.pending_pesewas||0)/100);
+        var isBlocked = !p.is_accepting_bookings;
+        var statusBadge = isBlocked
+          ? '<span style="padding:3px 10px;border-radius:100px;background:rgba(224,112,112,0.15);color:var(--s-red);font-size:11px;font-weight:700;">Blocked</span>'
+          : '<span style="padding:3px 10px;border-radius:100px;background:rgba(93,201,138,0.15);color:var(--s-green);font-size:11px;font-weight:700;">Active</span>';
+        var owedColor = owed > 0 ? 'color:var(--s-red);font-weight:800;' : 'color:var(--t-muted);';
+        return '<tr>' +
+          '<td style="font-weight:600;">' + (p.business_name||'—') + '</td>' +
+          '<td style="font-size:11px;color:var(--t-muted);">' + (p.email||'—') + '</td>' +
+          '<td style="text-align:center;">' + (p.pending_count||0) + ' bookings</td>' +
+          '<td style="' + owedColor + '">GHS ' + owed + '</td>' +
+          '<td style="font-size:11px;color:var(--t-muted);">' + (p.oldest_due||'—') + '</td>' +
+          '<td>' + statusBadge + '</td>' +
+          '<td>' +
+            '<div style="display:flex;gap:6px;">' +
+              (owed > 0 ? '<button onclick="markFeesPaid('+p.id+',''+p.business_name+'')" style="padding:5px 10px;border-radius:8px;border:1px solid var(--s-green);background:transparent;color:var(--s-green);cursor:pointer;font-size:11px;font-weight:600;">✓ Mark Paid</button>' : '') +
+              (isBlocked
+                ? '<button onclick="toggleBlock('+p.id+',false,''+p.business_name+'')" style="padding:5px 10px;border-radius:8px;border:1px solid var(--g-main);background:transparent;color:var(--g-main);cursor:pointer;font-size:11px;font-weight:600;">Unblock</button>'
+                : (owed > 0 ? '<button onclick="toggleBlock('+p.id+',true,''+p.business_name+'')" style="padding:5px 10px;border-radius:8px;border:1px solid var(--s-red);background:transparent;color:var(--s-red);cursor:pointer;font-size:11px;font-weight:600;">Block</button>' : '')) +
+            '</div>' +
+          '</td>' +
+        '</tr>';
+      }).join('');
+    }).catch(function(){ showToast('Could not load enforcement data','error'); });
+}
+
+function markFeesPaid(id, name) {
+  if (!confirm('Mark all pending fees as PAID for ' + name + '?')) return;
+  var token = window._adminToken;
+  axios.post('/api/admin/providers/'+id+'/mark-fees-paid', {}, {headers:{Authorization:'Bearer '+token}})
+    .then(function(){ showToast('Fees marked as paid ✓','success'); loadEnforcement(); loadFees('pending'); })
+    .catch(function(){ showToast('Could not update fees','error'); });
+}
+
+function toggleBlock(id, block, name) {
+  var action = block ? 'BLOCK' : 'UNBLOCK';
+  if (!confirm(action + ' ' + name + '?')) return;
+  var token = window._adminToken;
+  var endpoint = block ? '/api/admin/providers/'+id+'/block' : '/api/admin/providers/'+id+'/unblock';
+  axios.post(endpoint, {}, {headers:{Authorization:'Bearer '+token}})
+    .then(function(){ showToast(name + (block ? ' blocked' : ' unblocked') + ' ✓', block?'error':'success'); loadEnforcement(); })
+    .catch(function(){ showToast('Could not update provider','error'); });
 }
 
 function loadFees(status) {

@@ -574,6 +574,16 @@ function logout() {
         safeSet('kpi-clients', stats.total_clients||0);
         safeSet('kpi-rating', stats.rating ? parseFloat(stats.rating).toFixed(1) : '—');
 
+        // Show outstanding fee banner if provider owes GHS 2 fees
+        var feesOwed = stats.outstanding_fees_pesewas || 0;
+        var feeCount = stats.outstanding_fees_count || 0;
+        if (feesOwed > 0) {
+          var banner = document.getElementById('outstanding-fee-banner');
+          if (banner) banner.style.display = 'flex';
+          safeSet('fee-total', 'GHS ' + Math.round(feesOwed/100));
+          safeSet('fee-count', feeCount);
+        }
+
         // Accepting toggle
         var tog = document.getElementById('accepting-toggle');
         if (tog) {
