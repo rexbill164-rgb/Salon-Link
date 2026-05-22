@@ -864,15 +864,17 @@ function loadMyServices(token) {
       // Store services globally so onclick handlers can reference by index (avoids all quote-escaping issues)
       window._sl_services = svcs;
       el.innerHTML = svcs.map(function(s, i) {
-        return '<div style="padding:12px 0;border-bottom:1px solid var(--i-faint);">' +
-          '<div style="display:flex;align-items:center;gap:12px;">' +
+        return '<div style="border:1px solid #e5e7eb;border-radius:14px;margin-bottom:10px;overflow:hidden;background:#fff;">' +
+          '<div style="display:flex;align-items:center;gap:12px;padding:14px;">' +
             '<div style="flex:1;">' +
-              '<div style="font-size:13px;font-weight:700;">'+s.name+'</div>' +
-              '<div style="font-size:11px;color:var(--t-muted);">'+(s.duration_minutes||s.duration||60)+' min · '+(s.description||'')+'</div>' +
+              '<div style="font-size:14px;font-weight:700;color:#111;">'+s.name+'</div>' +
+              '<div style="font-size:11px;color:#6b7280;margin-top:2px;">'+(s.duration_minutes||s.duration||60)+' min'+(s.description?' · '+s.description:'')+'</div>' +
             '</div>' +
-            '<div style="font-size:15px;font-weight:700;color:var(--g-main);">GHS '+Math.round((s.price||0)/100)+'</div>' +
-            '<button class="sl-svc-action-btn sl-svc-edit" onclick="openEditService(window._sl_services['+i+'])">✏️ Edit</button>' +
-            '<button class="sl-svc-action-btn sl-svc-delete" onclick="deleteSvcByIndex('+i+')">🗑 Delete</button>' +
+            '<div style="font-size:16px;font-weight:800;color:#1d4ed8;">GHS '+Math.round((s.price||0)/100)+'</div>' +
+          '</div>' +
+          '<div style="display:flex;border-top:1px solid #e5e7eb;">' +
+            '<button onclick="openEditService(window._sl_services['+i+'])" style="flex:1;padding:10px;background:#eff6ff;border:none;border-right:1px solid #e5e7eb;color:#1d4ed8;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;">✏️ Edit</button>' +
+            '<button onclick="deleteSvcByIndex('+i+')" style="flex:1;padding:10px;background:#fee2e2;border:none;color:#dc2626;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;">🗑 Delete</button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -957,10 +959,13 @@ function loadGallery(token) {
       var gcl = document.getElementById('gallery-count-label');
       if(gcl) gcl.textContent=(r.data.is_pro?'Pro':'Free')+' plan: '+photos.length+'/'+maxImg+' images';
       var html = photos.map(function(p) {
-        return '<div style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--c-surface);">' +
-          '<img src="'+p.image_url+'" style="width:100%;height:100%;object-fit:cover;"/>' +
-          (p.caption?'<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.55);padding:6px 8px;font-size:9px;color:white;">'+p.caption+'</div>':'') +
-          '<button onclick="deleteGalleryImage('+p.id+')" class="sl-gallery-delete-btn" title="Delete photo">✕</button>' +
+        return '<div style="border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;background:#fff;">' +
+          '<div style="aspect-ratio:1;overflow:hidden;">' +
+            '<img src="'+p.image_url+'" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy"/>' +
+          '</div>' +
+          '<div style="display:flex;justify-content:center;padding:6px 8px;background:#f9fafb;border-top:1px solid #e5e7eb;">' +
+            '<button onclick="deleteGalleryImage('+p.id+')" style="display:flex;align-items:center;gap:4px;padding:5px 14px;border-radius:8px;border:1.5px solid #fca5a5;background:#fee2e2;color:#dc2626;font-size:11px;font-weight:700;cursor:pointer;touch-action:manipulation;">🗑 Delete</button>' +
+          '</div>' +
         '</div>';
       }).join('');
       html += '<div onclick="triggerGalleryUpload()" class="gallery-add-btn"><div style="font-size:24px;">➕</div><div style="font-size:10px;color:var(--t-muted);margin-top:4px;">Add Photo</div></div>';
