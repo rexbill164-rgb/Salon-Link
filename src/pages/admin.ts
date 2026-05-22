@@ -8,7 +8,7 @@ ${baseHead('Admin Panel', `
   .admin-layout { display:flex; min-height:100vh; }
   .admin-sidebar { width:240px; background:var(--c-deep); border-right:1px solid var(--i-faint); flex-shrink:0; display:flex; flex-direction:column; position:sticky; top:0; height:100vh; }
   .admin-main { flex:1; overflow:auto; min-width:0; background:var(--c-void); }
-  .admin-topbar { padding:16px 32px; background:var(--c-deep); border-bottom:1px solid var(--i-faint); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+  .admin-topbar { padding:16px 32px; padding-top:max(16px,env(safe-area-inset-top,16px)); background:var(--c-deep); border-bottom:1px solid var(--i-faint); display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
   .admin-section { display:none; }
   .admin-section.active { display:block; }
   .kpi { background:var(--c-surface); border:1px solid var(--i-faint); border-radius:var(--r-lg); padding:22px; position:relative; overflow:hidden; transition:border-color 0.3s; }
@@ -34,7 +34,7 @@ ${baseHead('Admin Panel', `
     .admin-menu-btn { display:flex; }
     .admin-mob-nav { display:flex; }
     .admin-main { margin-left:0 !important; }
-    .admin-topbar { padding:10px 12px; }
+    .admin-topbar { padding:10px 12px; padding-top:max(10px,env(safe-area-inset-top,10px)); }
     .admin-topbar .font-display { font-size:14px !important; }
     div[style*="padding:32px"] { padding:12px !important; padding-bottom:90px !important; }
     .kpi { padding:14px !important; }
@@ -906,7 +906,7 @@ function loadEnforcement() {
           '<td>' + statusBadge + '</td>' +
           '<td>' +
             '<div style="display:flex;gap:6px;">' +
-              (owed > 0 ? '<button onclick="markFeesPaid('+p.id+',''+p.business_name+'')" style="padding:5px 10px;border-radius:8px;border:1px solid var(--s-green);background:transparent;color:var(--s-green);cursor:pointer;font-size:11px;font-weight:600;">✓ Mark Paid</button>' : '') +
+              (owed > 0 ? '<button onclick="markFeesPaid('+p.id+')" style="padding:5px 10px;border-radius:8px;border:1px solid var(--s-green);background:transparent;color:var(--s-green);cursor:pointer;font-size:11px;font-weight:600;">✓ Mark Paid</button>' : '') +
               (isBlocked
                 ? '<button onclick="toggleBlock('+p.id+',false,''+p.business_name+'')" style="padding:5px 10px;border-radius:8px;border:1px solid var(--g-main);background:transparent;color:var(--g-main);cursor:pointer;font-size:11px;font-weight:600;">Unblock</button>'
                 : (owed > 0 ? '<button onclick="toggleBlock('+p.id+',true,''+p.business_name+'')" style="padding:5px 10px;border-radius:8px;border:1px solid var(--s-red);background:transparent;color:var(--s-red);cursor:pointer;font-size:11px;font-weight:600;">Block</button>' : '')) +
@@ -914,11 +914,14 @@ function loadEnforcement() {
           '</td>' +
         '</tr>';
       }).join('');
-    }).catch(function(){ showToast('Could not load enforcement data','error'); });
+    }).catch(function(e){
+      var tbody2 = document.getElementById('enforcement-tbody');
+      if (tbody2) tbody2.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--s-red);">Could not load data. Refresh and try again.</td></tr>';
+    });
 }
 
 function markFeesPaid(id, name) {
-  if (!confirm('Mark all pending fees as PAID for ' + name + '?')) return;
+  if (!confirm('Mark all pending fees as PAID for this provider?')) return;
   var token = window._adminToken;
   axios.post('/api/admin/providers/'+id+'/mark-fees-paid', {}, {headers:{Authorization:'Bearer '+token}})
     .then(function(){ showToast('Fees marked as paid ✓','success'); loadEnforcement(); loadFees('pending'); })
