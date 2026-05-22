@@ -24,6 +24,7 @@ export function withAdminProviderThemeUi(html: string): string {
     border-bottom:1px solid var(--sl-line)!important;
     backdrop-filter:blur(24px)!important;
     box-shadow:0 1px 0 rgba(0,0,0,.02)!important;
+    padding-top:max(16px,env(safe-area-inset-top))!important;
   }
 
   /* Sidebar polish */
@@ -208,7 +209,7 @@ export function withAdminProviderThemeUi(html: string): string {
     .card,
     .table-scroll{border-radius:20px!important;}
     .admin-topbar,
-    .topbar{padding:12px 14px!important;}
+    .topbar{padding:12px 14px!important;padding-top:max(12px,env(safe-area-inset-top))!important;}
   }
 </style>`
   return html.replace('</head>', style + '</head>')
