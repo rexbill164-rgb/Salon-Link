@@ -108,12 +108,18 @@ export function withProviderBlueUi(html: string): string {
     font-size:0 !important;
     margin-bottom:10px !important;
   }
-  .card button {
+  .card button:not(.sl-gallery-delete-btn) {
     border-radius:18px !important;
     border:1px solid #eef2f7 !important;
     background:#fff !important;
   }
-  .card button:hover { background:#f8fafc !important; border-color:#dbeafe !important; }
+  .card button:not(.sl-gallery-delete-btn):hover { background:#f8fafc !important; border-color:#dbeafe !important; }
+  .sl-gallery-delete-btn {
+    background:rgba(220,38,38,0.85) !important;
+    border:2px solid rgba(255,255,255,0.7) !important;
+    color:#fff !important;
+    border-radius:50% !important;
+  }
 
   @media(max-width:768px){
     body { padding-top:0 !important; }

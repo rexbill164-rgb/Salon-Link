@@ -817,8 +817,9 @@ function loadMyServices(token) {
       var el = document.getElementById('my-services-list'); if(!el) return;
       var svcs = r.data.services||[];
       if (!svcs.length) { el.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">No services yet. Add your first service above.</div>'; return; }
-      el.innerHTML = svcs.map(function(s) {
-        var svcJson = JSON.stringify(s).replace(/"/g, '&quot;');
+      // Store services globally so onclick handlers can reference by index (avoids all quote-escaping issues)
+      window._sl_services = svcs;
+      el.innerHTML = svcs.map(function(s, i) {
         return '<div style="padding:12px 0;border-bottom:1px solid var(--i-faint);">' +
           '<div style="display:flex;align-items:center;gap:12px;">' +
             '<div style="flex:1;">' +
@@ -826,8 +827,8 @@ function loadMyServices(token) {
               '<div style="font-size:11px;color:var(--t-muted);">'+(s.duration_minutes||s.duration||60)+' min · '+(s.description||'')+'</div>' +
             '</div>' +
             '<div style="font-size:15px;font-weight:700;color:var(--g-main);">GHS '+Math.round((s.price||0)/100)+'</div>' +
-            '<button onclick='openEditService('+JSON.stringify(s).replace(/'/g,"\'")+')' style="width:28px;height:28px;border-radius:8px;border:1px solid var(--i-faint);background:transparent;color:var(--t-primary);cursor:pointer;font-size:11px;margin-right:4px;">✎</button>' +
-            '<button onclick="deleteService('+s.id+',''+s.name.replace(/'/g,"\'")+'')" style="width:28px;height:28px;border-radius:8px;border:1px solid rgba(224,112,112,0.3);background:transparent;color:var(--s-red);cursor:pointer;font-size:12px;">✕</button>' +
+            '<button onclick="openEditService(window._sl_services['+i+'])" title="Edit service" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--i-faint);background:transparent;color:var(--t-primary);cursor:pointer;font-size:13px;margin-right:4px;">✎</button>' +
+            '<button onclick="deleteService('+s.id+',\'' + s.name.replace(/\/g,'\\\\').replace(/'/g,'\\\'') + '\')" title="Delete service" style="width:32px;height:32px;border-radius:8px;border:1px solid rgba(224,112,112,0.3);background:transparent;color:var(--s-red);cursor:pointer;font-size:14px;">✕</button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -915,7 +916,7 @@ function loadGallery(token) {
         return '<div style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--c-surface);">' +
           '<img src="'+p.image_url+'" style="width:100%;height:100%;object-fit:cover;"/>' +
           (p.caption?'<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.55);padding:6px 8px;font-size:9px;color:white;">'+p.caption+'</div>':'') +
-          '<button onclick="deleteGalleryImage('+p.id+')" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,0.55);border:none;color:white;cursor:pointer;font-size:10px;">✕</button>' +
+          '<button onclick="deleteGalleryImage('+p.id+')" class="sl-gallery-delete-btn" title="Delete photo" style="position:absolute;top:6px;right:6px;width:32px;height:32px;border-radius:50%;background:rgba(220,38,38,0.85) !important;border:2px solid rgba(255,255,255,0.7) !important;color:#fff !important;cursor:pointer;font-size:14px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;z-index:10;">✕</button>' +
         '</div>';
       }).join('');
       html += '<div onclick="triggerGalleryUpload()" class="gallery-add-btn"><div style="font-size:24px;">➕</div><div style="font-size:10px;color:var(--t-muted);margin-top:4px;">Add Photo</div></div>';
