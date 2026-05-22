@@ -51,8 +51,15 @@ type Bindings = { DB: D1Database; [key: string]: any }
 const app = new Hono<{ Bindings: Bindings }>()
 
 app.use('*', logger())
+// Security headers
+app.use('*', async (c, next) => {
+  await next()
+  c.header('X-Content-Type-Options', 'nosniff')
+  c.header('X-Frame-Options', 'DENY')
+  c.header('Referrer-Policy', 'strict-origin-when-cross-origin')
+})
 app.use('*', cors({
-  origin: '*',
+  origin: ['https://salonlink.it.com', 'https://project-ba6e9ce4.pages.dev'],
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization']
 }))

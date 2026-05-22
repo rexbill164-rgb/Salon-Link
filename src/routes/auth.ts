@@ -79,8 +79,13 @@ auth.post('/register', async (c) => {
       return c.json({ success: false, error: 'Password must be at least 8 characters' }, 400)
     }
 
+    // Normalize email
+    const emailNorm = email.toLowerCase().trim()
+    if (!/^[^@]+@[^@]+\.[^@]+$/.test(emailNorm)) {
+      return c.json({ success: false, error: 'Invalid email address' }, 400)
+    }
     // Check existing user
-    const existing = await c.env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first()
+    const existing = await c.env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(emailNorm).first()
     if (existing) {
       return c.json({ success: false, error: 'Email already registered' }, 409)
     }
@@ -88,10 +93,14 @@ auth.post('/register', async (c) => {
     const password_hash = await hashPassword(password)
     const userRole = role === 'provider' ? 'provider' : 'customer'
 
+    // Sanitize name inputs
+    const safeFirst = String(first_name).trim().substring(0, 50)
+    const safeLast = String(last_name).trim().substring(0, 50)
+
     // Create user
     const result = await c.env.DB.prepare(
       'INSERT INTO users (email, phone, password_hash, first_name, last_name, role) VALUES (?, ?, ?, ?, ?, ?)'
-    ).bind(email, phone || null, password_hash, first_name, last_name, userRole).run()
+    ).bind(emailNorm, phone || null, password_hash, safeFirst, safeLast, userRole).run()
 
     const userId = result.meta.last_row_id
 
@@ -149,9 +158,18 @@ auth.post('/login', async (c) => {
       return c.json({ success: false, error: 'Email and password required' }, 400)
     }
 
+    // Rate limiting: max 10 failed attempts per email per 15 minutes
+    const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString()
+    const attempts = await c.env.DB.prepare(
+      "SELECT COUNT(*) as cnt FROM password_resets WHERE email = ? AND expires_at > ?"
+    ).bind('login_fail:' + email.toLowerCase(), windowStart).first() as any
+    if (attempts && attempts.cnt >= 10) {
+      return c.json({ success: false, error: 'Too many failed attempts. Please try again in 15 minutes.' }, 429)
+    }
+
     const user = await c.env.DB.prepare(
       'SELECT * FROM users WHERE email = ? AND is_active = 1'
-    ).bind(email).first() as any
+    ).bind(email.toLowerCase().trim()).first() as any
 
     if (!user) {
       return c.json({ success: false, error: 'Invalid email or password' }, 401)
@@ -159,8 +177,14 @@ auth.post('/login', async (c) => {
 
     const valid = await verifyPassword(password, user.password_hash)
     if (!valid) {
+      // Record failed attempt
+      await c.env.DB.prepare(
+        "INSERT INTO password_resets (email, code_hash, expires_at, attempts) VALUES (?,?,?,1) ON CONFLICT(email) DO UPDATE SET attempts=attempts+1, expires_at=excluded.expires_at"
+      ).bind('login_fail:' + email.toLowerCase(), 'x', new Date(Date.now() + 15*60*1000).toISOString()).run()
       return c.json({ success: false, error: 'Invalid email or password' }, 401)
     }
+    // Clear failed attempts on success
+    await c.env.DB.prepare("DELETE FROM password_resets WHERE email = ?").bind('login_fail:' + email.toLowerCase()).run()
 
     const token = await sign(
       { sub: String(user.id), role: user.role, email: user.email, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7 },
