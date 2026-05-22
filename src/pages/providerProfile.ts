@@ -182,6 +182,15 @@ ${navbar('')}
         <div id="reviews-list">
           <div style="text-align:center;padding:24px;color:var(--t-muted);">No reviews yet for this provider.</div>
         </div>
+        <!-- Leave a review (shown only for logged-in customers with completed booking) -->
+        <div id="review-form-wrap" style="display:none;margin-top:20px;background:var(--c-surface);border:1px solid var(--i-faint);border-radius:18px;padding:20px;">
+          <div style="font-size:14px;font-weight:800;margin-bottom:14px;">Leave a Review</div>
+          <div style="display:flex;gap:8px;margin-bottom:14px;" id="star-row">
+            ${[1,2,3,4,5].map(n=>`<button type="button" onclick="setRating(${n})" data-star="${n}" style="font-size:24px;background:none;border:none;cursor:pointer;opacity:0.3;transition:opacity 0.15s;">★</button>`).join('')}
+          </div>
+          <textarea id="review-comment" placeholder="Tell others about your experience..." style="width:100%;border:1px solid var(--i-faint);border-radius:12px;padding:12px;font-size:13px;resize:none;background:#fff;color:#111;min-height:80px;box-sizing:border-box;"></textarea>
+          <button onclick="submitReview()" style="margin-top:12px;width:100%;padding:13px;border-radius:100px;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;">Submit Review</button>
+        </div>
       </div>
     </div>
 

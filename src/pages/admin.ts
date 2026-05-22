@@ -992,7 +992,10 @@ function loadRegistrants(days) {
         '<td>' + (u.role === 'provider' && u.kyc_status !== 'approved' ? '<button onclick="quickApprove(' + (u.provider_id || 0) + ')" class="btn-primary" style="padding:5px 12px;font-size:10px;">Approve</button>' : u.role === 'customer' ? '<span style="color:var(--s-green);font-size:11px;">✓ Auto</span>' : '—') + '</td>' +
       '</tr>';
     }).join('');
-  }).catch(function(){});
+  }).catch(function(e){
+    var tbody = document.getElementById('registrants-tbody');
+    if(tbody) tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--s-red);">Could not load registrants. Check your connection and try again.</td></tr>';
+  });
 }
 
 function quickApprove(providerId) {
@@ -1233,6 +1236,19 @@ function closeRewardModal() {
   document.getElementById('reward-modal').style.display = 'none';
 }
 
+function previewRewardImage(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var preview = document.getElementById('reward-image-preview');
+    var urlInput = document.getElementById('reward-image');
+    if (preview) { preview.src = e.target.result; preview.style.display = 'block'; }
+    if (urlInput) urlInput.value = e.target.result; // store base64 as URL for now
+  };
+  reader.readAsDataURL(file);
+}
+
 function saveRewardItem() {
   var token = localStorage.getItem('sl_token');
   var id = document.getElementById('reward-edit-id').value;
@@ -1329,7 +1345,13 @@ function viewProviderPoints(id, name) {
     <div style="margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:6px;">ITEM NAME *</label><input id="reward-name" class="input" type="text" placeholder="e.g. Hair Dryer Pro"/></div>
     <div style="margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:6px;">DESCRIPTION</label><textarea id="reward-desc" class="input" rows="2" placeholder="Brief description..." style="resize:none;"></textarea></div>
     <div style="margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:6px;">POINTS REQUIRED *</label><input id="reward-points" class="input" type="number" placeholder="e.g. 100"/></div>
-    <div style="margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:6px;">IMAGE URL</label><input id="reward-image" class="input" type="url" placeholder="https://..."/></div>
+    <div style="margin-bottom:12px;"><label style="font-size:11px;font-weight:700;color:var(--t-muted);display:block;margin-bottom:6px;">ITEM IMAGE</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="reward-image" class="input" type="url" placeholder="Paste image URL or upload below" style="flex:1;"/>
+      </div>
+      <div style="margin-top:8px;"><input type="file" id="reward-image-file" accept="image/*" onchange="previewRewardImage(this)" style="font-size:11px;color:var(--t-muted);"/></div>
+      <img id="reward-image-preview" src="" alt="" style="display:none;width:100%;max-height:120px;object-fit:cover;border-radius:10px;margin-top:8px;"/>
+    </div>
     <div style="margin-bottom:20px;display:flex;align-items:center;gap:8px;"><input type="checkbox" id="reward-available" checked/><label style="font-size:13px;font-weight:600;">Available for claiming</label></div>
     <button onclick="saveRewardItem()" style="width:100%;padding:13px;border-radius:100px;font-size:13px;cursor:pointer;background:linear-gradient(135deg,#C9A84C,#8B6914);color:white;border:none;font-weight:700;">Save Item</button>
   </div>

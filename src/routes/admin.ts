@@ -328,22 +328,23 @@ admin.get('/registrants', async (c) => {
     const user = await getAdmin(c)
     if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
 
+    const daysInt = Math.max(1, Math.min(3650, parseInt(days) || 30))
     const result = await c.env.DB.prepare(`
       SELECT
         u.id, u.email, u.phone, u.first_name, u.last_name, u.role,
         u.is_verified, u.is_active, u.created_at,
-        p.business_name, p.service_category, p.kyc_status, p.is_verified as provider_verified
+        p.id as provider_id, p.business_name, p.service_category, p.kyc_status, p.is_verified as provider_verified
       FROM users u
       LEFT JOIN providers p ON p.user_id = u.id
-      WHERE u.created_at >= datetime('now', '-${parseInt(days)} days')
+      WHERE u.created_at >= datetime('now', '-' || ? || ' days')
       ORDER BY u.created_at DESC
-    `).all()
+    `).bind(daysInt).all()
 
     const counts = await c.env.DB.prepare(`
       SELECT role, COUNT(*) as count FROM users
-      WHERE created_at >= datetime('now', '-${parseInt(days)} days')
+      WHERE created_at >= datetime('now', '-' || ? || ' days')
       GROUP BY role
-    `).all()
+    `).bind(daysInt).all()
 
     return c.json({
       success: true,

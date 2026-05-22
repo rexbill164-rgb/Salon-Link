@@ -26,6 +26,8 @@ ${baseHead('Provider Dashboard', `
 .kpi-lbl { font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--t-muted); }
 .card { background:#fff; border:1px solid var(--i-faint); border-radius:16px; padding:18px; margin-bottom:16px; }
 .card-title { font-size:13px; font-weight:700; margin-bottom:14px; color:var(--t-primary); display:flex; align-items:center; justify-content:space-between; }
+.pdash input,.pdash select,.pdash textarea{color:#111827 !important;background:#fff !important;border:1px solid #e2e8f0 !important;}
+.pdash label,.pdash .form-label{color:#374151 !important;}
 /* ── Appt rows ── */
 .appt-row { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--i-faint); }
 .appt-row:last-child { border-bottom:none; }
@@ -923,7 +925,6 @@ function loadGallery(token) {
 
 function deleteGalleryImage(id) {
   if (!confirm('Delete this photo? This cannot be undone.')) return;
-  if (!confirm('Delete this photo?')) return;
   var token = localStorage.getItem('sl_token');
   axios.delete('/api/uploads/provider-gallery/'+id, { headers:{ Authorization:'Bearer '+token } })
     .then(function(){ showToast('Photo deleted', 'info'); loadGallery(token); })
