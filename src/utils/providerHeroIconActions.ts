@@ -82,14 +82,17 @@ export function withProviderHeroIconActions(html: string): string {
     var fav = document.getElementById('sl-fav-btn');
     var share = document.getElementById('sl-share-btn');
 
-    if (fav) {
+    // Guard: skip if already iconized (prevents re-mutation)
+    if (fav && !fav.getAttribute('data-iconized')) {
+      fav.setAttribute('data-iconized', '1');
       fav.style.display = 'inline-flex';
       fav.setAttribute('aria-label', 'Add to favourites');
       fav.setAttribute('title', 'Add to favourites');
       fav.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>';
     }
 
-    if (share) {
+    if (share && !share.getAttribute('data-iconized')) {
+      share.setAttribute('data-iconized', '1');
       share.style.display = 'inline-flex';
       share.setAttribute('aria-label', 'Share profile');
       share.setAttribute('title', 'Share profile');
@@ -102,11 +105,11 @@ export function withProviderHeroIconActions(html: string): string {
     var ring = document.querySelector('.avatar-ring');
     if (!ring) return;
 
+    // Guard: if badge already inside ring, don't remove and re-add (causes infinite loop)
+    if (document.getElementById('sl-logo-verified-badge')) return;
+
     var openBadge = document.getElementById('sl-logo-open-badge');
     if (openBadge && openBadge.parentNode) openBadge.parentNode.removeChild(openBadge);
-
-    var old = document.getElementById('sl-logo-verified-badge');
-    if (old && old.parentNode) old.parentNode.removeChild(old);
 
     var badge = document.createElement('span');
     badge.id = 'sl-logo-verified-badge';
@@ -126,9 +129,9 @@ export function withProviderHeroIconActions(html: string): string {
     setTimeout(apply, 1500);
   });
 
-  if (window.MutationObserver) {
-    new MutationObserver(function(){ apply(); }).observe(document.documentElement, { childList:true, subtree:true });
-  }
+  // NOTE: No MutationObserver here — apply() mutates the DOM (innerHTML, appendChild)
+  // which would re-trigger the observer causing an infinite freeze loop.
+  // The DOMContentLoaded + timeout chain is sufficient.
 })();
 </script>`
   if (html.includes('provider-hero-icon-actions-style')) return html

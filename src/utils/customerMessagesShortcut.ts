@@ -102,7 +102,16 @@ export function withCustomerMessagesShortcut(html: string): string {
 
   document.addEventListener('DOMContentLoaded', function(){ refresh(); ensureProviderShare(); setTimeout(refresh, 500); setTimeout(refresh, 1500); setTimeout(ensureProviderShare, 800); setTimeout(ensureProviderShare, 1800); });
   window.addEventListener('pageshow', function(){ refresh(); ensureProviderShare(); });
-  if (window.MutationObserver) new MutationObserver(function(){ removeDuplicateMessageShortcuts(); ensureBottomBadge(); ensureProviderShare(); }).observe(document.documentElement, { childList:true, subtree:true });
+  // MutationObserver with a debounce flag to prevent re-entrant DOM mutation loops
+  if (window.MutationObserver) {
+    var _mutBusy = false;
+    new MutationObserver(function(){
+      if (_mutBusy) return;
+      _mutBusy = true;
+      try { removeDuplicateMessageShortcuts(); ensureBottomBadge(); ensureProviderShare(); } catch(e){}
+      setTimeout(function(){ _mutBusy = false; }, 200);
+    }).observe(document.documentElement, { childList:true, subtree:true });
+  }
 })();
 </script>`
   if (html.includes('customer-messages-shortcut-script')) return html
