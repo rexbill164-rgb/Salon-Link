@@ -344,6 +344,61 @@ export function withProviderProfileStaticFix(html: string): string {
     if(rev){ rev.innerHTML = reviews.length ? reviews.map(function(r){ return '<div style="padding:14px 0;border-bottom:1px solid var(--i-faint);"><div style="font-weight:700;font-size:13px;">'+cleanText((r.first_name||'')+' '+(r.last_name||''))+'</div><p style="font-size:13px;color:var(--t-secondary);">'+cleanText(r.comment||'')+'</p></div>'; }).join('') : '<div style="text-align:center;padding:24px;color:var(--t-muted);">No reviews yet — be the first to book!</div>'; }
 
     document.title = (p.business_name || 'Provider') + ' — SalonLink';
+
+    // ── Location Map ──
+    if (p.location_lat && p.location_lng) {
+      var mapWrap = document.getElementById('provider-map-wrap');
+      if (mapWrap) {
+        mapWrap.style.display = 'block';
+        // Add share location button under map if not already there
+        if (!document.getElementById('sl-share-location-btn')) {
+          var shareBtn = document.createElement('button');
+          shareBtn.id = 'sl-share-location-btn';
+          shareBtn.type = 'button';
+          shareBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:middle;margin-right:5px;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Share Location';
+          shareBtn.style.cssText = 'margin-top:10px;padding:8px 16px;border-radius:100px;border:1px solid var(--i-faint);background:transparent;color:var(--t-secondary);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;';
+          shareBtn.onclick = function() {
+            var url = 'https://maps.google.com/?q=' + p.location_lat + ',' + p.location_lng;
+            if (navigator.share) {
+              navigator.share({ title: (p.business_name||'Provider') + ' — SalonLink', text: 'Find us on the map', url: url }).catch(function(){});
+            } else {
+              window.open(url, '_blank');
+            }
+          };
+          mapWrap.appendChild(shareBtn);
+        }
+        // Init Leaflet map
+        var _mapDone = false;
+        function tryInitMap() {
+          if (_mapDone) return;
+          var mapEl = document.getElementById('provider-map');
+          if (!mapEl) return;
+          if (mapEl._leaflet_id) { _mapDone = true; return; }
+          if (!window.L) { setTimeout(tryInitMap, 400); return; }
+          _mapDone = true;
+          try {
+            var lat = parseFloat(p.location_lat), lng = parseFloat(p.location_lng);
+            var map = window.L.map('provider-map', { zoomControl:true, scrollWheelZoom:false }).setView([lat, lng], 15);
+            window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '© OpenStreetMap contributors', maxZoom: 19
+            }).addTo(map);
+            var icon = window.L.divIcon({
+              html: '<div style="background:linear-gradient(135deg,#C9A84C,#8B6914);width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.3);"></div>',
+              iconSize:[28,28], iconAnchor:[14,28], className:''
+            });
+            window.L.marker([lat, lng], { icon: icon })
+              .addTo(map)
+              .bindPopup('<strong>' + (p.business_name||'Provider') + '</strong><br>' + (p.address || p.city || 'Accra'))
+              .openPopup();
+          } catch(err) {
+            console.warn('Map init failed:', err);
+            if (mapWrap) mapWrap.style.display = 'none';
+          }
+        }
+        setTimeout(tryInitMap, 300);
+      }
+    }
+
     renderPortfolio(p.id);
   }
 

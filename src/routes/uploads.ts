@@ -183,12 +183,42 @@ uploads.post('/provider-cover', async (c) => {
   }
 })
 
-// GET /api/uploads/provider-gallery/:provider_id — get provider gallery
+// GET /api/uploads/photo/:id — serve a single image by ID (avoids huge JSON responses)
+uploads.get('/photo/:id', async (c) => {
+  try {
+    const row = await c.env.DB.prepare(
+      'SELECT image_url FROM provider_gallery WHERE id = ?'
+    ).bind(c.req.param('id')).first() as any
+    if (!row || !row.image_url) return c.notFound()
+
+    const dataUrl: string = row.image_url
+    if (dataUrl.startsWith('data:')) {
+      const [header, base64] = dataUrl.split(',')
+      const mimeMatch = header.match(/data:([^;]+)/)
+      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg'
+      const binary = atob(base64)
+      const bytes = new Uint8Array(binary.length)
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+      return new Response(bytes, {
+        headers: {
+          'Content-Type': mime,
+          'Cache-Control': 'public, max-age=86400',
+        }
+      })
+    }
+    // If it's a plain URL, redirect
+    return Response.redirect(dataUrl, 302)
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// GET /api/uploads/provider-gallery/:provider_id — get provider gallery (lightweight — no base64)
 uploads.get('/provider-gallery/:provider_id', async (c) => {
   try {
     const providerId = c.req.param('provider_id')
     const gallery = await c.env.DB.prepare(
-      'SELECT id, image_url, caption, is_logo, created_at FROM provider_gallery WHERE provider_id = ? ORDER BY is_logo DESC, created_at DESC'
+      'SELECT id, caption, is_logo, created_at FROM provider_gallery WHERE provider_id = ? ORDER BY is_logo DESC, created_at DESC'
     ).bind(providerId).all()
 
     // Get pro status
@@ -197,7 +227,14 @@ uploads.get('/provider-gallery/:provider_id', async (c) => {
     ).bind(providerId).first() as any
 
     const is_pro = !!(provider?.has_pro_gallery)
-    const photos = gallery.results
+    // Return lightweight photo list - use /api/uploads/photo/:id for actual images
+    const photos = (gallery.results || []).map((p: any) => ({
+      id: p.id,
+      caption: p.caption,
+      is_logo: p.is_logo,
+      created_at: p.created_at,
+      image_url: `/api/uploads/photo/${p.id}`
+    }))
 
     return c.json({ success: true, photos, gallery: photos, is_pro, photo_count: photos.length })
   } catch (e: any) {
