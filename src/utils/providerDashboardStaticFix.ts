@@ -46,8 +46,68 @@ export function withProviderDashboardStaticFix(html: string): string {
   function set(id,v){ var e=q(id); if(e)e.textContent=v; }
   function renderToday(rows){ var e=q('today-appts'); if(!e)return; if(!rows.length){e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">No appointments today ✦</div>';return;} e.innerHTML=rows.map(function(r){return '<div class="appt-row"><div class="mini-avatar">'+String(r.first_name||'?').charAt(0)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:700;">'+(r.first_name||'')+' '+(r.last_name||'')+'</div><div style="font-size:11px;color:var(--t-muted);">'+(r.service_name||'')+'</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:700;color:var(--g-main);">'+(r.booking_time||'')+'</div><span class="badge badge-pending" style="font-size:9px;">'+(r.status||'pending')+'</span></div></div>';}).join(''); }
   function loadAppts(){ var x=a(), e=q('appts-list'); if(e)e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:32px;font-size:13px;">Loading appointments...</div>'; if(!x)return; x.get('/api/bookings/provider',{headers:h()}).then(function(r){ var rows=(r.data||{}).bookings||[]; if(!rows.length){e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:32px;font-size:13px;">No appointments found.</div>';return;} e.innerHTML=rows.map(function(b){return '<div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--i-faint);flex-wrap:wrap;"><div class="mini-avatar">'+String(b.first_name||'?').charAt(0)+'</div><div style="flex:1;min-width:120px;"><div style="font-size:13px;font-weight:700;">'+(b.first_name||'')+' '+(b.last_name||'')+'</div><div style="font-size:11px;color:var(--t-muted);">'+(b.service_name||'')+' · '+(b.booking_date||'')+' '+(b.booking_time||'')+'</div></div><div style="font-weight:700;color:var(--g-main);">'+money(b.total_amount)+'</div><span class="badge badge-pending" style="font-size:9px;">'+(b.status||'pending')+'</span></div>';}).join('');}).catch(function(){ if(e)e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:32px;font-size:13px;">No appointments found.</div>'; }); }
-  function loadServices(){ var x=a(), e=q('my-services-list'); if(!x||!e)return; x.get('/api/providers/me/services',{headers:h()}).then(function(r){ var rows=(r.data||{}).services||[]; window._sl_services=rows; if(!rows.length){e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">No services yet. Add your first service above.</div>';return;} e.innerHTML=rows.map(function(s,i){return '<div style="border:1px solid #e5e7eb;border-radius:14px;margin-bottom:10px;overflow:hidden;background:#fff;"><div style="display:flex;align-items:center;gap:12px;padding:14px;"><div style="flex:1"><div style="font-size:14px;font-weight:700;color:#111;">'+(s.name||'Service')+'</div><div style="font-size:11px;color:#6b7280;margin-top:2px;">'+(s.duration_minutes||60)+' min'+(s.description?' · '+s.description:'')+'</div></div><div style="font-size:16px;font-weight:800;color:#1d4ed8;">'+money(s.price)+'</div></div><div style="display:flex;border-top:1px solid #e5e7eb;"><button onclick="window.openEditService&&window.openEditService(window._sl_services['+i+'])" style="flex:1;padding:10px;background:#2563eb;border:none;border-right:1px solid #1d4ed8;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-size:11px;">Edit</button><button onclick="window.deleteSvcByIndex&&window.deleteSvcByIndex('+i+')" style="flex:1;padding:10px;background:#dc2626;border:none;color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-size:11px;">Delete</button></div></div>';}).join(''); }).catch(function(){e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">Could not load services.</div>';}); }
+  function loadServices(){ var x=a(), e=q('my-services-list'); if(!x||!e)return; x.get('/api/providers/me/services',{headers:h()}).then(function(r){ var rows=(r.data||{}).services||[]; window._sl_services=rows; if(!rows.length){e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">No services yet. Add your first service above.</div>';return;} e.innerHTML=rows.map(function(s,i){return '<div style="border:1px solid #e5e7eb;border-radius:14px;margin-bottom:10px;overflow:hidden;background:#fff;"><div style="display:flex;align-items:center;gap:12px;padding:14px;"><div style="flex:1"><div style="font-size:14px;font-weight:700;color:#111;">'+(s.name||'Service')+'</div><div style="font-size:11px;color:#6b7280;margin-top:2px;">'+(s.duration_minutes||60)+' min'+(s.description?' · '+s.description:'')+'</div></div><div style="font-size:16px;font-weight:800;color:#1d4ed8;">'+money(s.price)+'</div></div><div style="display:flex;border-top:1px solid #e5e7eb;"><button onclick="window.openEditService&&window.openEditService(window._sl_services['+i+'])" style="flex:1;padding:10px;background:#2563eb;border:none;border-right:1px solid #1d4ed8;color:#000;font-size:11px;font-weight:600;cursor:pointer;font-size:11px;">Edit</button><button onclick="window.deleteSvcByIndex&&window.deleteSvcByIndex('+i+')" style="flex:1;padding:10px;background:#dc2626;border:none;color:#000;font-size:11px;font-weight:600;cursor:pointer;font-size:11px;">Delete</button></div></div>';}).join(''); }).catch(function(){e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">Could not load services.</div>';}); }
   window.showAddSvcForm=function(){ var f=q('add-svc-form'); if(f)f.style.display=f.style.display==='block'?'none':'block'; };
+  // ── Service edit / delete (defined here so they work when loadServices() renders buttons) ──
+  window.deleteSvcByIndex = function(i) {
+    var svcs = window._sl_services || [];
+    var svc = svcs[i];
+    if (!svc) return;
+    if (!confirm('Delete "' + (svc.name || 'this service') + '"?\nThis cannot be undone.')) return;
+    var x = a();
+    if (!x) return;
+    x.delete('/api/providers/me/services/' + svc.id, { headers: h() })
+      .then(function() { toast('Service deleted', 'success'); loadServices(); })
+      .catch(function(e) {
+        var msg = e && e.response && e.response.data && e.response.data.error ? e.response.data.error : 'Delete failed';
+        toast(msg, 'error');
+      });
+  };
+
+  window.openEditService = function(svc) {
+    if (!svc) return;
+    window._editingSvcId = svc.id;
+    var modal = document.getElementById('edit-svc-modal');
+    if (!modal) { toast('Edit form not found — please refresh', 'error'); return; }
+    var setVal = function(id, v) { var el = document.getElementById(id); if (el) el.value = v || ''; };
+    setVal('edit-svc-name', svc.name);
+    setVal('edit-svc-price', Math.round((svc.price || 0) / 100));
+    setVal('edit-svc-duration', svc.duration_minutes || svc.duration || 60);
+    setVal('edit-svc-desc', svc.description);
+    modal.style.display = 'flex';
+  };
+
+  window.saveEditService = function() {
+    var id = window._editingSvcId;
+    if (!id) return;
+    var x = a();
+    if (!x) return;
+    var getVal = function(elId) { var el = document.getElementById(elId); return el ? el.value : ''; };
+    var name = getVal('edit-svc-name').trim();
+    var price = parseFloat(getVal('edit-svc-price')) || 0;
+    var duration = parseInt(getVal('edit-svc-duration')) || 60;
+    var description = getVal('edit-svc-desc').trim();
+    if (!name || !price) { toast('Name and price are required', 'error'); return; }
+    x.put('/api/providers/me/services/' + id, { name: name, price: price * 100, duration: duration, description: description }, { headers: h() })
+      .then(function() {
+        toast('Service updated ✓', 'success');
+        var modal = document.getElementById('edit-svc-modal');
+        if (modal) modal.style.display = 'none';
+        window._editingSvcId = null;
+        loadServices();
+      })
+      .catch(function(e) {
+        var msg = e && e.response && e.response.data && e.response.data.error ? e.response.data.error : 'Update failed';
+        toast(msg, 'error');
+      });
+  };
+
+  window.closeEditService = function() {
+    var modal = document.getElementById('edit-svc-modal');
+    if (modal) modal.style.display = 'none';
+    window._editingSvcId = null;
+  };
+
   window.saveNewService=function(){ var x=a(); if(!x)return; var name=(q('new-svc-name')||{}).value||'', price=Number((q('new-svc-price')||{}).value||0), dur=Number((q('new-svc-duration')||{}).value||60), desc=(q('new-svc-desc')||{}).value||''; if(!name.trim()){toast('Please enter a service name','error');return;} if(!price){toast('Please enter a price','error');return;} x.post('/api/providers/me/services',{name:name.trim(),price:Math.round(price*100),duration:dur,description:desc.trim()},{headers:h()}).then(function(){toast('Service added','success');loadServices();}).catch(function(){toast('Could not add service','error');}); };
 
   window.triggerGalleryUpload=function(){ var i=q('gallery-file-input'); if(i)i.click(); }; window.triggerLogoUpload=function(){ var i=q('logo-file-input'); if(i)i.click(); }; window.triggerCoverUpload=function(){ var i=q('cover-file-input'); if(i)i.click(); };
@@ -55,7 +115,7 @@ export function withProviderDashboardStaticFix(html: string): string {
   window.uploadLogoImage=function(input){ uploadInput(input,'/api/uploads/provider-logo','Logo uploaded',function(data,b64){ var p=q('logo-preview'); if(p)p.innerHTML='<img src="'+(data.url||b64)+'" style="width:100%;height:100%;object-fit:cover;border-radius:12px;"/>'; }); };
   window.uploadCoverImage=function(input){ uploadInput(input,'/api/uploads/provider-cover','Cover uploaded',function(data,b64){ var p=q('cover-preview'); if(p){p.style.backgroundImage='url('+b64+')';p.style.backgroundSize='cover';p.style.backgroundPosition='center';p.innerHTML='';} }); };
   function uploadInput(input,url,msg,done){ if(!input||!input.files||!input.files[0])return; var file=input.files[0]; if(file.size>10*1024*1024){toast('Image too large. Maximum is 10MB.','error');input.value='';return;} toast('Uploading...','info'); asB64(file,function(b64){ var body=url.indexOf('gallery')>-1?{image_url:b64,caption:''}:{image_url:b64}; a().post(url,body,{headers:h()}).then(function(r){toast(msg,'success');input.value=''; if(done)done(r.data||{},b64);}).catch(function(e){var d=e&&e.response&&e.response.data?e.response.data:{}; toast(d.error||'Upload failed','error');}); }); }
-  function loadGallerySafe(){ var x=a(), pid=window.providerIdGlobal, grid=q('gallery-grid'); if(!x||!pid||!grid)return; x.get('/api/uploads/provider-gallery/'+pid,{headers:h()}).then(function(r){ var data=r.data||{}, photos=(data.photos||data.gallery||[]).filter(function(p){return !p.is_logo;}); var lab=q('gallery-count-label'); if(lab)lab.textContent=(data.is_pro?'Pro':'Free')+' plan: '+photos.length+'/'+(data.is_pro?10:5)+' images'; var html=photos.map(function(p){return '<div style="border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;background:#fff;"><div style="aspect-ratio:1;overflow:hidden;"><img src="'+p.image_url+'" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy"/></div><div style="display:flex;justify-content:center;padding:6px;background:#f9fafb;border-top:1px solid #e5e7eb;"><button onclick="window.deleteGalleryImage&&window.deleteGalleryImage('+p.id+')" style="display:flex;align-items:center;gap:4px;padding:5px 12px;border-radius:7px;border:none;background:#dc2626;color:#fff;font-size:11px;font-weight:600;cursor:pointer;">Delete</button></div></div>';}).join(''); grid.innerHTML=html+'<div onclick="triggerGalleryUpload()" class="gallery-add-btn" style="min-height:80px;"><div style="font-size:24px;">➕</div><div style="font-size:10px;color:var(--t-muted);margin-top:4px;">Add Photo</div></div>';}).catch(function(){grid.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;grid-column:1/-1;">Could not load gallery.</div>';}); }
+  function loadGallerySafe(){ var x=a(), pid=window.providerIdGlobal, grid=q('gallery-grid'); if(!x||!pid||!grid)return; x.get('/api/uploads/provider-gallery/'+pid,{headers:h()}).then(function(r){ var data=r.data||{}, photos=(data.photos||data.gallery||[]).filter(function(p){return !p.is_logo;}); var lab=q('gallery-count-label'); if(lab)lab.textContent=(data.is_pro?'Pro':'Free')+' plan: '+photos.length+'/'+(data.is_pro?10:5)+' images'; var html=photos.map(function(p){return '<div style="border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;background:#fff;"><div style="aspect-ratio:1;overflow:hidden;"><img src="'+p.image_url+'" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy"/></div><div style="display:flex;justify-content:center;padding:6px;background:#f9fafb;border-top:1px solid #e5e7eb;"><button onclick="window.deleteGalleryImage&&window.deleteGalleryImage('+p.id+')" style="display:flex;align-items:center;gap:4px;padding:5px 12px;border-radius:7px;border:none;background:#dc2626;color:#000;font-size:11px;font-weight:700;cursor:pointer;">Delete</button></div></div>';}).join(''); grid.innerHTML=html+'<div onclick="triggerGalleryUpload()" class="gallery-add-btn" style="min-height:80px;"><div style="font-size:24px;">➕</div><div style="font-size:10px;color:var(--t-muted);margin-top:4px;">Add Photo</div></div>';}).catch(function(){grid.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;grid-column:1/-1;">Could not load gallery.</div>';}); }
   window.loadGallery=window.loadGallery||loadGallerySafe;
 
   function ensureMap(cb){ if(window.L){cb(window.L);return;} if(!document.querySelector('link[href*="leaflet.css"]')){var l=document.createElement('link');l.rel='stylesheet';l.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';document.head.appendChild(l);} var s=document.getElementById('pdash-leaflet-js')||document.createElement('script'); if(!s.id){s.id='pdash-leaflet-js';s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';document.head.appendChild(s);} s.onload=function(){if(window.L)cb(window.L);}; }
