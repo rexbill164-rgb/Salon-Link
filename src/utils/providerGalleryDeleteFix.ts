@@ -17,9 +17,13 @@ export function withProviderGalleryDeleteFix(html: string): string {
     var label = document.getElementById('gallery-count-label');
     if (label) label.textContent = (isPro ? 'Pro' : 'Free') + ' plan: ' + visible.length + '/' + (isPro ? 10 : 5) + ' images';
     var html = visible.map(function(p){
-      return '<div style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--c-surface);">' +
-        '<img src="' + p.image_url + '" style="width:100%;height:100%;object-fit:cover;"/>' +
-        '<button type="button" class="provider-gallery-delete-btn" data-gallery-id="' + p.id + '" style="position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,0.65);border:none;color:white;cursor:pointer;font-size:14px;line-height:1;">×</button>' +
+      return '<div style="border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;background:#fff;">' +
+        '<div style="aspect-ratio:1;overflow:hidden;">' +
+          '<img src="' + p.image_url + '" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy"/>' +
+        '</div>' +
+        '<div style="display:flex;justify-content:center;padding:6px;background:#f9fafb;border-top:1px solid #e5e7eb;">' +
+          '<button type="button" data-gallery-id="' + p.id + '" onclick="window.deleteGalleryImage&&window.deleteGalleryImage(' + p.id + ')" style="display:flex;align-items:center;gap:4px;padding:5px 14px;border-radius:8px;border:1.5px solid #fca5a5;background:#fee2e2;color:#dc2626;font-size:11px;font-weight:700;cursor:pointer;touch-action:manipulation;">🗑 Delete</button>' +
+        '</div>' +
       '</div>';
     }).join('');
     html += '<div onclick="triggerGalleryUpload()" class="gallery-add-btn"><div style="font-size:24px;">➕</div><div style="font-size:10px;color:var(--t-muted);margin-top:4px;">Add Photo</div></div>';
