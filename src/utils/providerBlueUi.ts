@@ -108,6 +108,12 @@ export function withProviderBlueUi(html: string): string {
     font-size:0 !important;
     margin-bottom:10px !important;
   }
+  .kpi-card > div:first-child svg,
+  .sl-clean-icon svg { width:20px !important; height:20px !important; stroke:currentColor !important; }
+  /* Mobile bottom nav icon sizing */
+  .mob-nav-item span:first-child { display:flex !important; align-items:center !important; justify-content:center !important; font-size:0 !important; }
+  .mob-nav-item span:first-child svg { width:20px !important; height:20px !important; stroke:currentColor !important; display:block !important; }
+  .mob-nav-item.active span:first-child svg { stroke:var(--g-main) !important; }
   .card button:not(.sl-gallery-delete-btn) {
     border-radius:18px !important;
     border:1px solid #eef2f7 !important;
@@ -167,6 +173,28 @@ export function withProviderBlueUi(html: string): string {
       if(mob){ var mIcon = mob.querySelector('span:first-child'); if(mIcon) mIcon.innerHTML = icons[key]; }
     });
   }
+  var kpiIcons = {
+    'today':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>',
+    'revenue': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/></svg>',
+    'clients': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    'rating':  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>'
+  };
+  function replaceKpiIcons(){
+    var cards = document.querySelectorAll('.kpi-card');
+    Array.prototype.forEach.call(cards, function(card){
+      var iconDiv = card.querySelector('div:first-child');
+      var lblDiv  = card.querySelector('.kpi-lbl');
+      if (!iconDiv || !lblDiv) return;
+      if (iconDiv.getAttribute('data-icon-set')) return; // already done
+      iconDiv.setAttribute('data-icon-set', '1');
+      var lbl = (lblDiv.textContent || '').toLowerCase();
+      if      (lbl.indexOf('booking') >= 0 || lbl.indexOf('today')   >= 0) iconDiv.innerHTML = kpiIcons.today;
+      else if (lbl.indexOf('revenue') >= 0 || lbl.indexOf('earned')  >= 0 || lbl.indexOf('month') >= 0) iconDiv.innerHTML = kpiIcons.revenue;
+      else if (lbl.indexOf('client')  >= 0)                                 iconDiv.innerHTML = kpiIcons.clients;
+      else if (lbl.indexOf('rating')  >= 0)                                 iconDiv.innerHTML = kpiIcons.rating;
+    });
+  }
+
   function replaceQuickActionIcons(){
     Array.prototype.slice.call(document.querySelectorAll('.card button')).forEach(function(btn){
       var text = (btn.textContent || '').toLowerCase();
@@ -181,8 +209,9 @@ export function withProviderBlueUi(html: string): string {
   document.addEventListener('DOMContentLoaded', function(){
     replaceNavIcons();
     replaceQuickActionIcons();
+    replaceKpiIcons();
     setTimeout(loadLogo, 500);
-    setTimeout(function(){ replaceNavIcons(); replaceQuickActionIcons(); loadLogo(); }, 1800);
+    setTimeout(function(){ replaceNavIcons(); replaceQuickActionIcons(); replaceKpiIcons(); loadLogo(); }, 1800);
   });
 })();
 </script>`
