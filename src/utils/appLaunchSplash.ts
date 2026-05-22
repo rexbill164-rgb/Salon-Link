@@ -22,9 +22,9 @@ export function withAppLaunchSplash(html: string): string {
     var s=document.getElementById('sl-launch-splash');
     if(s){s.classList.add('hide');setTimeout(function(){if(s&&s.parentNode)s.parentNode.removeChild(s);},500);}
   }
-  if(document.readyState==='complete') setTimeout(hide,650);
-  else window.addEventListener('load',function(){setTimeout(hide,650);});
-  setTimeout(hide,2200);
+  if(document.readyState==='complete') setTimeout(hide,300);
+  else window.addEventListener('load',function(){setTimeout(hide,300);});
+  setTimeout(hide,900);
 })();
 </script>`
 
