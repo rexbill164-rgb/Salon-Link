@@ -47,10 +47,10 @@ admin.get('/stats', async (c) => {
     if (!user) return c.json({ success: false, error: 'Admin access required' }, 403)
 
     const [totalUsers, totalProviders, totalBookings, totalRevenue, pendingKyc, todayBookings] = await Promise.all([
-      safeFirst(c, 'STATS USERS', "SELECT COUNT(*) as count FROM users WHERE role = 'customer'"),
+      safeFirst(c, 'STATS USERS', "SELECT COUNT(*) as count FROM users"),
       safeFirst(c, 'STATS PROVIDERS', 'SELECT COUNT(*) as count FROM providers'),
       safeFirst(c, 'STATS BOOKINGS', 'SELECT COUNT(*) as count FROM bookings'),
-      safeFirst(c, 'STATS REVENUE', "SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'success'"),
+      safeFirst(c, 'STATS REVENUE', "SELECT COALESCE(SUM(total_amount), 0) as total FROM bookings WHERE status IN ('confirmed','completed')"),
       safeFirst(c, 'STATS KYC', "SELECT COUNT(*) as count FROM providers WHERE kyc_status = 'pending'"),
       safeFirst(c, 'STATS TODAY', "SELECT COUNT(*) as count FROM bookings WHERE booking_date = date('now')")
     ]) as any[]

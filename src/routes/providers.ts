@@ -99,10 +99,10 @@ providers.get('/me/dashboard', async (c) => {
       `, [provider.id, today]),
       safeFirst(c, 'WEEK REVENUE', `
         SELECT COALESCE(SUM(total_amount), 0) as total FROM bookings
-        WHERE provider_id = ? AND payment_status = 'paid'
+        WHERE provider_id = ? AND status IN ('confirmed','completed')
         AND booking_date >= date('now', '-7 days')
       `, [provider.id]),
-      safeFirst(c, 'TOTAL CLIENTS', "SELECT COUNT(DISTINCT customer_id) as count FROM bookings WHERE provider_id = ? AND status = 'completed'", [provider.id]),
+      safeFirst(c, 'TOTAL CLIENTS', "SELECT COUNT(DISTINCT customer_id) as count FROM bookings WHERE provider_id = ? AND status IN ('confirmed','completed')", [provider.id]),
       safeAll(c, 'PENDING BOOKINGS', `
         SELECT b.*, u.first_name, u.last_name, u.avatar_url, s.name as service_name
         FROM bookings b JOIN users u ON b.customer_id = u.id JOIN services s ON b.service_id = s.id
