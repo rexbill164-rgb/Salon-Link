@@ -22,7 +22,7 @@ export function withProviderGalleryDeleteFix(html: string): string {
           '<img src="' + p.image_url + '" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy"/>' +
         '</div>' +
         '<div style="display:flex;justify-content:center;padding:6px;background:#f9fafb;border-top:1px solid #e5e7eb;">' +
-          '<button type="button" data-gallery-id="' + p.id + '" onclick="window.deleteGalleryImage&&window.deleteGalleryImage(' + p.id + ')" style="display:flex;align-items:center;gap:4px;padding:5px 14px;border-radius:8px;border:1.5px solid #fca5a5;background:#fee2e2;color:#dc2626;font-size:11px;font-weight:700;cursor:pointer;touch-action:manipulation;">🗑 Delete</button>' +
+          '<button type="button" data-gallery-id="' + p.id + '" onclick="window.deleteGalleryImage&&window.deleteGalleryImage(' + p.id + ')" style="display:flex;align-items:center;gap:4px;padding:5px 12px;border-radius:7px;border:none;background:#dc2626;color:#fff;font-size:11px;font-weight:600;cursor:pointer;touch-action:manipulation;">🗑 Delete</button>' +
         '</div>' +
       '</div>';
     }).join('');
