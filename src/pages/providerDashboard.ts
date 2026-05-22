@@ -28,6 +28,12 @@ ${baseHead('Provider Dashboard', `
 .card-title { font-size:13px; font-weight:700; margin-bottom:14px; color:var(--t-primary); display:flex; align-items:center; justify-content:space-between; }
 .pdash input,.pdash select,.pdash textarea{color:#111827 !important;background:#fff !important;border:1px solid #e2e8f0 !important;}
 .pdash label,.pdash .form-label{color:#374151 !important;}
+.sl-svc-action-btn{padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;touch-action:manipulation;}
+.sl-svc-edit{background:#EFF6FF !important;border:1px solid #BFDBFE !important;color:#1D4ED8 !important;margin-right:6px;}
+.sl-svc-delete{background:#FEF2F2 !important;border:1px solid #FECACA !important;color:#DC2626 !important;}
+.sl-svc-edit:hover{background:#DBEAFE !important;}
+.sl-svc-delete:hover{background:#FEE2E2 !important;}
+.sl-gallery-delete-btn{position:absolute !important;top:6px !important;right:6px !important;width:30px !important;height:30px !important;border-radius:50% !important;background:#DC2626 !important;border:2px solid #fff !important;color:#fff !important;cursor:pointer !important;font-size:16px !important;font-weight:900 !important;display:flex !important;align-items:center !important;justify-content:center !important;z-index:20 !important;line-height:1 !important;touch-action:manipulation !important;}
 /* ── Appt rows ── */
 .appt-row { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--i-faint); }
 .appt-row:last-child { border-bottom:none; }
@@ -803,6 +809,12 @@ function saveNewService() {
     .catch(function(e){ showToast(e.response?e.response.data.error:'Save failed', 'error'); });
 }
 
+function deleteSvcByIndex(i) {
+  var svc = window._sl_services && window._sl_services[i];
+  if (!svc) return;
+  deleteService(svc.id, svc.name);
+}
+
 function deleteService(id, name) {
   if (!confirm('Delete service "' + (name||'this service') + '"?\nThis cannot be undone.')) return;
   var token = localStorage.getItem('sl_token');
@@ -859,8 +871,8 @@ function loadMyServices(token) {
               '<div style="font-size:11px;color:var(--t-muted);">'+(s.duration_minutes||s.duration||60)+' min · '+(s.description||'')+'</div>' +
             '</div>' +
             '<div style="font-size:15px;font-weight:700;color:var(--g-main);">GHS '+Math.round((s.price||0)/100)+'</div>' +
-            '<button onclick="openEditService(window._sl_services['+i+'])" title="Edit service" style="width:32px;height:32px;border-radius:8px;border:1px solid var(--i-faint);background:transparent;color:var(--t-primary);cursor:pointer;font-size:13px;margin-right:4px;">✎</button>' +
-            '<button onclick="deleteService('+s.id+',\'' + s.name.replace(/\/g,'\\\\').replace(/'/g,'\\\'') + '\')" title="Delete service" style="width:32px;height:32px;border-radius:8px;border:1px solid rgba(224,112,112,0.3);background:transparent;color:var(--s-red);cursor:pointer;font-size:14px;">✕</button>' +
+            '<button class="sl-svc-action-btn sl-svc-edit" onclick="openEditService(window._sl_services['+i+'])">✏️ Edit</button>' +
+            '<button class="sl-svc-action-btn sl-svc-delete" onclick="deleteSvcByIndex('+i+')">🗑 Delete</button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -948,7 +960,7 @@ function loadGallery(token) {
         return '<div style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--c-surface);">' +
           '<img src="'+p.image_url+'" style="width:100%;height:100%;object-fit:cover;"/>' +
           (p.caption?'<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.55);padding:6px 8px;font-size:9px;color:white;">'+p.caption+'</div>':'') +
-          '<button onclick="deleteGalleryImage('+p.id+')" class="sl-gallery-delete-btn" title="Delete photo" style="position:absolute;top:6px;right:6px;width:32px;height:32px;border-radius:50%;background:rgba(220,38,38,0.85) !important;border:2px solid rgba(255,255,255,0.7) !important;color:#fff !important;cursor:pointer;font-size:14px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;z-index:10;">✕</button>' +
+          '<button onclick="deleteGalleryImage('+p.id+')" class="sl-gallery-delete-btn" title="Delete photo">✕</button>' +
         '</div>';
       }).join('');
       html += '<div onclick="triggerGalleryUpload()" class="gallery-add-btn"><div style="font-size:24px;">➕</div><div style="font-size:10px;color:var(--t-muted);margin-top:4px;">Add Photo</div></div>';
