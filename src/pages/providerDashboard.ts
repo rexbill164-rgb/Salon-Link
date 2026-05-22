@@ -514,10 +514,6 @@ function logout() {
   var user = (function(){ try{ return JSON.parse(localStorage.getItem('sl_user')||'{}'); }catch(e){ return {}; } })();
   if (!token || user.role !== 'provider') { window.location.href = '/login'; return; }
 
-  // Show loading state immediately
-  var todayEl = document.getElementById('today-appts');
-  if (todayEl) todayEl.innerHTML = '<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">Loading your dashboard...</div>';
-
   function safeSet(id, v) { try { var e = document.getElementById(id); if(e) e.textContent = v; } catch(err){} }
 
   axios.get('/api/providers/me/dashboard', { headers: { Authorization: 'Bearer ' + token } })

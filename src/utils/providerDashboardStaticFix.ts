@@ -42,7 +42,19 @@ export function withProviderDashboardStaticFix(html: string): string {
     var tog=q('accepting-toggle'); if(tog)tog.checked=p.is_accepting_bookings===1||p.is_accepting_bookings===true;
     set('kpi-today',s.today_bookings||0); set('kpi-revenue',money(s.week_revenue||0)); set('kpi-clients',s.total_clients||0); set('kpi-rating',s.rating?Number(s.rating).toFixed(1):'—');
     renderToday(d.today_appointments||[]); loadServices();
-  }).catch(function(e){ if(e&&e.response&&e.response.status===401) location.href='/login'; else toast('Dashboard could not load','error'); }); }
+  }).catch(function(e){
+    var todayEl = q('today-appts');
+    if (todayEl) todayEl.innerHTML = '<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">Could not load appointments.<br><button onclick="location.reload()" style="margin-top:8px;padding:6px 16px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;cursor:pointer;font-size:11px;">Retry</button></div>';
+    if(e&&e.response&&e.response.status===401) location.href='/login';
+  }); }
+
+  // Safety fallback: if today-appts still shows "Loading..." after 4s, clear it
+  setTimeout(function(){
+    var el = q('today-appts');
+    if (el && el.textContent && el.textContent.trim().indexOf('Loading') === 0) {
+      el.innerHTML = '<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">No appointments today ✦</div>';
+    }
+  }, 4000);
   function set(id,v){ var e=q(id); if(e)e.textContent=v; }
   function renderToday(rows){ var e=q('today-appts'); if(!e)return; if(!rows.length){e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:20px;font-size:12px;">No appointments today ✦</div>';return;} e.innerHTML=rows.map(function(r){return '<div class="appt-row"><div class="mini-avatar">'+String(r.first_name||'?').charAt(0)+'</div><div style="flex:1"><div style="font-size:13px;font-weight:700;">'+(r.first_name||'')+' '+(r.last_name||'')+'</div><div style="font-size:11px;color:var(--t-muted);">'+(r.service_name||'')+'</div></div><div style="text-align:right"><div style="font-size:12px;font-weight:700;color:var(--g-main);">'+(r.booking_time||'')+'</div><span class="badge badge-pending" style="font-size:9px;">'+(r.status||'pending')+'</span></div></div>';}).join(''); }
   function loadAppts(){ var x=a(), e=q('appts-list'); if(e)e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:32px;font-size:13px;">Loading appointments...</div>'; if(!x)return; x.get('/api/bookings/provider',{headers:h()}).then(function(r){ var rows=(r.data||{}).bookings||[]; if(!rows.length){e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:32px;font-size:13px;">No appointments found.</div>';return;} e.innerHTML=rows.map(function(b){return '<div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--i-faint);flex-wrap:wrap;"><div class="mini-avatar">'+String(b.first_name||'?').charAt(0)+'</div><div style="flex:1;min-width:120px;"><div style="font-size:13px;font-weight:700;">'+(b.first_name||'')+' '+(b.last_name||'')+'</div><div style="font-size:11px;color:var(--t-muted);">'+(b.service_name||'')+' · '+(b.booking_date||'')+' '+(b.booking_time||'')+'</div></div><div style="font-weight:700;color:var(--g-main);">'+money(b.total_amount)+'</div><span class="badge badge-pending" style="font-size:9px;">'+(b.status||'pending')+'</span></div>';}).join('');}).catch(function(){ if(e)e.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:32px;font-size:13px;">No appointments found.</div>'; }); }
