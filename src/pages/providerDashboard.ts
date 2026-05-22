@@ -236,9 +236,11 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
 
       <!-- ══ APPOINTMENTS ══ -->
       <div id="sec-appts" class="section">
-        <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;">
+        <div id="appt-filter-bar" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px;-webkit-overflow-scrolling:touch;">
           ${['All','Today','Pending','Confirmed','Completed'].map((s,i)=>`
-            <button onclick="filterAppts(this,'${s}')" style="padding:8px 16px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;background:${i===0?'var(--g-dim)':'transparent'};border:${i===0?'1px solid var(--g-border)':'1px solid var(--i-faint)'};color:${i===0?'var(--g-main)':'var(--t-secondary)'};">${s}</button>
+            <button class="appt-filter-btn${i===0?' appt-filter-active':''}" data-filter="${s}" style="padding:8px 16px;border-radius:100px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;touch-action:manipulation;background:${i===0?'var(--g-dim)':'transparent'};border:${i===0?'1px solid var(--g-border)':'1px solid var(--i-faint)'};color:${i===0?'var(--g-main)':'var(--t-secondary)'};">
+              ${s}
+            </button>
           `).join('')}
         </div>
         <div id="appts-list"><div style="text-align:center;color:var(--t-muted);padding:32px;font-size:13px;">Loading appointments...</div></div>
@@ -662,14 +664,19 @@ function loadAllAppts(token) {
   axios.get('/api/bookings/provider', { headers: { Authorization: 'Bearer ' + token } })
     .then(function(r) {
       allAppts = r.data.bookings||[];
-      renderApptsList(allAppts);
+      renderApptsList(allAppts, 'All');
+      setTimeout(initFilterButtons, 100); // wire up touch events after render
     })
     .catch(function() { renderApptsList([]); });
 }
 
-function renderApptsList(list) {
+function renderApptsList(list, filter) {
   var el = document.getElementById('appts-list'); if(!el) return;
-  if (!list.length) { el.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:32px;font-size:13px;">No appointments found.</div>'; return; }
+  if (!list.length) {
+    var msg = filter && filter !== 'All' ? 'No '+filter.toLowerCase()+' appointments.' : 'No appointments found.';
+    el.innerHTML='<div style="text-align:center;color:var(--t-muted);padding:32px;font-size:13px;">'+msg+'</div>';
+    return;
+  }
   el.innerHTML = list.map(function(a) {
     var bc = a.status==='confirmed'?'badge-verified':a.status==='completed'?'badge-success':a.status==='pending'?'badge-pending':'badge-error';
     return '<div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--i-faint);flex-wrap:wrap;">' +
@@ -692,12 +699,37 @@ function renderApptsList(list) {
 }
 
 function filterAppts(btn, status) {
-  document.querySelectorAll('#sec-appts button').forEach(function(b){ b.style.background='transparent'; b.style.borderColor='var(--i-faint)'; b.style.color='var(--t-secondary)'; });
-  btn.style.background='var(--g-dim)'; btn.style.borderColor='var(--g-border)'; btn.style.color='var(--g-main)';
+  // Only reset filter buttons — not action buttons (Confirm/Done/Cancel) in rows
+  document.querySelectorAll('.appt-filter-btn').forEach(function(b){
+    b.classList.remove('appt-filter-active');
+    b.style.background='transparent';
+    b.style.borderColor='var(--i-faint)';
+    b.style.color='var(--t-secondary)';
+  });
+  if (btn) {
+    btn.classList.add('appt-filter-active');
+    btn.style.background='var(--g-dim)';
+    btn.style.borderColor='var(--g-border)';
+    btn.style.color='var(--g-main)';
+  }
+  var today = new Date().toISOString().split('T')[0];
   var filtered = status==='All' ? allAppts :
-    status==='Today' ? allAppts.filter(function(a){ return a.booking_date===new Date().toISOString().split('T')[0]; }) :
+    status==='Today' ? allAppts.filter(function(a){ return a.booking_date===today; }) :
     allAppts.filter(function(a){ return a.status===status.toLowerCase(); });
-  renderApptsList(filtered);
+  renderApptsList(filtered, status);
+}
+
+// Wire up filter buttons with touchend for reliable iOS response
+function initFilterButtons() {
+  document.querySelectorAll('.appt-filter-btn').forEach(function(btn) {
+    btn.addEventListener('touchend', function(e) {
+      e.preventDefault(); // prevent ghost click
+      filterAppts(this, this.getAttribute('data-filter'));
+    }, { passive: false });
+    btn.addEventListener('click', function(e) {
+      filterAppts(this, this.getAttribute('data-filter'));
+    });
+  });
 }
 
 function updateApptBtn(btn) {
