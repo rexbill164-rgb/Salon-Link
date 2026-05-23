@@ -160,11 +160,11 @@ ${baseHead('Admin Panel', `
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px;">
             <div style="background:var(--c-raise);border-radius:12px;padding:14px;text-align:center;">
               <div style="font-size:10px;color:var(--t-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em;">Fee / Booking</div>
-              <div style="font-size:18px;font-weight:700;color:var(--g-main);">GHS 3</div>
+              <div style="font-size:18px;font-weight:700;color:var(--g-main);">GHS 2</div>
             </div>
             <div style="background:var(--c-raise);border-radius:12px;padding:14px;text-align:center;">
               <div style="font-size:10px;color:var(--t-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em;">Platform Cut</div>
-              <div style="font-size:18px;font-weight:700;color:#5DC98A;">3 GHS each</div>
+              <div style="font-size:18px;font-weight:700;color:#5DC98A;">2 GHS each</div>
             </div>
             <div style="background:var(--c-raise);border-radius:12px;padding:14px;text-align:center;">
               <div style="font-size:10px;color:var(--t-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.08em;">Model</div>
@@ -282,7 +282,7 @@ ${baseHead('Admin Panel', `
           <div style="background:linear-gradient(135deg,rgba(201,168,76,0.08),rgba(131,58,180,0.05));border:1px solid var(--g-border);border-radius:var(--r-lg);padding:18px;text-align:center;">
             <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-muted);margin-bottom:6px;">Platform Revenue</div>
             <div id="pay-kpi-platform" class="font-display gold-gradient" style="font-size:22px;font-weight:700;">—</div>
-            <div style="font-size:9px;color:var(--t-muted);margin-top:3px;">GHS 3 × bookings</div>
+            <div style="font-size:9px;color:var(--t-muted);margin-top:3px;">GHS 2 × bookings</div>
           </div>
           <div style="background:rgba(224,112,112,0.06);border:1px solid rgba(224,112,112,0.2);border-radius:var(--r-lg);padding:18px;text-align:center;">
             <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--t-muted);margin-bottom:6px;">Pending Payouts</div>
@@ -405,7 +405,7 @@ ${baseHead('Admin Panel', `
       <!-- ── DAILY RECONCILIATION ── -->
       <div id="admin-reconcile" class="admin-section">
         <div class="eyebrow" style="margin-bottom:8px;">Daily Fee Reconciliation</div>
-        <div style="font-size:12px;color:var(--t-muted);margin-bottom:20px;">Check which providers have paid their GHS 3/booking fees for any given day. All fees are due by midnight.</div>
+        <div style="font-size:12px;color:var(--t-muted);margin-bottom:20px;">Check which providers have paid their GHS 2/booking fees for any given day. All fees are due by midnight.</div>
         <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">
           <input type="date" id="reconcile-date" style="padding:10px 14px;border-radius:10px;background:var(--c-surface);border:1px solid var(--i-faint);color:var(--t-primary);font-size:12px;" />
           <button onclick="loadReconcile()" style="padding:10px 24px;border-radius:100px;font-size:12px;cursor:pointer;background:linear-gradient(135deg,var(--g-deep),var(--g-main));color:white;border:none;font-weight:700;">Load Report</button>

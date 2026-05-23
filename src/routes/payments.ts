@@ -14,7 +14,7 @@ type Bindings = {
 
 const payments = new Hono<{ Bindings: Bindings }>()
 
-const PLATFORM_FEE_PESEWAS = 300 // GHS 3 in pesewas
+const PLATFORM_FEE_PESEWAS = 200 // GHS 2 in pesewas
 const PAYMENT_DISABLED_MESSAGE = 'Online payments are temporarily unavailable. Payment will be handled manually/offline at the salon.'
 
 function getJwtSecret(c: any): string {
@@ -384,7 +384,7 @@ payments.get('/provider/earnings', async (c) => {
 
 // ── POST /api/payments/cash-book — customer books with cash/pay-on-site (no online payment) ──
 // Booking is confirmed immediately; payment_status stays 'unpaid' until provider collects.
-// Provider owes GHS 3 platform fee regardless (already recorded in service_fees at booking creation).
+// Provider owes GHS 2 platform charge regardless (already recorded in service_fees at booking creation).
 payments.post('/cash-book', async (c) => {
   try {
     const user = await getUser(c)

@@ -84,7 +84,7 @@ bookings.post('/', async (c) => {
     ).bind(user.sub, booking_date, booking_time).first()
     if (customerConflict) return c.json({ success: false, error: 'You already have a booking at this time.' }, 409)
 
-    // 3 GHS platform service fee (in pesewas)
+    // 2 GHS platform service fee (in pesewas)
     const SERVICE_FEE = 200 // GHS 2 platform charge - recorded on completion only
     const totalWithFee = (service.price || 0) // Customer pays only service price
 

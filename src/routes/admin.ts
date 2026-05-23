@@ -223,7 +223,7 @@ admin.get('/bookings', async (c) => {
   }
 })
 
-// GET /api/admin/service-fees — view all pending service fees (3 GHS per booking)
+// GET /api/admin/service-fees — view all pending service fees (2 GHS per booking)
 admin.get('/service-fees', async (c) => {
   try {
     const user = await getAdmin(c)

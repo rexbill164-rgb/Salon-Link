@@ -31,14 +31,14 @@ export function withBookingFeeDisclosureFix(html: string): string {
 
   function cleanText(){
     var replacements = [
-      ['Your provider will send a GHS 3 platform fee to SalonLink after your appointment.', cleanCashMessage],
+      ['Your provider will send a GHS 2 platform charge to SalonLink after your appointment.', cleanCashMessage],
       ['Your provider will send a GHS 2 platform fee to SalonLink after your appointment.', cleanCashMessage],
-      ['After your appointment, your provider will send the GHS 3.00 platform fee to:', ''],
+      ['After your appointment, your provider will send the GHS 2.00 platform charge to:', ''],
       ['After your appointment, your provider will send the GHS 2.00 platform fee to:', ''],
       ['Platform Fee Reminder', 'Booking Reminder'],
-      ['GHS 3.00', ''],
       ['GHS 2.00', ''],
-      ['GHS 3', ''],
+      ['GHS 2.00', ''],
+      ['GHS 2', ''],
       ['GHS 2', ''],
       ['platform fee', ''],
       ['Platform Fee', '']

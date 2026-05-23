@@ -764,7 +764,7 @@ function showFeeReminder() {
   modal.innerHTML = '<div style="background:#fff;border-radius:20px;padding:28px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
     '<div style="text-align:center;margin-bottom:16px;font-size:36px;">📋</div>' +
     '<div style="font-size:16px;font-weight:700;text-align:center;margin-bottom:8px;">Service Charge Due</div>' +
-    '<div style="font-size:13px;color:#666;text-align:center;margin-bottom:20px;">Your GHS 3.00 service charge for this booking has been recorded. SalonLink admin will follow up with payment details.</div>' +
+    '<div style="font-size:13px;color:#666;text-align:center;margin-bottom:20px;">Your GHS 2.00 service charge for this booking has been recorded. SalonLink admin will follow up with payment details.</div>' +
     '<div style="background:#F0FFF4;border:1.5px solid #B2DFDB;border-radius:14px;padding:16px;margin-bottom:20px;text-align:center;">' +
       '<div style="font-size:12px;color:#388E3C;font-weight:700;">✓ Charge recorded in your account</div>' +
       '<div style="font-size:11px;color:#888;margin-top:4px;">Admin will contact you for settlement</div>' +
@@ -1153,7 +1153,7 @@ function loadProviderEarnings() {
           '</div>' +
           '<div style="text-align:right;">' +
             '<div style="font-size:14px;font-weight:700;color:#5DC98A;">GHS '+((t.provider_earning||0)/100).toFixed(2)+'</div>' +
-            '<div style="font-size:9px;color:var(--t-muted);">after GHS 3.00 fee</div>' +
+            '<div style="font-size:9px;color:var(--t-muted);">after GHS 2.00 fee</div>' +
             '<span style="padding:2px 8px;border-radius:100px;font-size:9px;font-weight:700;background:'+(isPaid?'rgba(93,201,138,0.12)':'rgba(224,112,112,0.1)')+';color:'+(isPaid?'#5DC98A':'#E07070')+';">'+(isPaid?'Paid':'Pending')+'</span>' +
           '</div>' +
         '</div>';

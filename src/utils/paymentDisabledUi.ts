@@ -19,13 +19,13 @@ export function withPaymentDisabledUi(html: string): string {
 
   function removeFeeText(){
     var exact = [
-      'Your provider will send a GHS 3 platform fee to SalonLink after your appointment.',
+      'Your provider will send a GHS 2 platform charge to SalonLink after your appointment.',
       'Your provider will send a GHS 2 platform fee to SalonLink after your appointment.',
-      'After your appointment, your provider will send the GHS 3.00 platform fee to:',
+      'After your appointment, your provider will send the GHS 2.00 platform charge to:',
       'After your appointment, your provider will send the GHS 2.00 platform fee to:',
-      'GHS 3 platform fee',
+      'GHS 2 platform charge',
       'GHS 2 platform fee',
-      'GHS 3.00',
+      'GHS 2.00',
       'GHS 2.00',
       'Platform Fee Reminder',
       'Platform Fee',
@@ -104,9 +104,9 @@ export function withPaymentDisabledUi(html: string): string {
 })();
 </script>`
   let next = html
-    .replace(/Your provider will send a GHS 3 platform fee to SalonLink after your appointment\./g, 'Pay the service amount directly to the provider when you arrive.')
+    .replace(/Your provider will send a GHS 2 platform charge to SalonLink after your appointment\./g, 'Pay the service amount directly to the provider when you arrive.')
     .replace(/Your provider will send a GHS 2 platform fee to SalonLink after your appointment\./g, 'Pay the service amount directly to the provider when you arrive.')
-    .replace(/GHS 3 platform fee/g, '')
+    .replace(/GHS 2 platform charge/g, '')
     .replace(/GHS 2 platform fee/g, '')
     .replace(/Platform Fee Reminder/g, 'Booking Reminder')
     .replace(/Platform Fee/g, '')
