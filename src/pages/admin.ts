@@ -1251,25 +1251,39 @@ function closeRewardModal() {
 function previewRewardImage(input) {
   var file = input.files && input.files[0];
   if (!file) return;
+  // Check file size (max 2MB before compression)
+  if (file.size > 2 * 1024 * 1024) { showToast('Image too large. Please use an image under 2MB.', 'error'); input.value=''; return; }
   var reader = new FileReader();
   reader.onload = function(e) {
-    // Compress image to max 400px and 60% quality using canvas
-    var img = new Image();
-    img.onload = function() {
-      var canvas = document.getElementById('reward-canvas');
-      var maxSize = 400;
-      var ratio = Math.min(maxSize/img.width, maxSize/img.height, 1);
-      canvas.width = Math.round(img.width * ratio);
-      canvas.height = Math.round(img.height * ratio);
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      var compressed = canvas.toDataURL('image/jpeg', 0.6);
-      var preview = document.getElementById('reward-image-preview');
-      var urlInput = document.getElementById('reward-image');
-      if (preview) { preview.src = compressed; preview.style.display = 'block'; }
-      if (urlInput) urlInput.value = compressed;
-    };
-    img.src = e.target.result;
+    try {
+      var img = new Image();
+      img.onload = function() {
+        try {
+          var canvas = document.getElementById('reward-canvas');
+          if (!canvas) { throw new Error('no canvas'); }
+          var maxSize = 350;
+          var ratio = Math.min(maxSize/img.width, maxSize/img.height, 1);
+          canvas.width = Math.round(img.width * ratio);
+          canvas.height = Math.round(img.height * ratio);
+          var ctx = canvas.getContext('2d');
+          if (!ctx) { throw new Error('no ctx'); }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          var compressed = canvas.toDataURL('image/jpeg', 0.55);
+          var preview = document.getElementById('reward-image-preview');
+          var urlInput = document.getElementById('reward-image');
+          if (preview) { preview.src = compressed; preview.style.display = 'block'; }
+          if (urlInput) urlInput.value = compressed;
+        } catch(err) {
+          // Fallback: use original data URL
+          var preview = document.getElementById('reward-image-preview');
+          var urlInput = document.getElementById('reward-image');
+          if (preview) { preview.src = e.target.result; preview.style.display = 'block'; }
+          if (urlInput) urlInput.value = e.target.result;
+        }
+      };
+      img.onerror = function() { showToast('Could not load image. Try a different file.', 'error'); };
+      img.src = e.target.result;
+    } catch(e2) { showToast('Image processing failed. Try a URL instead.', 'error'); }
   };
   reader.readAsDataURL(file);
 }
@@ -1309,28 +1323,32 @@ function loadPointsSection() {
       var providers = res.data.providers || [];
       var sel = document.getElementById('pts-provider');
       if (!sel) return;
+      if (!providers.length) { sel.innerHTML='<option value="">No providers found</option>'; return; }
       sel.innerHTML = '<option value="">Select provider...</option>' +
         providers.map(function(p){ return '<option value="'+p.id+'">'+p.business_name+' ('+p.email+')</option>'; }).join('');
-    }).catch(function(){});
+    }).catch(function(e){
+      var sel = document.getElementById('pts-provider');
+      if (sel) sel.innerHTML = '<option value="">Error loading — refresh page</option>';
+    });
   // Load leaderboard
   axios.get('/api/admin/providers/points', {headers:{Authorization:'Bearer '+token}})
     .then(function(res){
       var providers = res.data.providers || [];
       var el = document.getElementById('points-leaderboard');
       if (!el) return;
-      if (!providers.length) { el.innerHTML='<div style="color:var(--t-muted);font-size:13px);">No point data yet.</div>'; return; }
+      if (!providers.length) { el.innerHTML='<div style="color:var(--t-muted);font-size:13px;">No providers with points yet.</div>'; return; }
       el.innerHTML = '<div class="table-scroll"><table class="admin-table"><thead><tr><th>#</th><th>Provider</th><th>Email</th><th>Total Points</th><th>Action</th></tr></thead><tbody>' +
         providers.map(function(p, i){
           return '<tr>' +
             '<td style="font-weight:700;">'+(i+1)+'</td>' +
             '<td>'+p.business_name+'</td>' +
             '<td style="color:var(--t-muted);font-size:11px;">'+p.email+'</td>' +
-            '<td><span style="font-weight:800;color:#C9A84C;">⭐ '+p.loyalty_points+'</span></td>' +
-            '<td><button onclick="viewProviderPoints('+p.id+',''+p.business_name+'')" style="padding:6px 12px;border-radius:8px;border:1px solid var(--i-faint);background:transparent;color:var(--t-primary);cursor:pointer;font-size:11px;">History</button></td>' +
+            '<td><span style="font-weight:800;color:#C9A84C;">⭐ '+(p.loyalty_points||0)+'</span></td>' +
+            '<td><button onclick="viewProviderPoints('+p.id+')" style="padding:6px 12px;border-radius:8px;border:1px solid var(--i-faint);background:transparent;color:var(--t-primary);cursor:pointer;font-size:11px;">History</button></td>' +
           '</tr>';
         }).join('') +
         '</tbody></table></div>';
-    }).catch(function(){});
+    }).catch(function(e){ var el2=document.getElementById('points-leaderboard'); if(el2) el2.innerHTML='<div style="color:var(--s-red);font-size:13px;">Could not load leaderboard. Please refresh.</div>'; });
 }
 
 function assignPoints() {
@@ -1346,13 +1364,18 @@ function assignPoints() {
     .catch(function(e){ showToast(e.response?.data?.error || 'Could not assign points','error'); });
 }
 
-function viewProviderPoints(id, name) {
+function viewProviderPoints(id) {
   var token = localStorage.getItem('sl_token');
   axios.get('/api/admin/providers/'+id+'/points', {headers:{Authorization:'Bearer '+token}})
     .then(function(res){
       var hist = res.data.history || [];
-      var msg = name+' — Total: '+res.data.total_points+' pts\n\n';
-      msg += hist.slice(0,10).map(function(h){ return (h.points>0?'+':'')+h.points+' — '+(h.description||h.reason||h.type)+' ('+new Date(h.created_at).toLocaleDateString()+')'; }).join('\n');
+      var name = res.data.business_name || 'Provider';
+      var msg = name+' — Total: '+(res.data.total_points||0)+' pts\n\n';
+      if (hist.length) {
+        msg += hist.slice(0,10).map(function(h){ return (h.points>0?'+':'')+h.points+' — '+(h.description||h.reason||h.type||'Points')+' ('+new Date(h.created_at).toLocaleDateString()+')'; }).join('\n');
+      } else {
+        msg += 'No point history yet.';
+      }
       alert(msg);
     }).catch(function(){ showToast('Could not load points history','error'); });
 }

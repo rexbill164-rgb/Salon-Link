@@ -519,7 +519,13 @@ admin.post('/reward-items', async (c) => {
     if (!name || !points_required) return c.json({ success: false, error: 'name and points_required are required' }, 400)
     const result = await c.env.DB.prepare(
       'INSERT INTO reward_items (name, description, points_required, image_url, is_active) VALUES (?, ?, ?, ?, ?)'
-    ).bind(name, description || null, points_required, image_url || null, is_available !== false ? 1 : 0).run()
+    ).bind(
+      String(name).trim().substring(0, 100),
+      description ? String(description).trim().substring(0, 500) : null,
+      Number(points_required),
+      image_url ? String(image_url) : null,
+      is_available !== false ? 1 : 0
+    ).run()
     return c.json({ success: true, id: result.meta.last_row_id })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
@@ -535,7 +541,14 @@ admin.put('/reward-items/:id', async (c) => {
     const { name, description, points_required, image_url, is_available } = await c.req.json()
     await c.env.DB.prepare(
       'UPDATE reward_items SET name=?, description=?, points_required=?, image_url=?, is_active=? WHERE id=?'
-    ).bind(name, description || null, points_required, image_url || null, is_available ? 1 : 0, id).run()
+    ).bind(
+      String(name).trim().substring(0, 100),
+      description ? String(description).trim().substring(0, 500) : null,
+      Number(points_required),
+      image_url ? String(image_url) : null,
+      is_available ? 1 : 0,
+      id
+    ).run()
     return c.json({ success: true })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
