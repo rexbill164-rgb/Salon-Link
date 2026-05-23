@@ -1289,7 +1289,8 @@ function previewRewardImage(input) {
 }
 
 function saveRewardItem() {
-  var token = localStorage.getItem('sl_token');
+  var token = localStorage.getItem('sl_token') || window._adminToken || '';
+  if (!token) { showToast('Session expired. Please log in again.', 'error'); return; }
   var id = document.getElementById('reward-edit-id').value;
   var payload = {
     name: document.getElementById('reward-name').value.trim(),
@@ -1316,8 +1317,11 @@ function deleteRewardItem(id) {
 
 // ─── POINTS LEADERBOARD ───────────────────────────────────────────────────────
 function loadPointsSection() {
-  var token = localStorage.getItem('sl_token');
+  var token = localStorage.getItem('sl_token') || window._adminToken || '';
+  if (!token) { showToast('Please log in again', 'error'); return; }
   // Load provider list into select
+  var sel = document.getElementById('pts-provider');
+  if (sel) sel.innerHTML = '<option value="">Loading...</option>';
   axios.get('/api/admin/providers', {headers:{Authorization:'Bearer '+token}})
     .then(function(res){
       var providers = res.data.providers || [];
@@ -1331,7 +1335,8 @@ function loadPointsSection() {
       if (sel) sel.innerHTML = '<option value="">Error loading — refresh page</option>';
     });
   // Load leaderboard
-  axios.get('/api/admin/providers/points', {headers:{Authorization:'Bearer '+token}})
+  var token2 = localStorage.getItem('sl_token') || window._adminToken || '';
+  axios.get('/api/admin/providers/points', {headers:{Authorization:'Bearer '+token2}})
     .then(function(res){
       var providers = res.data.providers || [];
       var el = document.getElementById('points-leaderboard');

@@ -148,9 +148,15 @@ export function withAdminDashboardStaticFix(html: string): string {
     if(id==='users' && typeof window.loadUsers==='function') window.loadUsers();
     if(id==='payments' && typeof window.loadPaymentSummary==='function') window.loadPaymentSummary();
     if(id==='fees'){ if(typeof window.loadFeeSummary==='function') window.loadFeeSummary(); if(typeof window.loadFees==='function') window.loadFees('pending'); }
-    if(id==='registrants' && typeof window.loadRegistrants==='function') window.loadRegistrants(30);
-    if(id==='rewards' && typeof window.loadRewards==='function') window.loadRewards();
-    if(id==='points' && typeof window.loadPointsSection==='function') window.loadPointsSection();
+    if(id==='registrants' && typeof window.loadRegistrants==='function') window.loadRegistrants(3650);
+    if(id==='rewards'){
+      if(typeof window.loadRewards==='function') window.loadRewards();
+      else setTimeout(function(){ if(typeof window.loadRewards==='function') window.loadRewards(); },500);
+    }
+    if(id==='points'){
+      if(typeof window.loadPointsSection==='function') window.loadPointsSection();
+      else setTimeout(function(){ if(typeof window.loadPointsSection==='function') window.loadPointsSection(); },500);
+    }
     if(id==='reconcile'){ var d=q('reconcile-date'); if(d&&!d.value)d.value=new Date().toISOString().split('T')[0]; }
   };
 
