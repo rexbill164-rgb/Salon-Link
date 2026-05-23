@@ -411,6 +411,68 @@ export function withProviderProfileStaticFix(html: string): string {
   setTimeout(load, 50);
   setTimeout(function(){ if((q('profile-name')||{}).textContent === 'Loading...') load(); }, 900);
   setTimeout(showFallback, 1800);
+
+  // ── Customer Reviews ────────────────────────────────────────────────────────
+  var _reviewRating = 0;
+
+  window.setRating = function(n) {
+    _reviewRating = n;
+    var stars = document.querySelectorAll('#star-row button');
+    Array.prototype.forEach.call(stars, function(btn) {
+      btn.style.opacity = Number(btn.getAttribute('data-star')) <= n ? '1' : '0.3';
+      btn.style.color = Number(btn.getAttribute('data-star')) <= n ? '#C9A84C' : '';
+    });
+  };
+
+  window.submitReview = function() {
+    if (!_reviewRating) { alert('Please select a star rating first'); return; }
+    var token = localStorage.getItem('sl_token');
+    if (!token) { location.href = '/login'; return; }
+    var comment = (document.getElementById('review-comment') || {}).value || '';
+    var providerId = pid();
+    if (!providerId) return;
+    var x = window.axios;
+    if (!x) return;
+    var btn = document.querySelector('#review-form-wrap button[onclick="submitReview()"]');
+    if (btn) { btn.textContent = 'Submitting...'; btn.disabled = true; }
+    x.post('/api/reviews', { provider_id: parseInt(providerId), rating: _reviewRating, comment: comment },
+      { headers: { Authorization: 'Bearer ' + token } })
+      .then(function() {
+        var wrap = document.getElementById('review-form-wrap');
+        if (wrap) wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--s-green);font-size:14px;font-weight:700;">✓ Review submitted! Thank you.</div>';
+        load(); // reload reviews
+      })
+      .catch(function(e) {
+        var msg = e && e.response && e.response.data && e.response.data.error ? e.response.data.error : 'Could not submit review';
+        alert(msg);
+        if (btn) { btn.textContent = 'Submit Review'; btn.disabled = false; }
+      });
+  };
+
+  // Show review form for logged-in customers with completed booking
+  function checkReviewEligibility() {
+    var token = localStorage.getItem('sl_token');
+    var user = (function(){ try{ return JSON.parse(localStorage.getItem('sl_user') || '{}'); } catch(e){ return {}; } })();
+    if (!token || !user || user.role !== 'customer') return;
+    var providerId = pid();
+    if (!providerId) return;
+    var x = window.axios;
+    if (!x) { setTimeout(checkReviewEligibility, 500); return; }
+    x.get('/api/bookings/my', { headers: { Authorization: 'Bearer ' + token } })
+      .then(function(r) {
+        var bookings = (r.data && (r.data.bookings || r.data.results)) || [];
+        var pid_int = parseInt(providerId);
+        var hasCompleted = bookings.some(function(b) {
+          return b.status === 'completed' && (b.provider_id === pid_int || String(b.provider_id) === String(pid_int));
+        });
+        if (hasCompleted) {
+          var wrap = document.getElementById('review-form-wrap');
+          if (wrap) wrap.style.display = 'block';
+        }
+      }).catch(function() {});
+  }
+  setTimeout(checkReviewEligibility, 800);
+
 })();
 </script>`
 

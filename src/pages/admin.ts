@@ -388,10 +388,10 @@ ${baseHead('Admin Panel', `
         <div class="eyebrow" style="margin-bottom:8px;">All Registrants</div>
         <div style="font-size:12px;color:var(--t-muted);margin-bottom:20px;">Track all customer and provider sign-ups. Approve providers here.</div>
         <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-          <button onclick="loadRegistrants(7)" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid var(--i-faint);color:var(--t-secondary);">Last 7 days</button>
-          <button onclick="loadRegistrants(30)" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:var(--g-dim);border:1px solid var(--g-border);color:var(--g-main);">Last 30 days</button>
-          <button onclick="loadRegistrants(90)" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid var(--i-faint);color:var(--t-secondary);">Last 90 days</button>
-          <button onclick="loadRegistrants(365)" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid var(--i-faint);color:var(--t-secondary);">All time</button>
+          <button id="reg-btn-7" onclick="setRegFilter(this,7)" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid var(--i-faint);color:var(--t-secondary);">Last 7 days</button>
+          <button id="reg-btn-30" onclick="setRegFilter(this,30)" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid var(--i-faint);color:var(--t-secondary);">Last 30 days</button>
+          <button id="reg-btn-90" onclick="setRegFilter(this,90)" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:transparent;border:1px solid var(--i-faint);color:var(--t-secondary);">Last 90 days</button>
+          <button id="reg-btn-365" onclick="setRegFilter(this,365)" style="padding:8px 18px;border-radius:100px;font-size:11px;cursor:pointer;background:var(--g-dim);border:1px solid var(--g-border);color:var(--g-main);">All time</button>
         </div>
         <div id="reg-count-summary" style="margin-bottom:16px;font-size:13px;color:var(--t-secondary);"></div>
         <div class="table-scroll">
@@ -969,7 +969,16 @@ function markFeePaid(id) {
 }
 
 // ── REGISTRANTS ──
+function setRegFilter(btn, days) {
+  document.querySelectorAll('[id^="reg-btn-"]').forEach(function(b) {
+    b.style.background='transparent'; b.style.borderColor='var(--i-faint)'; b.style.color='var(--t-secondary)';
+  });
+  if(btn){ btn.style.background='var(--g-dim)'; btn.style.borderColor='var(--g-border)'; btn.style.color='var(--g-main)'; }
+  loadRegistrants(days);
+}
+
 function loadRegistrants(days) {
+  days = days || 3650; // default: all time
   var token = localStorage.getItem('sl_token');
   axios.get('/api/admin/registrants?days=' + days, { headers: { Authorization: 'Bearer ' + token } }).then(function(r) {
     var summary = document.getElementById('reg-count-summary');
@@ -1244,10 +1253,23 @@ function previewRewardImage(input) {
   if (!file) return;
   var reader = new FileReader();
   reader.onload = function(e) {
-    var preview = document.getElementById('reward-image-preview');
-    var urlInput = document.getElementById('reward-image');
-    if (preview) { preview.src = e.target.result; preview.style.display = 'block'; }
-    if (urlInput) urlInput.value = e.target.result; // store base64 as URL for now
+    // Compress image to max 400px and 60% quality using canvas
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.getElementById('reward-canvas');
+      var maxSize = 400;
+      var ratio = Math.min(maxSize/img.width, maxSize/img.height, 1);
+      canvas.width = Math.round(img.width * ratio);
+      canvas.height = Math.round(img.height * ratio);
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      var compressed = canvas.toDataURL('image/jpeg', 0.6);
+      var preview = document.getElementById('reward-image-preview');
+      var urlInput = document.getElementById('reward-image');
+      if (preview) { preview.src = compressed; preview.style.display = 'block'; }
+      if (urlInput) urlInput.value = compressed;
+    };
+    img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
@@ -1352,8 +1374,14 @@ function viewProviderPoints(id, name) {
       <div style="display:flex;gap:8px;align-items:center;">
         <input id="reward-image" class="input" type="url" placeholder="Paste image URL or upload below" style="flex:1;"/>
       </div>
-      <div style="margin-top:8px;"><input type="file" id="reward-image-file" accept="image/*" onchange="previewRewardImage(this)" style="font-size:11px;color:var(--t-muted);"/></div>
-      <img id="reward-image-preview" src="" alt="" style="display:none;width:100%;max-height:120px;object-fit:cover;border-radius:10px;margin-top:8px;"/>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+        <label style="padding:7px 14px;border-radius:8px;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;font-size:11px;font-weight:600;cursor:pointer;">
+          📷 Upload Image<input type="file" id="reward-image-file" accept="image/*" onchange="previewRewardImage(this)" style="display:none;"/>
+        </label>
+        <span style="font-size:10px;color:var(--t-muted);">or paste URL above</span>
+      </div>
+      <canvas id="reward-canvas" style="display:none;"></canvas>
+      <img id="reward-image-preview" src="" alt="" style="display:none;width:100%;max-height:140px;object-fit:cover;border-radius:10px;margin-top:8px;border:1px solid var(--i-faint);"/>
     </div>
     <div style="margin-bottom:20px;display:flex;align-items:center;gap:8px;"><input type="checkbox" id="reward-available" checked/><label style="font-size:13px;font-weight:600;">Available for claiming</label></div>
     <button onclick="saveRewardItem()" style="width:100%;padding:13px;border-radius:100px;font-size:13px;cursor:pointer;background:linear-gradient(135deg,#C9A84C,#8B6914);color:white;border:none;font-weight:700;">Save Item</button>
