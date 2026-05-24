@@ -266,15 +266,6 @@ ${baseHead('Log In', `
       Don&apos;t have an account? <a href="/register">Sign up</a>
     </p>
 
-    <!-- Notice for password reset -->
-    <div id="reset-notice" class="notice-box">
-      <div class="notice-title">Existing users</div>
-      <div class="notice-text">
-        Temporary password: <strong>SalonLink2026</strong><br/>
-        Use "Forgot password" to set your own.
-      </div>
-    </div>
-
     <!-- Tab switcher -->
     <div class="tab-container">
       <button id="tab-email" onclick="switchTab('email')" class="tab-btn active">Email</button>
