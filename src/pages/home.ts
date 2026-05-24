@@ -456,7 +456,7 @@ ${navbar('home')}
       <a href="/discover" class="section-link">View all <i class="fas fa-arrow-right" style="font-size:12px;"></i></a>
     </div>
 
-    <div class="provider-grid">
+    <div class="provider-grid" id="home-provider-grid">
       ${featuredProviders().map(p => `
         <div class="provider-card" onclick="window.location.href='/provider/${p.id}'">
           <div class="provider-card-img">
@@ -690,6 +690,42 @@ ${navbar('home')}
 
 ${mobileNav('home')}
 ${globalScripts()}
+<script>
+(function loadRealProviders(){
+  var grid = document.getElementById('home-provider-grid');
+  if (!grid) return;
+  var defaultImg = 'https://images.unsplash.com/photo-1560869713-7d0a29430803?w=480&q=80';
+  fetch('/api/providers?verified=1&limit=8')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var providers = (data.providers || data.results || []).filter(function(p){ return p.is_verified && p.is_accepting_bookings; });
+      if (!providers || !providers.length) return; // keep fallback if no real providers
+      grid.innerHTML = providers.map(function(p){
+        var img = p.logo_url && p.logo_url.startsWith('http') ? p.logo_url : defaultImg;
+        var rating = p.rating ? parseFloat(p.rating).toFixed(1) : 'New';
+        var reviews = p.total_reviews || 0;
+        var city = p.city || p.address || 'Ghana';
+        var category = p.service_category || 'Salon';
+        var open = p.is_accepting_bookings ? '' : '<div style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.55);color:#fff;font-size:10px;padding:2px 8px;border-radius:100px;">Closed</div>';
+        return '<div class="provider-card" onclick="window.location.href=\'/provider/'+p.id+'\'">' +
+          '<div class="provider-card-img">' +
+            '<img src="'+img+'" alt="'+p.business_name+'" loading="lazy" onerror="this.src=\''+defaultImg+'\'" />' +
+            '<div class="provider-card-badge">' +
+              (p.is_verified ? '<span class="badge badge-verified"><i class="fas fa-check" style="font-size:10px;"></i> Verified</span>' : '') +
+            '</div>' + open +
+            '<div class="provider-card-heart"><i class="far fa-heart"></i></div>' +
+          '</div>' +
+          '<div class="provider-card-content">' +
+            '<div class="provider-card-name">'+p.business_name+(p.is_verified?'<span class="verified"><i class="fas fa-check"></i></span>':'')+'</div>' +
+            '<div class="provider-card-meta">'+city+'</div>' +
+            '<div class="provider-card-meta">'+category+'</div>' +
+            '<div class="provider-card-rating"><span class="star">★</span><span class="score">'+rating+'</span><span class="count">('+reviews+' reviews)</span></div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }).catch(function(){}); // silently keep fallback on error
+})();
+</script>
 </body></html>`
 
 function featuredProviders() {
