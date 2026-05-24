@@ -129,3 +129,57 @@ notifications.get('/vapid-public-key', (c) => {
 })
 
 export default notifications
+
+// POST /api/notifications/subscribe — save push subscription
+notifications.post('/subscribe', async (c) => {
+  try {
+    const auth = c.req.header('Authorization')
+    if (!auth?.startsWith('Bearer ')) return c.json({ success: false, error: 'Auth required' }, 401)
+    const payload = await import('hono/jwt').then(m => m.verify(auth.split(' ')[1], c.env.JWT_SECRET || 'salonlink_jwt_secret_2026', 'HS256')) as any
+    const { endpoint, keys } = await c.req.json()
+    if (!endpoint || !keys?.p256dh || !keys?.auth) return c.json({ success: false, error: 'Invalid subscription' }, 400)
+    await c.env.DB.prepare(`
+      INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(endpoint) DO UPDATE SET user_id=excluded.user_id, p256dh=excluded.p256dh, auth=excluded.auth, updated_at=CURRENT_TIMESTAMP
+    `).bind(payload.sub, endpoint, keys.p256dh, keys.auth).run()
+    return c.json({ success: true })
+  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
+})
+
+// DELETE /api/notifications/subscribe — remove subscription
+notifications.delete('/subscribe', async (c) => {
+  try {
+    const auth = c.req.header('Authorization')
+    if (!auth?.startsWith('Bearer ')) return c.json({ success: false, error: 'Auth required' }, 401)
+    const payload = await import('hono/jwt').then(m => m.verify(auth.split(' ')[1], c.env.JWT_SECRET || 'salonlink_jwt_secret_2026', 'HS256')) as any
+    await c.env.DB.prepare('DELETE FROM push_subscriptions WHERE user_id = ?').bind(payload.sub).run()
+    return c.json({ success: true })
+  } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
+})
+
+// GET /api/notifications/unread — get unread notifications for polling
+notifications.get('/unread', async (c) => {
+  try {
+    const auth = c.req.header('Authorization')
+    if (!auth?.startsWith('Bearer ')) return c.json({ items: [] })
+    const payload = await import('hono/jwt').then(m => m.verify(auth.split(' ')[1], c.env.JWT_SECRET || 'salonlink_jwt_secret_2026', 'HS256')) as any
+    const result = await c.env.DB.prepare(`
+      SELECT id, type, title, body, url, is_read, created_at
+      FROM notifications WHERE user_id = ? AND is_read = 0
+      ORDER BY created_at DESC LIMIT 10
+    `).bind(payload.sub).all()
+    return c.json({ items: result.results || [] })
+  } catch (e: any) { return c.json({ items: [] }) }
+})
+
+// POST /api/notifications/mark-read — mark notifications as read
+notifications.post('/mark-read', async (c) => {
+  try {
+    const auth = c.req.header('Authorization')
+    if (!auth?.startsWith('Bearer ')) return c.json({ success: false })
+    const payload = await import('hono/jwt').then(m => m.verify(auth.split(' ')[1], c.env.JWT_SECRET || 'salonlink_jwt_secret_2026', 'HS256')) as any
+    await c.env.DB.prepare('UPDATE notifications SET is_read=1 WHERE user_id=?').bind(payload.sub).run()
+    return c.json({ success: true })
+  } catch (e: any) { return c.json({ success: false }) }
+})

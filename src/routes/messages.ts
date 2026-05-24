@@ -163,6 +163,17 @@ messages.post('/send', async (c) => {
       SELECT m.*, ${messageSelectExpression()}, su.first_name as sender_first_name, su.last_name as sender_last_name
       FROM messages m LEFT JOIN users su ON su.id = m.sender_id WHERE m.id = ?
     `).bind(result.meta.last_row_id).first()
+    // Create notification for recipient
+    try {
+      const sender = await c.env.DB.prepare('SELECT first_name, last_name FROM users WHERE id=?').bind(currentUserId).first() as any
+      const senderName = sender ? `${sender.first_name} ${sender.last_name}`.trim() : 'Someone'
+      const notifUrl = `/messages/${conversationId}`
+      await c.env.DB.prepare(`
+        INSERT INTO notifications (user_id, type, title, body, url, is_read)
+        VALUES (?, 'message', ?, ?, ?, 0)
+      `).bind(receiverId, `💬 New message from ${senderName}`, text.substring(0, 80), notifUrl).run()
+    } catch(_) {}
+
     return c.json({ success: true, conversation_id: conversationId, message })
   } catch (error: any) {
     console.error('MESSAGES SEND ERROR:', error)

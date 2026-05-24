@@ -40,6 +40,7 @@ import { withMessagesKeyboardFix } from './utils/messagesKeyboardFix'
 import { withMessagesRealtimeFix } from './utils/messagesRealtimeFix'
 import { withZoomLock } from './utils/zoomLock'
 import { withCustomerMessagesShortcut } from './utils/customerMessagesShortcut'
+import { withNotificationManager } from './utils/notificationManager'
 import { withAppLaunchSplash } from './utils/appLaunchSplash'
 import { withAdminProviderThemeUi } from './utils/adminProviderThemeUi'
 import { withMobilePolish } from './utils/mobilePolish'
@@ -112,13 +113,15 @@ const msgPage = (conversationId = '') =>
   )
 
 const adminDash = () =>
-  withAdminBlueUi(
-    withMobilePolish(
-      withAppLaunchSplash(
-        withZoomLock(
-          withAdminProviderThemeUi(
-            withAdminDashboardStaticFix(
-              repairInlineScriptText(adminPanelPage())
+  withNotificationManager(
+    withAdminBlueUi(
+      withMobilePolish(
+        withAppLaunchSplash(
+          withZoomLock(
+            withAdminProviderThemeUi(
+              withAdminDashboardStaticFix(
+                repairInlineScriptText(adminPanelPage())
+              )
             )
           )
         )
