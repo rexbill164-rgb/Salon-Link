@@ -1,3 +1,4 @@
+import { verifyToken } from './auth'
 import { Hono } from 'hono'
 import { verify } from 'hono/jwt'
 
@@ -135,7 +136,7 @@ notifications.post('/subscribe', async (c) => {
   try {
     const auth = c.req.header('Authorization')
     if (!auth?.startsWith('Bearer ')) return c.json({ success: false, error: 'Auth required' }, 401)
-    const payload = await import('hono/jwt').then(m => m.verify(auth.split(' ')[1], c.env.JWT_SECRET || 'salonlink_jwt_secret_2026', 'HS256')) as any
+    const payload = await import('hono/jwt').then(m => m.verifyToken(auth.split(' ')[1], c.env)) as any
     const { endpoint, keys } = await c.req.json()
     if (!endpoint || !keys?.p256dh || !keys?.auth) return c.json({ success: false, error: 'Invalid subscription' }, 400)
     await c.env.DB.prepare(`
@@ -152,7 +153,7 @@ notifications.delete('/subscribe', async (c) => {
   try {
     const auth = c.req.header('Authorization')
     if (!auth?.startsWith('Bearer ')) return c.json({ success: false, error: 'Auth required' }, 401)
-    const payload = await import('hono/jwt').then(m => m.verify(auth.split(' ')[1], c.env.JWT_SECRET || 'salonlink_jwt_secret_2026', 'HS256')) as any
+    const payload = await import('hono/jwt').then(m => m.verifyToken(auth.split(' ')[1], c.env)) as any
     await c.env.DB.prepare('DELETE FROM push_subscriptions WHERE user_id = ?').bind(payload.sub).run()
     return c.json({ success: true })
   } catch (e: any) { return c.json({ success: false, error: e.message }, 500) }
@@ -163,7 +164,7 @@ notifications.get('/unread', async (c) => {
   try {
     const auth = c.req.header('Authorization')
     if (!auth?.startsWith('Bearer ')) return c.json({ items: [] })
-    const payload = await import('hono/jwt').then(m => m.verify(auth.split(' ')[1], c.env.JWT_SECRET || 'salonlink_jwt_secret_2026', 'HS256')) as any
+    const payload = await import('hono/jwt').then(m => m.verifyToken(auth.split(' ')[1], c.env)) as any
     const result = await c.env.DB.prepare(`
       SELECT id, type, title, body, url, is_read, created_at
       FROM notifications WHERE user_id = ? AND is_read = 0
@@ -178,7 +179,7 @@ notifications.post('/mark-read', async (c) => {
   try {
     const auth = c.req.header('Authorization')
     if (!auth?.startsWith('Bearer ')) return c.json({ success: false })
-    const payload = await import('hono/jwt').then(m => m.verify(auth.split(' ')[1], c.env.JWT_SECRET || 'salonlink_jwt_secret_2026', 'HS256')) as any
+    const payload = await import('hono/jwt').then(m => m.verifyToken(auth.split(' ')[1], c.env)) as any
     await c.env.DB.prepare('UPDATE notifications SET is_read=1 WHERE user_id=?').bind(payload.sub).run()
     return c.json({ success: true })
   } catch (e: any) { return c.json({ success: false }) }

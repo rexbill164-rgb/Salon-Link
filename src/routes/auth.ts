@@ -3,6 +3,19 @@ import { sign, verify } from 'hono/jwt'
 
 type Bindings = { DB: D1Database; JWT_SECRET?: string; ALLOW_DEMO_CODES?: string; ADMIN_EMAIL?: string; SENDGRID_KEY?: string; ULTRAMSG_TOKEN?: string; ULTRAMSG_INSTANCE?: string }
 
+
+// ── Dual-secret token verifier (handles tokens created before JWT_SECRET env var was set) ──
+export async function verifyToken(token: string, env: any): Promise<any> {
+  const secrets = [...new Set([env?.JWT_SECRET, 'salonlink_jwt_secret_2026'].filter(Boolean))]
+  for (const secret of secrets) {
+    try {
+      const { verify } = await import('hono/jwt')
+      return await verify(token, secret as string, 'HS256')
+    } catch {}
+  }
+  throw new Error('Invalid or expired token')
+}
+
 const auth = new Hono<{ Bindings: Bindings }>()
 
 function getJwtSecret(c: any): string {

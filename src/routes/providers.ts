@@ -1,3 +1,4 @@
+import { verifyToken } from './auth'
 import { Hono } from 'hono'
 import { verify } from 'hono/jwt'
 
@@ -557,7 +558,7 @@ providers.get('/me/points', async (c) => {
   try {
     const auth = c.req.header('Authorization')
     if (!auth?.startsWith('Bearer ')) return c.json({ success: false, error: 'Auth required' }, 401)
-    const payload = await import('hono/jwt').then(m => m.verify(auth.split(' ')[1], c.env.JWT_SECRET || 'salonlink_jwt_secret_2026', 'HS256')) as any
+    const payload = await import('hono/jwt').then(m => m.verifyToken(auth.split(' ')[1], c.env)) as any
     if (payload.role !== 'provider') return c.json({ success: false, error: 'Provider access required' }, 403)
 
     const provider = await c.env.DB.prepare('SELECT id, loyalty_points FROM providers WHERE user_id = ?').bind(payload.sub).first() as any

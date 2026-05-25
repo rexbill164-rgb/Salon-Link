@@ -596,10 +596,10 @@ ${navbar('home')}
 
     <div class="h-scroll" style="gap:20px;">
       ${[
-    { name: 'Akosua Mensah', role: 'Customer', loc: 'Accra', img: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=100&q=80', text: 'SalonLink completely transformed how I find hair appointments. Found a verified stylist in minutes!' },
-    { name: 'Efua Tetteh', role: 'Customer', loc: 'East Legon', img: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=100&q=80', text: 'The experience is so seamless. My stylist had my full style history ready on arrival.' },
+    { name: 'Akosua Mensah', role: 'Customer', loc: 'Accra', img: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=100&q=80', text: 'SalonLink completely transformed how I find hair appointments. Found a verified stylist in minutes!' },
+    { name: 'Efua Tetteh', role: 'Customer', loc: 'East Legon', img: 'https://images.unsplash.com/photo-1596815064285-45ed8a9c0463?w=100&q=80', text: 'The experience is so seamless. My stylist had my full style history ready on arrival.' },
     { name: 'Kofi Asante', role: 'Barbershop Owner', loc: 'Osu', img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80', text: 'Since joining SalonLink my bookings tripled. The verification makes clients trust us immediately.' },
-    { name: 'Ama Darko', role: 'Customer', loc: 'Airport Area', img: 'https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=100&q=80', text: 'Booking was so easy. I found a great nail artist close by with amazing reviews. Highly recommend!' },
+    { name: 'Ama Darko', role: 'Customer', loc: 'Airport Area', img: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=100&q=80', text: 'Booking was so easy. I found a great nail artist close by with amazing reviews. Highly recommend!' },
   ].map(t => `
         <div class="testimonial-card">
           <div class="testimonial-stars">★★★★★</div>

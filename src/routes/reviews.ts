@@ -1,3 +1,4 @@
+import { verifyToken } from './auth'
 import { Hono } from 'hono'
 
 type Bindings = { DB: D1Database }
@@ -26,7 +27,7 @@ reviews.post('/', async (c) => {
   try {
     const auth = c.req.header('Authorization')
     if (!auth?.startsWith('Bearer ')) return c.json({ success: false, error: 'Login required' }, 401)
-    const payload = await import('hono/jwt').then(m => m.verify(auth.split(' ')[1], c.env.JWT_SECRET || 'salonlink_jwt_secret_2026', 'HS256')) as any
+    const payload = await import('hono/jwt').then(m => m.verifyToken(auth.split(' ')[1], c.env)) as any
 
     const { provider_id, booking_id, rating, comment } = await c.req.json()
     if (!provider_id || !rating) return c.json({ success: false, error: 'provider_id and rating are required' }, 400)
