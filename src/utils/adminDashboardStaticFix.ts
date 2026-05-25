@@ -148,15 +148,9 @@ export function withAdminDashboardStaticFix(html: string): string {
     if(id==='users' && typeof window.loadUsers==='function') window.loadUsers();
     if(id==='payments' && typeof window.loadPaymentSummary==='function') window.loadPaymentSummary();
     if(id==='fees'){ if(typeof window.loadFeeSummary==='function') window.loadFeeSummary(); if(typeof window.loadFees==='function') window.loadFees('pending'); }
-    if(id==='registrants' && typeof window.loadRegistrants==='function') window.loadRegistrants(3650);
-    if(id==='rewards'){
-      if(typeof window.loadRewards==='function') window.loadRewards();
-      else setTimeout(function(){ if(typeof window.loadRewards==='function') window.loadRewards(); },500);
-    }
-    if(id==='points'){
-      if(typeof window.loadPointsSection==='function') window.loadPointsSection();
-      else setTimeout(function(){ if(typeof window.loadPointsSection==='function') window.loadPointsSection(); },500);
-    }
+    if(id==='registrants') rescueLoadRegistrants();
+    if(id==='rewards') rescueLoadRewards();
+    if(id==='points') rescueLoadPoints();
     if(id==='reconcile'){ var d=q('reconcile-date'); if(d&&!d.value)d.value=new Date().toISOString().split('T')[0]; }
   };
 
@@ -165,6 +159,208 @@ export function withAdminDashboardStaticFix(html: string): string {
     setTimeout(function(){ var splash=q('sl-launch-splash'); if(splash&&splash.parentNode)splash.parentNode.removeChild(splash); document.documentElement.classList.remove('sl-splash-lock'); },1500);
     setTimeout(loadAdminStatsSafe,250);
   });
+
+  // ── DIRECT RESCUE LOADERS — bypass page script issues ──
+  function rescueLoadRegistrants(){
+    var x = ax(); if(!x){ setTimeout(rescueLoadRegistrants, 300); return; }
+    var tbody = q('registrants-tbody');
+    if(tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:#6b7280;">Loading...</td></tr>';
+    x.get('/api/admin/registrants?days=3650', {headers:headers()}).then(function(r){
+      var rows = (r.data && r.data.registrants) || [];
+      var sum = q('reg-count-summary');
+      if(sum) sum.textContent = rows.length + ' registrants';
+      if(!tbody) return;
+      if(!rows.length){ tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:#6b7280;">No registrants yet.</td></tr>'; return; }
+      tbody.innerHTML = rows.map(function(u){
+        var when = u.created_at ? new Date(u.created_at).toLocaleDateString() : '-';
+        return '<tr>' +
+          '<td><div style="font-weight:600;">'+esc((u.first_name||'')+' '+(u.last_name||''))+'</div></td>' +
+          '<td style="font-size:11px;color:#6b7280;">'+esc(u.email||'')+'</td>' +
+          '<td style="font-size:11px;">'+esc(u.phone||'-')+'</td>' +
+          '<td><span style="font-size:10px;padding:3px 8px;border-radius:100px;background:'+(u.role==='provider'?'#dbeafe':'#fef3c7')+';color:'+(u.role==='provider'?'#1e40af':'#92400e')+';font-weight:600;">'+esc(u.role||'')+'</span></td>' +
+          '<td style="font-size:11px;">'+esc(u.business_name||'-')+'</td>' +
+          '<td>'+(u.is_verified ? '<span style="color:#059669;">✓</span>' : '<span style="color:#9ca3af;">—</span>')+'</td>' +
+          '<td>'+(u.kyc_status ? esc(u.kyc_status) : '-')+'</td>' +
+          '<td style="font-size:11px;color:#6b7280;">'+when+'</td>' +
+        '</tr>';
+      }).join('');
+    }).catch(function(){
+      if(tbody) tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:#dc2626;">Could not load. Please refresh.</td></tr>';
+    });
+  }
+
+  function rescueLoadRewards(){
+    var x = ax(); if(!x){ setTimeout(rescueLoadRewards, 300); return; }
+    var el = q('rewards-list');
+    if(el) el.innerHTML = '<div style="text-align:center;padding:24px;color:#6b7280;">Loading...</div>';
+    x.get('/api/admin/reward-items', {headers:headers()}).then(function(r){
+      var items = (r.data && r.data.items) || [];
+      if(!el) return;
+      if(!items.length){ el.innerHTML='<div style="text-align:center;padding:24px;color:#6b7280;">No reward items yet. Click "+ Add Reward Item" above.</div>'; return; }
+      el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;">' +
+        items.map(function(it){
+          var img = it.image_url ? '<img src="'+esc(it.image_url)+'" style="width:100%;height:120px;object-fit:cover;border-radius:12px 12px 0 0;" />' :
+            '<div style="width:100%;height:120px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:36px;border-radius:12px 12px 0 0;">🎁</div>';
+          return '<div style="border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;background:#fff;">' + img +
+            '<div style="padding:12px;">' +
+              '<div style="font-size:13px;font-weight:700;color:#111;margin-bottom:4px;">'+esc(it.name)+'</div>' +
+              '<div style="font-size:11px;color:#6b7280;margin-bottom:8px;min-height:28px;">'+esc(it.description||'')+'</div>' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<span style="font-size:13px;font-weight:800;color:#C9A84C;">⭐ '+num(it.points_required)+' pts</span>' +
+                '<button onclick="window.deleteRewardItem&&window.deleteRewardItem('+it.id+')" style="padding:4px 10px;border-radius:8px;border:none;background:#fee2e2;color:#dc2626;font-size:10px;font-weight:700;cursor:pointer;">Delete</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('') + '</div>';
+    }).catch(function(){
+      if(el) el.innerHTML='<div style="text-align:center;padding:24px;color:#dc2626;">Could not load rewards.</div>';
+    });
+  }
+
+  function rescueLoadPoints(){
+    var x = ax(); if(!x){ setTimeout(rescueLoadPoints, 300); return; }
+    var sel = q('pts-provider');
+    if(sel) sel.innerHTML = '<option value="">Loading...</option>';
+    x.get('/api/admin/providers', {headers:headers()}).then(function(r){
+      var providers = (r.data && r.data.providers) || [];
+      providers = providers.filter(function(p){ return p.is_verified; });
+      if(!sel) return;
+      if(!providers.length){ sel.innerHTML='<option value="">No providers</option>'; return; }
+      sel.innerHTML = '<option value="">Select provider...</option>' +
+        providers.map(function(p){ return '<option value="'+p.id+'">'+esc(p.business_name)+' ('+esc(p.email||'')+')</option>'; }).join('');
+    }).catch(function(){
+      if(sel) sel.innerHTML='<option value="">Error loading — refresh page</option>';
+    });
+    var board = q('points-leaderboard');
+    if(board) board.innerHTML = '<div style="text-align:center;padding:24px;color:#6b7280;">Loading...</div>';
+    x.get('/api/admin/providers/points', {headers:headers()}).then(function(r){
+      var providers = (r.data && r.data.providers) || [];
+      if(!board) return;
+      if(!providers.length){ board.innerHTML='<div style="color:#6b7280;font-size:13px;padding:12px;">No providers with points yet.</div>'; return; }
+      board.innerHTML = '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:#f9fafb;"><th style="padding:10px;text-align:left;font-size:11px;color:#6b7280;font-weight:700;">#</th><th style="padding:10px;text-align:left;font-size:11px;color:#6b7280;font-weight:700;">Provider</th><th style="padding:10px;text-align:left;font-size:11px;color:#6b7280;font-weight:700;">Email</th><th style="padding:10px;text-align:left;font-size:11px;color:#6b7280;font-weight:700;">Points</th></tr></thead><tbody>' +
+        providers.map(function(p,i){
+          return '<tr style="border-top:1px solid #e5e7eb;"><td style="padding:10px;font-weight:700;">'+(i+1)+'</td><td style="padding:10px;">'+esc(p.business_name)+'</td><td style="padding:10px;color:#6b7280;">'+esc(p.email||'')+'</td><td style="padding:10px;font-weight:800;color:#C9A84C;">⭐ '+num(p.loyalty_points)+'</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    }).catch(function(){
+      if(board) board.innerHTML='<div style="color:#dc2626;font-size:13px;padding:12px;">Could not load leaderboard.</div>';
+    });
+  }
+
+
+  // ── REWARD MODAL — works regardless of page script ──
+  function buildRewardModal(){
+    if(q('sl-rescue-reward-modal')) return;
+    var m = document.createElement('div');
+    m.id = 'sl-rescue-reward-modal';
+    m.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;align-items:center;justify-content:center;padding:20px;';
+    m.innerHTML = '<div style="background:#fff;border-radius:18px;padding:20px;max-width:440px;width:100%;max-height:90vh;overflow-y:auto;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">' +
+        '<h3 style="margin:0;font-size:16px;font-weight:800;">Add Reward Item</h3>' +
+        '<button onclick="document.getElementById(\'sl-rescue-reward-modal\').style.display=\'none\'" style="background:none;border:none;font-size:24px;color:#6b7280;cursor:pointer;line-height:1;">×</button>' +
+      '</div>' +
+      '<div style="margin-bottom:12px;">' +
+        '<label style="font-size:11px;font-weight:700;color:#6b7280;display:block;margin-bottom:6px;">NAME *</label>' +
+        '<input id="sl-rwd-name" type="text" placeholder="e.g. Hair Dryer" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;font-size:13px;box-sizing:border-box;"/>' +
+      '</div>' +
+      '<div style="margin-bottom:12px;">' +
+        '<label style="font-size:11px;font-weight:700;color:#6b7280;display:block;margin-bottom:6px;">DESCRIPTION</label>' +
+        '<textarea id="sl-rwd-desc" rows="2" placeholder="Brief description..." style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;font-size:13px;box-sizing:border-box;resize:vertical;"></textarea>' +
+      '</div>' +
+      '<div style="margin-bottom:12px;">' +
+        '<label style="font-size:11px;font-weight:700;color:#6b7280;display:block;margin-bottom:6px;">POINTS REQUIRED *</label>' +
+        '<input id="sl-rwd-points" type="number" placeholder="e.g. 100" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;font-size:13px;box-sizing:border-box;"/>' +
+      '</div>' +
+      '<div style="margin-bottom:14px;">' +
+        '<label style="font-size:11px;font-weight:700;color:#6b7280;display:block;margin-bottom:6px;">IMAGE</label>' +
+        '<label style="display:inline-block;padding:8px 16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;color:#1d4ed8;font-size:12px;font-weight:600;cursor:pointer;">📷 Upload Image' +
+          '<input id="sl-rwd-file" type="file" accept="image/*" style="display:none;" onchange="window.slRwdPreview(this)"/>' +
+        '</label>' +
+        '<canvas id="sl-rwd-canvas" style="display:none;"></canvas>' +
+        '<img id="sl-rwd-preview" style="display:none;width:100%;max-height:160px;object-fit:cover;border-radius:10px;margin-top:10px;border:1px solid #e5e7eb;"/>' +
+        '<input id="sl-rwd-image-url" type="hidden" value=""/>' +
+      '</div>' +
+      '<div style="display:flex;gap:10px;">' +
+        '<button onclick="document.getElementById(\'sl-rescue-reward-modal\').style.display=\'none\'" style="flex:1;padding:11px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;color:#374151;font-size:13px;font-weight:600;cursor:pointer;">Cancel</button>' +
+        '<button onclick="window.slRwdSave()" style="flex:1;padding:11px;border:none;border-radius:10px;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Save Item</button>' +
+      '</div>' +
+    '</div>';
+    document.body.appendChild(m);
+  }
+
+  window.slRwdPreview = function(input){
+    var file = input.files && input.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { toast('Image too large (max 2MB)', 'error'); input.value=''; return; }
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        try {
+          var canvas = q('sl-rwd-canvas');
+          var maxSize = 400;
+          var ratio = Math.min(maxSize/img.width, maxSize/img.height, 1);
+          canvas.width = Math.round(img.width * ratio);
+          canvas.height = Math.round(img.height * ratio);
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          var compressed = canvas.toDataURL('image/jpeg', 0.6);
+          var prev = q('sl-rwd-preview');
+          if (prev) { prev.src = compressed; prev.style.display = 'block'; }
+          q('sl-rwd-image-url').value = compressed;
+        } catch(err) {
+          q('sl-rwd-image-url').value = e.target.result;
+          var prev = q('sl-rwd-preview');
+          if (prev) { prev.src = e.target.result; prev.style.display = 'block'; }
+        }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  window.slRwdSave = function(){
+    var name = (q('sl-rwd-name')||{}).value || '';
+    var desc = (q('sl-rwd-desc')||{}).value || '';
+    var points = parseInt((q('sl-rwd-points')||{}).value) || 0;
+    var imgUrl = (q('sl-rwd-image-url')||{}).value || '';
+    if (!name.trim()) { toast('Name is required', 'error'); return; }
+    if (!points || points <= 0) { toast('Points required must be a positive number', 'error'); return; }
+    var x = ax(); if (!x) { toast('Loading... try again', 'error'); return; }
+    var btns = document.querySelectorAll('#sl-rescue-reward-modal button');
+    Array.prototype.forEach.call(btns, function(b){ b.disabled = true; });
+    x.post('/api/admin/reward-items', {
+      name: name.trim(), description: desc.trim(), points_required: points, image_url: imgUrl || null, is_available: true
+    }, { headers: headers() }).then(function(){
+      toast('Reward item added ✓', 'success');
+      q('sl-rescue-reward-modal').style.display = 'none';
+      q('sl-rwd-name').value = '';
+      q('sl-rwd-desc').value = '';
+      q('sl-rwd-points').value = '';
+      q('sl-rwd-image-url').value = '';
+      q('sl-rwd-preview').style.display = 'none';
+      rescueLoadRewards();
+    }).catch(function(e){
+      var msg = (e && e.response && e.response.data && e.response.data.error) || 'Could not save';
+      toast(msg, 'error');
+    }).finally(function(){
+      Array.prototype.forEach.call(btns, function(b){ b.disabled = false; });
+    });
+  };
+
+  window.deleteRewardItem = function(id){
+    if (!confirm('Delete this reward item?')) return;
+    var x = ax(); if (!x) return;
+    x.delete('/api/admin/reward-items/' + id, { headers: headers() })
+      .then(function(){ toast('Deleted', 'success'); rescueLoadRewards(); })
+      .catch(function(){ toast('Could not delete', 'error'); });
+  };
+
+  // Override openAddRewardModal to use our rescue modal
+  window.openAddRewardModal = function(){
+    buildRewardModal();
+    q('sl-rescue-reward-modal').style.display = 'flex';
+  };
+
 })();
 </script>`
 
