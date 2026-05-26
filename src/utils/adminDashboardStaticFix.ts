@@ -27,7 +27,7 @@ export function withAdminDashboardStaticFix(html: string): string {
   };
 
   function loadAdminStatsSafe(){
-    if(!ax())return;
+    if(!ax()){ setTimeout(loadAdminStatsSafe, 300); return; }
     if(!token()){ location.href='/login'; return; }
 
     set('kpi-users','...');
@@ -163,7 +163,7 @@ export function withAdminDashboardStaticFix(html: string): string {
   document.addEventListener('DOMContentLoaded',function(){
     if(!token()){ location.href='/login'; return; }
     setTimeout(function(){ var splash=q('sl-launch-splash'); if(splash&&splash.parentNode)splash.parentNode.removeChild(splash); document.documentElement.classList.remove('sl-splash-lock'); },1500);
-    setTimeout(loadAdminStatsSafe,250);
+    setTimeout(loadAdminStatsSafe,250); // has built-in retry now
   });
 })();
 </script>`
