@@ -125,6 +125,62 @@ export function withAdminDashboardStaticFix(html: string): string {
     });
   }
 
+  // ── KYC modal + actions: self-contained so the buttons this wrapper renders always work ──
+  window.closeKycModal = function(){ var m=q('kyc-modal-overlay'); if(m&&m.parentNode) m.parentNode.removeChild(m); };
+
+  function kycImgSrc(s){ if(!s||typeof s!=='string') return null; s=s.trim(); if(!s) return null; if(s.indexOf('data:image')===0||s.indexOf('http')===0) return s; return 'data:image/jpeg;base64,'+s; }
+
+  function kycAddImg(parent,label,src,circle){
+    var wrap=document.createElement('div'); wrap.style.cssText='margin-bottom:18px;';
+    var l=document.createElement('div'); l.style.cssText='font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.08em;text-align:left;font-weight:600;'; l.textContent=label; wrap.appendChild(l);
+    var im=document.createElement('img'); im.src=src;
+    im.style.cssText=circle?'width:160px;height:160px;object-fit:cover;border-radius:50%;display:block;margin:0 auto;cursor:pointer;border:3px solid rgba(255,255,255,0.15);':'width:100%;max-height:280px;object-fit:contain;border-radius:14px;background:#111;cursor:pointer;border:1px solid rgba(255,255,255,0.08);';
+    im.addEventListener('click',function(){ var lb=document.createElement('div'); lb.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.94);z-index:100001;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:16px;'; var big=document.createElement('img'); big.src=im.src; big.style.cssText='max-width:94vw;max-height:90vh;border-radius:12px;'; lb.appendChild(big); lb.addEventListener('click',function(){ if(lb.parentNode) lb.parentNode.removeChild(lb); }); document.body.appendChild(lb); });
+    im.addEventListener('error',function(){ im.style.display='none'; var er=document.createElement('div'); er.style.cssText='padding:16px;background:rgba(255,59,48,0.08);border:1px dashed rgba(255,59,48,0.3);border-radius:12px;color:#ff8a7a;font-size:12px;text-align:center;'; er.textContent='Image could not be displayed (may be too large or an unsupported format).'; wrap.appendChild(er); });
+    wrap.appendChild(im); parent.appendChild(wrap);
+  }
+
+  window.viewProviderKyc = function(providerId){
+    var a=ax(); if(!a){ toast('Still loading — try again','info'); return; }
+    window.closeKycModal();
+    var overlay=document.createElement('div');
+    overlay.id='kyc-modal-overlay';
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;';
+    overlay.addEventListener('click',function(e){ if(e.target===overlay) window.closeKycModal(); });
+    var card=document.createElement('div');
+    card.style.cssText='background:linear-gradient(160deg,#18181f,#1f1f2a);border-radius:24px;padding:28px;max-width:720px;width:100%;max-height:92vh;overflow-y:auto;position:relative;border:1px solid rgba(255,255,255,0.06);';
+    var close=document.createElement('button');
+    close.textContent='\\u2715';
+    close.style.cssText='position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.7);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:15px;';
+    close.addEventListener('click',window.closeKycModal); card.appendChild(close);
+    var title=document.createElement('div'); title.style.cssText='font-size:17px;font-weight:700;color:#fff;margin-bottom:20px;'; title.textContent='KYC Verification'; card.appendChild(title);
+    var content=document.createElement('div'); content.id='kyc-modal-content'; content.style.cssText='color:#888;text-align:center;padding:20px;'; content.textContent='Loading documents...'; card.appendChild(content);
+    overlay.appendChild(card); document.body.appendChild(overlay);
+
+    a.get('/api/admin/providers/'+providerId+'/kyc-images',{headers:headers()}).then(function(r){
+      var imgs=(r.data&&r.data.images)||{}; var ct=q('kyc-modal-content'); if(!ct) return;
+      ct.innerHTML=''; ct.style.textAlign='left'; ct.style.padding='0'; ct.style.color='#fff';
+      if(imgs.kyc_card_number){ var cb=document.createElement('div'); cb.style.cssText='margin-bottom:20px;padding:14px 18px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;'; var cl=document.createElement('div'); cl.style.cssText='font-size:10px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;'; cl.textContent='Ghana Card Number'; var cv=document.createElement('div'); cv.style.cssText='font-size:17px;font-weight:700;color:#fff;font-family:monospace;letter-spacing:0.06em;'; cv.textContent=imgs.kyc_card_number; cb.appendChild(cl); cb.appendChild(cv); ct.appendChild(cb); }
+      var f=kycImgSrc(imgs.kyc_front_url), b=kycImgSrc(imgs.kyc_back_url), s=kycImgSrc(imgs.kyc_selfie_url);
+      if(f) kycAddImg(ct,'Ghana Card — Front',f,false);
+      if(b) kycAddImg(ct,'Ghana Card — Back',b,false);
+      if(s) kycAddImg(ct,'Live Selfie',s,true);
+      if(!f&&!b&&!s&&!imgs.kyc_card_number){ ct.style.textAlign='center'; ct.style.padding='30px'; ct.style.color='rgba(255,255,255,0.6)'; ct.textContent='No documents uploaded yet.'; }
+    }).catch(function(e){
+      var ct=q('kyc-modal-content'); if(ct){ ct.style.color='#ff6b6b'; ct.textContent='Failed to load documents'+(e&&e.response&&e.response.status===403?' — session expired, please log in again.':'.'); }
+    });
+  };
+
+  function kycAction(id,status,verified,msg){
+    var a=ax(); if(!a) return;
+    a.patch('/api/admin/providers/'+id+'/kyc',{kyc_status:status,is_verified:verified},{headers:headers()}).then(function(){
+      toast(msg,'success'); var row=q('kyc-row-'+id); if(row&&row.parentNode) row.parentNode.removeChild(row);
+      window.closeKycModal(); if(typeof window.loadProviders==='function') window.loadProviders();
+    }).catch(function(){ toast('Action failed','error'); });
+  }
+  window.approveKyc=function(id){ kycAction(id,'approved',true,'Provider approved'); };
+  window.rejectKyc=function(id){ kycAction(id,'rejected',false,'Provider rejected'); };
+
   window.loadAdminStatsSafe=loadAdminStatsSafe;
   window.loadProviders=loadProvidersSafe;
   window.loadKyc=loadKycSafe;
