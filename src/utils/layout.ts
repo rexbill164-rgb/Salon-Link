@@ -1,3 +1,5 @@
+import { cleanIconTilesScript } from './cleanIconTiles'
+
 export const baseHead = (title: string, extra = '') => `
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
@@ -25,6 +27,7 @@ export const baseHead = (title: string, extra = '') => `
     .fresha-card{background:#fff;border-radius:16px;overflow:hidden;border:none;box-shadow:0 1px 3px rgba(0,0,0,.08);transition:all .25s var(--ease-smooth)}.fresha-card:hover{box-shadow:0 8px 30px rgba(0,0,0,.12);transform:translateY(-4px)}.fresha-search{display:flex;align-items:center;background:#fff;border-radius:100px;box-shadow:0 2px 12px rgba(0,0,0,.08);border:1px solid var(--i-faint);overflow:hidden;transition:box-shadow .2s}.fresha-search:hover{box-shadow:0 4px 20px rgba(0,0,0,.12)}.star-rating{color:#101010;font-weight:700}
   </style>
   ${extra}
+  ${cleanIconTilesScript}
 `
 
 export const navbar = (active = '') => {
