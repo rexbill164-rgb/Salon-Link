@@ -303,14 +303,7 @@ input:checked + .toggle-slider:before { transform:translateX(20px); }
             </div>
           </div>
 
-          <!-- Upgrade banner -->
-          <div id="pro-banner" style="background:linear-gradient(135deg,rgba(193,68,178,0.1),rgba(131,58,180,0.08));border:1px solid rgba(193,68,178,0.25);border-radius:12px;padding:14px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-            <div>
-              <div style="font-size:13px;font-weight:700;margin-bottom:2px;">🚀 Upgrade to Gallery Pro</div>
-              <div style="font-size:11px;color:var(--t-secondary);">Upload up to 10 photos · GHS 10/month</div>
-            </div>
-            <button onclick="upgradeGallery()" style="background:linear-gradient(135deg,#833ab4,#c144b2);color:white;border:none;padding:8px 18px;border-radius:100px;font-size:11px;font-weight:700;cursor:pointer;">Upgrade</button>
-          </div>
+          <!-- Gallery Pro is included with your account activation -->
 
           <!-- Cover image -->
           <div style="margin-bottom:20px;">
@@ -977,14 +970,7 @@ function deleteGalleryImage(id) {
     .catch(function(){ showToast('Delete failed', 'error'); });
 }
 
-function upgradeGallery() {
-  var ref = 'GALLERY-' + Date.now();
-  if (!confirm('Upgrade to Gallery Pro for GHS 10/month? Reference: '+ref+'. Contact admin via MoMo to pay.')) return;
-  var token = localStorage.getItem('sl_token');
-  axios.post('/api/uploads/subscribe-gallery', { payment_reference: ref }, { headers:{ Authorization:'Bearer '+token } })
-    .then(function(){ showToast('Gallery Pro activated! ✦', 'success'); document.getElementById('pro-banner').style.display='none'; })
-    .catch(function(e){ showToast(e.response?e.response.data.error:'Upgrade failed', 'error'); });
-}
+function upgradeGallery() { /* removed — Gallery Pro now included with GHS 10 account activation at signup */ }
 
 /* ── Location ── */
 function initLocationMap(lat, lng) {

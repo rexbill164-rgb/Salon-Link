@@ -10,6 +10,7 @@ import adminRoutes from './routes/admin'
 import uploadRoutes from './routes/uploads'
 import notificationRoutes from './routes/notifications'
 import messageRoutes from './routes/messages'
+import subscriptionRoutes from './routes/subscriptions'
 import { homePage } from './pages/home'
 import { loginPage } from './pages/login'
 import { registerPage } from './pages/register'
@@ -36,6 +37,7 @@ import { withProviderHeroIconActions } from './utils/providerHeroIconActions'
 import { withAdminDashboardStaticFix } from './utils/adminDashboardStaticFix'
 import { withPaymentDisabledUi } from './utils/paymentDisabledUi'
 import { withProviderKycLogoutFix } from './utils/providerKycLogoutFix'
+import { withProviderSubscriptionPaywall } from './utils/providerSubscriptionPaywall'
 import { withMessagesKeyboardFix } from './utils/messagesKeyboardFix'
 import { withMessagesRealtimeFix } from './utils/messagesRealtimeFix'
 import { withZoomLock } from './utils/zoomLock'
@@ -74,11 +76,13 @@ app.route('/api/admin', adminRoutes)
 app.route('/api/uploads', uploadRoutes)
 app.route('/api/notifications', notificationRoutes)
 app.route('/api/messages', messageRoutes)
+app.route('/api/subscriptions', subscriptionRoutes)
 
 const page = (html: string) =>
   withMobilePolish(withAppLaunchSplash(withZoomLock(withCustomerMessagesShortcut(html))))
 
 const providerDash = () =>
+  withProviderSubscriptionPaywall(
   withProviderBlueUi(
     withMobilePolish(
       withAppLaunchSplash(
@@ -97,6 +101,7 @@ const providerDash = () =>
         )
       )
     )
+  )
   )
 
 const noPay = (html: string) => page(withPaymentDisabledUi(html))
@@ -159,7 +164,7 @@ app.get('/login', (c) => c.html(page(loginPage())))
 app.get('/register', (c) => c.html(page(registerPage())))
 app.get('/dashboard', (c) => c.html(noPay(dashboardPage())))
 app.get('/provider/dashboard', (c) => c.html(providerDash()))
-app.get('/provider/onboarding', (c) => c.html(page(onboardingPage())))
+app.get('/provider/onboarding', (c) => c.html(page(withProviderSubscriptionPaywall(onboardingPage()))))
 app.get('/discover', (c) => c.html(page(withDiscoveryCardClickFix(withDiscoveryNearbyUi(discoveryPage())))))
 app.get('/provider/:id', (c) => c.html(providerProfile(c.req.param('id'))))
 app.get('/book/:id', (c) => c.html(noPay(bookingPage(c.req.param('id')))))

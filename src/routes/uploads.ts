@@ -83,8 +83,8 @@ uploads.post('/provider-gallery', async (c) => {
 
     if (galleryCount >= maxImages) {
       const msg = provider.has_pro_gallery
-        ? 'Gallery limit reached (10 images max on Pro plan)'
-        : 'Free plan limit reached (5 images). Upgrade to Gallery Pro (GHS 10/month) for up to 10 images.'
+        ? 'Gallery limit reached (10 images max)'
+        : 'Gallery limit reached (5 images). Complete your account activation to unlock up to 10 photos.'
       return c.json({ success: false, error: msg, upgrade_required: !provider.has_pro_gallery }, 403)
     }
 
