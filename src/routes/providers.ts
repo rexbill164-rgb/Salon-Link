@@ -56,6 +56,9 @@ providers.get('/', async (c) => {
       JOIN users u ON p.user_id = u.id
       LEFT JOIN provider_gallery cov ON cov.provider_id = p.id AND cov.is_logo = 2
       WHERE 1=1
+        AND EXISTS (SELECT 1 FROM provider_subscriptions ps WHERE ps.provider_id = p.id
+              AND ps.status = 'active'
+              AND (ps.billing_channel IN ('grandfather','card') OR ps.expires_at IS NULL OR ps.expires_at > datetime('now')))
     `
     const params: any[] = []
 
