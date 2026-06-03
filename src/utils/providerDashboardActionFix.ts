@@ -104,7 +104,7 @@ export function withProviderDashboardActionFix(html: string): string {
         grid.innerHTML = photos.map(function(photo){
           return '<div style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--c-surface);">' +
             '<img src="' + photo.image_url + '" style="width:100%;height:100%;object-fit:cover;"/>' +
-            '<button type="button" data-gallery-id="' + photo.id + '" class="pdash-delete-gallery" style="position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,0.55);border:none;color:white;cursor:pointer;font-size:10px;">×</button>' +
+            '<button type="button" data-gallery-id="' + photo.id + '" class="pdash-delete-gallery sl-gallery-delete-btn" style="position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;background:rgba(220,38,38,0.9);border:2px solid rgba(255,255,255,0.85);color:#fff;cursor:pointer;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;">\\u2715</button>' +
           '</div>';
         }).join('') + '<div onclick="triggerGalleryUpload()" class="gallery-add-btn"><div style="font-size:24px;">➕</div><div style="font-size:10px;color:var(--t-muted);margin-top:4px;">Add Photo</div></div>';
       })

@@ -17,13 +17,9 @@ export function withProviderGalleryDeleteFix(html: string): string {
     var label = document.getElementById('gallery-count-label');
     if (label) label.textContent = (isPro ? 'Pro' : 'Free') + ' plan: ' + visible.length + '/' + (isPro ? 10 : 5) + ' images';
     var html = visible.map(function(p){
-      return '<div style="border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;background:#fff;">' +
-        '<div style="aspect-ratio:1;overflow:hidden;">' +
-          '<img src="' + p.image_url + '" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy"/>' +
-        '</div>' +
-        '<div style="display:flex;justify-content:center;padding:6px;background:#f9fafb;border-top:1px solid #e5e7eb;">' +
-          '<button type="button" data-gallery-id="' + p.id + '" onclick="window.deleteGalleryImage&&window.deleteGalleryImage(' + p.id + ')" style="display:flex;align-items:center;gap:4px;padding:5px 12px;border-radius:7px;border:none;background:#dc2626;color:#fff;font-size:11px;font-weight:600;cursor:pointer;touch-action:manipulation;">Delete</button>' +
-        '</div>' +
+      return '<div style="position:relative;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;background:#fff;aspect-ratio:1;">' +
+        '<img src="' + p.image_url + '" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy"/>' +
+        '<button type="button" class="sl-gallery-delete-btn" data-gallery-id="' + p.id + '" onclick="window.deleteGalleryImage&&window.deleteGalleryImage(' + p.id + ')" aria-label="Delete photo" style="position:absolute;top:8px;right:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;cursor:pointer;background:rgba(220,38,38,0.9);color:#fff;border:2px solid rgba(255,255,255,0.85);border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.35);touch-action:manipulation;">\\u2715</button>' +
       '</div>';
     }).join('');
     html += '<div onclick="triggerGalleryUpload()" class="gallery-add-btn"><div style="font-size:24px;">➕</div><div style="font-size:10px;color:var(--t-muted);margin-top:4px;">Add Photo</div></div>';
