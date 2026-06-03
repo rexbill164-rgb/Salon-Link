@@ -127,6 +127,11 @@ export function withProviderBlueUi(html: string): string {
     border-radius:50% !important;
   }
 
+  /* Keep the Leaflet map (zoom control z-index ~1000) from painting over the side drawer */
+  #location-picker-map { isolation:isolate !important; position:relative !important; z-index:0 !important; }
+  .sidebar { z-index:1200 !important; }
+  .sidebar-overlay { z-index:1199 !important; }
+
   @media(max-width:768px){
     body { padding-top:0 !important; }
     .sidebar { width:260px !important; }
